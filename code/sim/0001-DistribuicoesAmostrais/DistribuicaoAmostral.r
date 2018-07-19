@@ -1,8 +1,8 @@
 
 # veja magalhães p. 237 para referências.
 
-n1<-100
-for(n in c(10,20,30,50,100,500,1000,5000)){
+n1<-150
+for(n in c(5,10,20,30,50,100,500,1000,5000)){
   med <- c();
   dp_a <- c();
   dp_p <- c();
@@ -14,9 +14,9 @@ for(n in c(10,20,30,50,100,500,1000,5000)){
   }
   print("===================="); 
   print(sprintf("n= %d", n ))
-  print(sprintf("media de X_bar= %f",mean(med))); #média das médias
+  print(sprintf("media de X_bar= %f, expected is 5. ",mean(med))); #média das médias
   print(sprintf("desvio padrão de X_bar= %f",sd(med))); #desvio padrão da coleção de médias
-  print(sprintf("desvio padrão de população = %f",sd(med)*sqrt(n))); #desvio padrão da população que originou as médias.
+  print(sprintf("desvio padrão de população = %f , expected is 10 ",sd(med)*sqrt(n))); #desvio padrão da população que originou as médias.
 }
 
 
