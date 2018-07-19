@@ -31,7 +31,7 @@ Item_5 | th5 *t1
 
 '
 #fitting model
-lavaan.lsat6.2pl.model.fit <- cfa(lavaan.lsat6.2pl.model, data = dat , std.lv=TRUE , ordered =c("Item_1","Item_2","Item_3","Item_4","Item_5"))
+lavaan.lsat6.2pl.model.fit <- cfa(lavaan.lsat6.2pl.model, data = dat , std.lv=TRUE , ordered =colnames(dat))
 summary(lavaan.lsat6.2pl.model.fit)
 #getting lambda values
 lambda <- lavInspect(lavaan.lsat6.2pl.model.fit,what = 'est')$lambda
@@ -68,9 +68,12 @@ PAR
 
 #estimating bidimensional parameters using lavaan. ??
 #estimating parameters using lavaan.
+# Aparently, this problem has too few itens per latent variable to be identifiablee
+# see equations (2.7) e (2.8) em Brown(2016) for details.
+
 lavaan.lsat6.2pl.model.2D <-'
-Theta1 =~ l11*Item_1 + l12*Item_2 + l13*Item_3 + 0*Item_4 + l15*Item_5
-Theta2 =~ l21*Item_1 + l22*Item_2 + 0*Item_3 + l24*Item_4 + l25*Item_5
+Theta1 =~ l11*Item_1 + l12*Item_2 + l13*Item_3 + l14*Item_4 + l15*Item_5
+Theta2 =~ l21*Item_1 + l22*Item_2 + l23*Item_3 + l24*Item_4 + l25*Item_5
 
 Item_1 | th1 *t1
 Item_2 | th2 *t1
@@ -83,7 +86,7 @@ lavaan.lsat6.2pl.model.2D.fit <- cfa(lavaan.lsat6.2pl.model.2D,
                                      data = dat , 
                                      std.lv=TRUE , #residual variance set to 1.0, 
                                      std.ov=TRUE,
-                                     ordered =c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                                     ordered =colnames(dat),
                                      debug=TRUE)
 
 summary ( lavaan.lsat6.2pl.model.2D.fit , standardized = TRUE )
