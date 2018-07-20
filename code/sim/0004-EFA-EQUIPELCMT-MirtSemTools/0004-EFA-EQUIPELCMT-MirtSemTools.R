@@ -32,9 +32,9 @@ ef2_irt <- efaUnrotate(data=LC.MT,
                        estimator="wlsmv", 
                        nf=2,
                        start=FALSE,
-                       std.lv=TRUE,
-                       ordered =colnames(LC.MT),
-                       debug=TRUE)
+#                       std.lv=TRUE,
+                       ordered =colnames(LC.MT)
+                       )
 
 summary(ef2_irt, std = TRUE)
 inspect(ef2_irt, "std")
