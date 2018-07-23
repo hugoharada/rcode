@@ -5,7 +5,6 @@ library(MASS)
 library(mirt)
 library(rockchalk)
 
-
 ###Generate person parameters
 N <- 10000
 
@@ -18,8 +17,8 @@ var(theta)
 ###Generate item parameters
 n <- 7 #number of itens
 
-a1 <- runif(n,0.1,1.2)
-a2 <- runif(n,0.1,1.2)
+a1 <- runif(n,-0.5,1)
+a2 <- runif(n,-0.5,1)
 d <- rnorm(n,0,1)
 item.par.sim <- cbind(a1,a2,d)
 
@@ -49,14 +48,20 @@ for (i in 1:N) {
 mirt.fit = mirt(x, model=2, itemtype = '2PL', method = 'EM', SE=TRUE)
 #getting coefficients
 item.par.est=coef(mirt.fit,
-                  rotate="oblimin",
+                  rotate="varimax",
                   simplify=TRUE)
 #checking parameter recovery
 var(theta)
 item.par.est$items
 item.par.sim
 
-cbind(item.par.est$items[,1],item.par.est$items[,2],item.par.est$items[,3])-item.par.sim
+item.par.est=coef(mirt.fit,
+                  rotate="oblimin",
+                  simplify=TRUE)
+#checking parameter recovery
+var(theta)
+item.par.est$items
+item.par.sim
 
 summary(mirt.fit) 
 
