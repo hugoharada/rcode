@@ -73,7 +73,7 @@ PAR
 
 lavaan.lsat6.2pl.model.2D <-'
 Theta1 =~ l11*Item_1 + l12*Item_2 + l13*Item_3 + l14*Item_4 + l15*Item_5
-Theta2 =~ l21*Item_1 + l22*Item_2 + l23*Item_3 + l24*Item_4 + l25*Item_5
+Theta2 =~ 0*Item_1 + l22*Item_2 + l23*Item_3 + l24*Item_4 + l25*Item_5
 
 Item_1 | th1 *t1
 Item_2 | th2 *t1
