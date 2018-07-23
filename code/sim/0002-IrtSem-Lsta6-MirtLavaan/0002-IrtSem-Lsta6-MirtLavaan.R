@@ -86,6 +86,7 @@ lavaan.lsat6.2pl.model.2D.fit <- cfa(lavaan.lsat6.2pl.model.2D,
                                      data = dat , 
                                      std.lv=TRUE , #residual variance set to 1.0, 
                                      std.ov=TRUE,
+                                     start = "simple",
                                      ordered =colnames(dat),
                                      debug=TRUE)
 
