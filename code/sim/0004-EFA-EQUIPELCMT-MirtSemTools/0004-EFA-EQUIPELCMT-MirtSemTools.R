@@ -1,7 +1,7 @@
 rm(list=ls())
 
+library(stats)
 library(semTools)
-
 
 #working on laptop
 setwd("C:\\Users\\hugo\\Google Drive\\IME-USP\\Tese\\longitudinalSEM\\dados\\EQUIPE-2017-S1-PROVA034-QUIZ538")
@@ -31,8 +31,8 @@ str(LC.MT)
 ef2_irt <- efaUnrotate(data=LC.MT,
                        estimator="wlsmv", 
                        nf=2,
-                       start=FALSE,
-#                       std.lv=TRUE,
+                       start=TRUE,
+                       parameterization = "delta",
                        ordered =colnames(LC.MT)
                        )
 
