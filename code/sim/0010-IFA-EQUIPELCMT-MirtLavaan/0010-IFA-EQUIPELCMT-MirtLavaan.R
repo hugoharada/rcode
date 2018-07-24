@@ -33,7 +33,7 @@ str(LC.MT)
  
  mirt.fit = mirt(LC.MT, model=model.2d, itemtype = '2PL', method = 'EM', SE=TRUE)  # 
  item.par.est=coef(mirt.fit,
-                   rotate="varimax",
+                   rotate="oblimin",
                    simplify=TRUE)
  #checking parameter recovery
  item.par.est$items
@@ -146,4 +146,19 @@ lambda2 <- lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$lambda
 #getting tau values
 lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$tau
 tau <- lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$tau
+
+item.par.sim <- matrix(0,84,3)
+colnames(item.par.sim) <- c("a1","a2","d")
+
+for(i in seq(1,84,1)){
+  for(j in c(1,2)){
+    item.par.sim[i,j] <- lambda2[i,j]/sqrt(1-t(lambda2[i,])%*%lambda2[i,])*1.7
+  }
+  item.par.sim[i,3] <- tau[i]/sqrt(1-t(lambda2[i,])%*%lambda2[i,])*1.7
+  
+}
+
+item.par.est$items[1,]
+item.par.sim[1,]
+cbind(item.par.est$items,item.par.sim)
 
