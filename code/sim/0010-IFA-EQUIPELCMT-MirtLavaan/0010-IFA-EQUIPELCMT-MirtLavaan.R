@@ -29,6 +29,7 @@ str(LC.MT)
  model.2d <- mirt.model('
                F1 = 1-39
                F2 = 40-84
+               COV = F1*F2
                       ')
  
  mirt.fit = mirt(LC.MT, model=model.2d, itemtype = '2PL', method = 'EM', SE=TRUE)  # 
