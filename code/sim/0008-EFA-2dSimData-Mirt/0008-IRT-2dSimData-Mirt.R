@@ -48,23 +48,12 @@ for (i in 1:N) {
 mirt.fit = mirt(x, model=2, itemtype = '2PL', method = 'EM', SE=TRUE)
 #getting coefficients
 item.par.est=coef(mirt.fit,
-                  rotate="varimax",
-                  simplify=TRUE)
-#checking parameter recovery
-var(theta)
-item.par.est$items
-item.par.sim
-
-item.par.est=coef(mirt.fit,
                   rotate="oblimin",
                   simplify=TRUE)
 #checking parameter recovery
 var(theta)
 item.par.est$items
 item.par.sim
-
-summary(mirt.fit) 
-
 
 
 
