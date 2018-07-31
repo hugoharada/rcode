@@ -68,6 +68,11 @@ str(ItemNames)
 raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
 str(raw_scores)
 
+#histograma das notas
+raw_scores$score
+str(raw_scores$score)
+histogram(raw_scores$score)
+
 # Analise de distratores
 distractorAnalysis(data,gabarito)
 
@@ -99,7 +104,14 @@ str(ItemNames)
 
 #scoring
 raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
+raw_scores
 str(raw_scores)
+
+#histograma das notas
+raw_scores$score
+str(raw_scores$score)
+histogram(raw_scores$score)
+
 
 # Analise de distratores
 distractorAnalysis(data,gabarito)
@@ -134,6 +146,12 @@ str(ItemNames)
 raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
 str(raw_scores)
 
+#histograma das notas
+raw_scores$score
+str(raw_scores$score)
+histogram(raw_scores$score)
+
+
 # Analise de distratores
 distractorAnalysis(data,gabarito)
 
@@ -166,6 +184,12 @@ str(ItemNames)
 #scoring
 raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
 str(raw_scores)
+
+#histograma das notas
+raw_scores$score
+str(raw_scores$score)
+histogram(raw_scores$score)
+
 
 # Analise de distratores
 distractorAnalysis(data,gabarito)
