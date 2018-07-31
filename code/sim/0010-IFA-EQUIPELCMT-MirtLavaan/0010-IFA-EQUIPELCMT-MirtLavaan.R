@@ -3,6 +3,13 @@ rm(list=ls())
 library(mirt)
 library(lavaan)
 
+################################################################
+#
+# Leitura e preparação dos dados
+#
+################################################################
+
+
 #working on laptop
 setwd("C:\\Users\\hugo\\Google Drive\\IME-USP\\Tese\\longitudinalSEM\\dados\\EQUIPE-2017-S1-PROVA034-QUIZ538")
 
@@ -26,22 +33,35 @@ head(LC.MT)
 dim(LC.MT)
 str(LC.MT)
 
- model.2d <- mirt.model('
+################################################################
+#
+# Código - pacote MIRT
+#
+################################################################
+
+model.2d <- mirt.model('
                F1 = 1-39
                F2 = 40-84
                COV = F1*F2
                       ')
  
- mirt.fit = mirt(LC.MT, model=model.2d, itemtype = '2PL', method = 'EM', SE=TRUE)  # 
- item.par.est=coef(mirt.fit,
+mirt.fit = mirt(LC.MT, model=model.2d, itemtype = '2PL', method = 'EM', SE=TRUE)  # 
+item.par.est=coef(mirt.fit,
                    rotate="oblimin",
                    simplify=TRUE)
- #checking parameter recovery
- item.par.est$items
- summary(mirt.fit)
- profic = fscores(mirt.fit) #estimativas das profici?ncias individuais
- head(profic)
- 
+#checking parameter recovery
+item.par.est$items
+summary(mirt.fit)
+profic = fscores(mirt.fit) #estimativas das profici?ncias individuais
+head(profic)
+
+
+################################################################
+#
+# Código - pacote lavaan
+#
+################################################################
+
 
 lavaan.lcmt.2pl.model <-'
 D1 =~ D1_LC051*LC051+D1_LC052*LC052+D1_LC053*LC053+D1_LC054*LC054+D1_LC055*LC055+D1_LC056*LC056+D1_LC057*LC057+D1_LC058*LC058+D1_LC059*LC059+D1_LC060*LC060+D1_LC061*LC061+D1_LC062*LC062+D1_LC063*LC063+D1_LC064*LC064+D1_LC065*LC065+D1_LC067*LC067+D1_LC068*LC068+D1_LC069*LC069+D1_LC070*LC070+D1_LC071*LC071+D1_LC072*LC072+D1_LC073*LC073+D1_LC074*LC074+D1_LC075*LC075+D1_LC076*LC076+D1_LC077*LC077+D1_LC078*LC078+D1_LC079*LC079+D1_LC080*LC080+D1_LC081*LC081+D1_LC082*LC082+D1_LC083*LC083+D1_LC084*LC084+D1_LC085*LC085+D1_LC086*LC086+D1_LC087*LC087+D1_LC088*LC088+D1_LC089*LC089+D1_LC090*LC090
@@ -139,6 +159,12 @@ summary ( lavaan.lcmt.2pl.model.fit , standardized = TRUE )
 head(LCPAR)
 head(MTPAR)
 fitMeasures(lavaan.lcmt.2pl.model.fit)
+
+################################################################
+#
+# Comparação das estimativas.
+#
+################################################################
 
 #getting lambda values
 lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$lambda
