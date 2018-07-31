@@ -177,6 +177,14 @@ head(b_array)
 b_array
 summary(b_array)
 
+setEPS()
+postscript("MEE-TRI-B-PLOT1.eps")
+plot(b_array[,1],b_array[,2], main = "MEE-TRI", xlab = "Parametro de dificuldade - est. TRI", ylab = "Parametro de discrimição - est. MEE")
+abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
+dev.off()
+
+
+
 d_array <- -a_array[1:39,2]*b_array[,2]
 d_array
 
