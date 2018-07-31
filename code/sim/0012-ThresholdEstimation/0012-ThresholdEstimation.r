@@ -1,7 +1,7 @@
 
 # Yves Roussel - Old and New approaches for the analyses of categorical data in a SEM framework. Slide 12/32
 
-#generate ordered data
+#generate ordered data with four categories
 Y <- sample(1:4, size=100,replace=TRUE)
 prop<- table(Y)/sum(table(Y))
 cprop <- c(0,cumsum(prop))
