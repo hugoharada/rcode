@@ -153,9 +153,12 @@ b_sem <- -beta/alpha
 
 # a comparison
 a_array <- cbind(a_irt[1:39],a_sem, abs(a_irt[1:39]-a_sem))
-colnames(a_array) <- c("a_irt", "a_sem", "diff")
+colnames(a_array) <- c("a_mirt", "a_lavaan", "diff")
 head(a_array)
 a_array
+
+xtable(a_array, label = "a_1d_lc_comp", caption="Valores estimados para o parâmetro a")
+
 summary(a_array)
 
 # plot as png 
@@ -172,9 +175,11 @@ dev.off()
 
 # b comparison
 b_array <- cbind(b_irt[1:39],b_sem, abs(b_irt[1:39]-b_sem))
-colnames(b_array) <- c("b_irt", "b_sem", "diff")
+colnames(b_array) <- c("b_mirt", "b_lavaan", "diff")
 head(b_array)
 b_array
+xtable(b_array, label = "b_1d_lc_comp", caption="Valores estimados para o parâmetro b")
+
 summary(b_array)
 
 setEPS()
