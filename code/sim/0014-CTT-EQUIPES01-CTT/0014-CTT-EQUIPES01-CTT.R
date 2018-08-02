@@ -108,9 +108,14 @@ raw_scores
 str(raw_scores)
 
 #histograma das notas
+
+# plot as png 
+setEPS()
+postscript("EQUIPE-S01-LC-HIST.eps")
 raw_scores$score
 str(raw_scores$score)
-histogram(raw_scores$score)
+hist(raw_scores$score, main = "Histograma dos Escores", xlab = "Escore bruto", ylab = "Frequencia")
+dev.off()
 
 
 # Analise de distratores
@@ -147,9 +152,12 @@ raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
 str(raw_scores)
 
 #histograma das notas
+setEPS()
+postscript("EQUIPE-S01-CN-HIST.eps")
 raw_scores$score
 str(raw_scores$score)
-histogram(raw_scores$score)
+hist(raw_scores$score, main = "Histograma dos Escores", xlab = "Escore bruto", ylab = "Frequencia")
+dev.off()
 
 
 # Analise de distratores
@@ -186,9 +194,12 @@ raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
 str(raw_scores)
 
 #histograma das notas
+setEPS()
+postscript("EQUIPE-S01-MT-HIST.eps")
 raw_scores$score
 str(raw_scores$score)
-histogram(raw_scores$score)
+hist(raw_scores$score, main = "Histograma dos Escores", xlab = "Escore bruto", ylab = "Frequencia")
+dev.off()
 
 
 # Analise de distratores
