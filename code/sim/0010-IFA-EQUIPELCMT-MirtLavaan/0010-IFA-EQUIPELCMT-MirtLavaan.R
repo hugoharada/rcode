@@ -2,6 +2,7 @@ rm(list=ls())
 
 library(mirt)
 library(lavaan)
+library(xtable)
 
 ################################################################
 #
@@ -42,8 +43,7 @@ str(LC.MT)
 model.2d <- mirt.model('
                F1 = 1-39
                F2 = 40-84
-               COV = F1*F2
-                      ')
+               COV = F1*F2')
  
 mirt.fit = mirt(LC.MT, model=model.2d, itemtype = '2PL', method = 'EM', SE=TRUE)  # 
 item.par.est=coef(mirt.fit,
@@ -156,8 +156,6 @@ MT180 | t180*t1
 
 lavaan.lcmt.2pl.model.fit <- cfa(lavaan.lcmt.2pl.model, data = LC.MT , std.lv=TRUE )
 summary ( lavaan.lcmt.2pl.model.fit , standardized = TRUE )
-head(LCPAR)
-head(MTPAR)
 fitMeasures(lavaan.lcmt.2pl.model.fit)
 
 ################################################################
@@ -169,13 +167,16 @@ fitMeasures(lavaan.lcmt.2pl.model.fit)
 #getting lambda values
 lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$lambda
 lambda2 <- lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$lambda
+colnames(lambda2) <- c("lambda1","lambda2")
 
 #getting tau values
 lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$tau
 tau <- lavInspect(lavaan.lcmt.2pl.model.fit,what = 'est')$tau
+colnames(tau) <- c("tau")
+
 
 item.par.sim <- matrix(0,84,3)
-colnames(item.par.sim) <- c("a1","a2","d")
+colnames(item.par.sim) <- c("aj1_lav","aj2_lav","dj_lav")
 
 for(i in seq(1,84,1)){
   for(j in c(1,2)){
@@ -187,5 +188,52 @@ for(i in seq(1,84,1)){
 
 item.par.est$items[1,]
 item.par.sim[1,]
-cbind(item.par.est$items,item.par.sim)
+
+mirt.par.est<-cbind(item.par.est$items[,1:3])
+colnames(mirt.par.est) <- c("aj1_mirt","aj2_mirt","dj_mirt")
+
+comp.table<-cbind(mirt.par.est, lambda2, tau, item.par.sim)
+
+
+##Longtable output for latex.
+
+tmp<-xtable(comp.table,latex.environments = "center",caption="Equivalência de parâmetros bidimensionais - Mirt vs Lavaan")
+
+add.to.row <- list(pos = list(0), command = NULL)
+command <- paste0("\\hline\n\\endhead\n",
+                  "\\hline\n",
+                  "\\multicolumn{", dim(tmp)[2] + 1, "}{l}",
+                  "{\\footnotesize Continued on next page}\n",
+                  "\\endfoot\n",
+                  "\\endlastfoot\n")
+add.to.row$command <- command
+
+print(tmp, hline.after=c(-1), add.to.row = add.to.row,
+      tabular.environment = "longtable")
+
+# EPS output
+
+setEPS()
+postscript("fMultiDimEquipeS01LcMtMirtLavEqui.eps")
+par(mfrow=c(3,1))
+
+plot(comp.table[,1],comp.table[,7], 
+     main = "Estimativas de aj1 ", 
+     xlab = "Est. MIRT", 
+     ylab = "Est. LAVAAN")
+abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
+
+plot(comp.table[,2],comp.table[,8], 
+     main = "Estimativas de aj2 ", 
+     xlab = "Est. MIRT", 
+     ylab = "Est. LAVAAN")
+abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
+
+plot(comp.table[,3],-comp.table[,9], 
+     main = "Estimativas de dj ", 
+     xlab = "Est. MIRT", 
+     ylab = "Est. LAVAAN")
+abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
+
+dev.off()
 
