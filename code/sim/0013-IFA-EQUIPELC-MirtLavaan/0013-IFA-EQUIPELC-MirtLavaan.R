@@ -63,11 +63,11 @@ head(PAR)
 profic = fscores(mirt.obj) #estimativas das profici?ncias individuais
 head(profic)
 
-
+par(mfrow=c(3,1))
 plot(mirt.obj,type='info')
-plot(mirt.obj,type='itemscore')
 plot(mirt.obj,type='itemscore', facet_items = FALSE)
 plot(mirt.obj,type='SE')
+plot(mirt.obj,type='itemscore')
 
 
 ################################################################
@@ -120,7 +120,8 @@ LC089 | t089*t1
 LC090 | t090*t1
 '
 
-lavaan.lc.2pl.model.fit <- cfa(lavaan.lc.2pl.model, data = lcdata , std.lv=TRUE )
+lavaan.lc.2pl.model.fit <- cfa(lavaan.lc.2pl.model, data = lcdata , std.lv=TRUE, estimator = "WLSMV") #works
+#lavaan.lc.2pl.model.fit <- cfa(lavaan.lc.2pl.model, data = lcdata , std.lv=TRUE, estimator = "PML") #works
 summary ( lavaan.lc.2pl.model.fit , standardized = TRUE )
 head(PAR)
 fitted(lavaan.lc.2pl.model.fit)
