@@ -13,7 +13,8 @@ library(xtable)
 
 
 #working on server00
-setwd("G:\\Meu Drive\\IME-USP\\RLanguage\\repository\\rcode\\code\\dat")
+setwd("H:\\Meu Drive\\IME-USP\\RLanguage\\repository\\rcode\\code\\dat")
+
 
 mydata = read.csv("EQUIPE-2017-S1-PROVA034-QUIZ538-GAB-RAW.TXT")
 #confirmando dimensoes
@@ -39,7 +40,36 @@ raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
 str(raw_scores)
 
 # Analise de distratores
-distractorAnalysis(data,gabarito)
+iteman<-distractorAnalysis(data,gabarito,nGroups=3)
+str(iteman)
+head(iteman)
+
+iteman[[1]] #iteman[["CH001"]]
+str(iteman[[1]])
+
+iteman[[1]][["lower"]][1]
+iteman[[1]][["mid66"]][1]
+iteman[[1]][["upper"]][1]
+
+
+plot(0,0,main = "distractor", type='n', xlim=c(1,3), ylim = c(0,1))
+cl <- rainbow(5)
+i_distr <-3
+dista <- c(iteman[[1]][["lower"]][i_distr],iteman[[1]][["mid66"]][i_distr],iteman[[1]][["upper"]][i_distr])
+lines(dista, type="l", col=cl[i_distr])
+
+
+
+plot(0,0,main = "distractor", type='n', xlim=c(1,3), ylim = c(0,1))
+cl <- rainbow(5)
+
+i_item <-3
+
+for(i_distr in 1:5){
+  dista <- c(iteman[[i_item]][["lower"]][i_distr],iteman[[i_item]][["mid66"]][i_distr],iteman[[i_item]][["upper"]][i_distr])
+  lines(dista, type="o", col=cl[i_distr], ljoin=2)
+}
+
 
 # Sumario das estatisticas dos itens
 str(raw_scores$scored)
@@ -47,6 +77,8 @@ dataframe <- as.data.frame(raw_scores$scored)
 str(dataframe)
 itemReportData <- itemAnalysis(dataframe, itemReport=TRUE)
 itemReportData$itemReport
+str(itemReportData)
+
 finalReport = cbind(ItemNames,itemReportData$itemReport)
 finalReport
 

@@ -12,8 +12,7 @@ library(mirt)
 
 
 #working on laptop
-setwd("C:\\Users\\hugo\\Google Drive\\IME-USP\\Tese\\longitudinalSEM\\dados\\EQUIPE-2017-S1-PROVA034-QUIZ538")
-source("C:\\Users\\hugo\\Google Drive\\IME-USP\\Tese\\longitudinalSEM\\dados\\EQUIPE-2017-S1-PROVA034-QUIZ538\\useful_functions.r", local = TRUE, encoding = "UTF-8")
+setwd("H:\\Meu Drive\\\\IME-USP\\Tese\\longitudinalSEM\\dados\\EQUIPE-2017-S1-PROVA034-QUIZ538")
 
 #working on server00
 setwd("G:\\Meu Drive\\IME-USP\\Tese\\longitudinalSEM\\dados\\EQUIPE-2017-S1-PROVA034-QUIZ538")
@@ -24,6 +23,7 @@ mydata = read.csv("EQUIPE-2017-S1-PROVA034-QUIZ538-DICOTOMICA.TXT")
 ncol(mydata)
 nrow(mydata)
 dim(mydata)
+str(mydata)
 
 # mudando o tipo das colunas de entrada para lavann
 mydata.factor <- mydata
@@ -33,7 +33,7 @@ mydata.factor[,2:176]<- lapply(mydata.factor[,2:176],as.ordered)
 #somente prova de LC
 lcdata <- cbind(mydata[,47:61],mydata[,63:86])
 head(lcdata)
-
+str(lcdata)
 ################################################################
 #
 # MIRT model

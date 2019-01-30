@@ -8,7 +8,7 @@ library(rockchalk)
 ###Generate person parameters
 N <- 10000
 
-theta <- mvrnorm(n=N, mu=c(0,0), Sigma = lazyCor(0.4, 2) )
+theta <- mvrnorm(n=N, mu=c(0,0), Sigma = lazyCor(0.3, 2) )
 head(theta)
 cor(theta)
 summary(theta)
@@ -17,8 +17,8 @@ var(theta)
 ###Generate item parameters
 n <- 7 #number of itens
 
-a1 <- runif(n,-0.5,1)
-a2 <- runif(n,-0.5,1)
+a1 <- runif(n,0.1,1)
+a2 <- runif(n,0.1,1)
 d <- rnorm(n,0,1)
 item.par.sim <- cbind(a1,a2,d)
 
