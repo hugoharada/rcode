@@ -5,9 +5,15 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+rm(list=ls())
+
+
 
 if(!require(mirt)) install.packages("mirt"); library(mirt)
 if(!require(mirtCAT)) install.packages("mirtCAT"); library(mirtCAT) 
+if(!require(ltm)) install.packages("ltm"); library(ltm)
+if(!require(lavaan)) install.packages("lavaan"); library(lavaan)
+library(ggplot2)
 
 set.seed(1) # Resetando a semente
 
@@ -29,6 +35,7 @@ X = runif(N*I);  dim(X)=c(N,I)   # matriz n x I de U(0,1)
 U = 1*(X<P)  ; U=as.data.frame(U) # AQUI TEMOS OS DADOS DICOTÔMICOS
 colnames(U)=paste0("Item.",1:I)
 
+
 rm(P,X,eta)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,9 +48,11 @@ profic = fscores(mirt.3PL) #estimativas das proficiências individuais
 PAR=cbind(PAR, -PAR[,2]/PAR[,1]) # Coloquei o "b"na última coluna
 colnames(PAR)=c("a","d","c","b")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+names <-1:50
 #%%%%%%%%%%%%%%%%%%%%%%%% REPRODUÇÃO DOS PARÂMETROS DOS ITENS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 plot(a,PAR[,1], main="Recuperação dos parâmetros de discriminação", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+text(a,PAR[,1], labels=names, cex= 0.7,pos=3)
+
 plot(b,PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
 plot(c,PAR[,3], main="Recuperação dos parâmetros de acerto casual",xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
 
@@ -52,9 +61,54 @@ plot(c,PAR[,3], main="Recuperação dos parâmetros de acerto casual",xlab="Valores
 plot(Theta,profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
 hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
 
+residuals<-(Theta-profic)
+describe(residuals)
+plot(residuals)
 
 
+head(cbind(profic,Theta))
+mean(profic)
+mean(Theta)
 
 
+pbis <-matrix(0,nrow = I,ncol=2)
+pbis1 <-matrix(0,nrow = I,ncol=1)
+for(i in 1:I){
+  pbis[i,1]<-i
+  pbis[i,2]<-biserial.cor(rowSums(U),U[,i],use = "complete.obs",level=2)
+#  pbis1[i]<-cor.test(rowSums(U),U[,i]) #verificar porque não funciona
+}
+
+colnames(pbis)=c("item","pbis")
+df.pbis<-data.frame(pbis)
+p<-ggplot(data=df.pbis, aes(x=item, y=pbis)) +
+  geom_bar(stat="identity")+
+  geom_text(aes(label=names), vjust=1.6, size=2, color="white")
+  
+p
+
+acomp<-cbind(a,PAR[,1],pbis)
+acomp[11,]
 
 
+mirt.3PL = mirt(U[,c(-10,-11,-27,-30)], 1, itemtype = '3PL')  # 
+PAR=coef(mirt.3PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
+profic = fscores(mirt.3PL) #estimativas das proficiências individuais
+dim(PAR)
+PAR=cbind(PAR, -PAR[,2]/PAR[,1]) # Coloquei o "b"na última coluna
+colnames(PAR)=c("a","d","c","b")
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+names <-1:50
+#%%%%%%%%%%%%%%%%%%%%%%%% REPRODUÇÃO DOS PARÂMETROS DOS ITENS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plot(a[c(-10,-11,-27,-30)],PAR[,1], main="Recuperação dos parâmetros de discriminação", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+text(a[c(-10,-11,-27,-30)],PAR[,1], labels=names, cex= 0.7,pos=2)
+
+plot(b,PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+plot(c,PAR[,3], main="Recuperação dos parâmetros de acerto casual",xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+plot(Theta,profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+
+library(psych)
+describe(profic)
+residuals<-(Theta-profic)
+describe(residuals)
+plot(residuals)
