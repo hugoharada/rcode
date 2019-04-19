@@ -11,6 +11,7 @@ library(directlabels)
 
 library(gridExtra)
 library(gtable)
+if(!require(ltm)) install.packages("ltm"); library(ltm)
 
 
 ################################################################
@@ -31,8 +32,9 @@ dim(mydata)
 colnames(mydata)
 str(mydata)
 head(mydata)
-gabarito <- mydata[1,2:176]
-data <-mydata[2:739,2:176]
+gabarito <- mydata[1,2:ncol(mydata)]
+data <-mydata[2:nrow(mydata),2:ncol(mydata)]
+
 ItemNames <- colnames(gabarito)
 str(ItemNames)
 
@@ -67,16 +69,25 @@ for(i in 3:nr){
 ################################################################
 
 #scoring
-raw_scores <- score(data,gabarito,output.scored=TRUE, rel=TRUE)
+raw_scores <- score(data[3:3545,],gabarito,output.scored=TRUE, rel=TRUE)
 str(raw_scores)
+
+biserial.cor(rowSums(raw_scores$scored),raw_scores$scored[,1],use = "complete.obs",level=2)
+
+cor.test(rowSums(raw_scores$scored),raw_scores$scored[,1])
 
 # Analise de distratores
 rm(iteman)
-iteman<-distractorAnalysis(data,gabarito,nGroups=3)
+iteman<-distractorAnalysis(data[3:3545,],gabarito,nGroups=3,na.rm=TRUE)
 iteman
 str(iteman)
 head(iteman)
 class(iteman)
+
+
+scoreddata <- mult.choice(data,gabarito)
+
+biserial.cor(rowSums(scoreddata),scoreddata[,1],use = "complete.obs")
 
 names(iteman) #list
 class(iteman[[1]]) #dataframe

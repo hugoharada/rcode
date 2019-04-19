@@ -25,3 +25,5 @@ inspect(ef2_irt, "std")
 ef2_ob <- oblqRotate(ef2_irt,
                      method="oblimin")
 summary(ef2_ob,suppress=.001)
+
+

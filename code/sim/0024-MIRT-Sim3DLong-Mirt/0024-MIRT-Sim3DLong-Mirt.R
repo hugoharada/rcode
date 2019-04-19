@@ -43,10 +43,11 @@ Sigma <- lazyCor(c(rho,rho,rho))
 Sigma = lazyCor(c(rho,rho*rho,rho))
 
 #Matriz de Covariância de bandas
-Sigma = lazyCor(c(rho,0,0))
+#Sigma = lazyCor(c(rho,0,0))
 
 
 Sigma
+
 
 
 Theta <- mvrnorm(n=N, mu=c(0,0,0), Sigma )
@@ -56,6 +57,8 @@ summary(Theta)
 var(Theta)
 dim(Theta)
 
+
+testdata <- simdata(a,d,N,itemtype = '2PL')
 
 for(iter in 1:niter)
 { 
@@ -78,7 +81,7 @@ rm(P,X,eta)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 mirt.2PL = mirt(U1, 1, itemtype = '2PL')  # 
 PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
+theta.mirt.1 = fscores(mirt.2PL, verbose=TRUE) #estimativas das proficiências individuais
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #%%%%%%%%%%%%%%%%%%%%  TRANSFORMAÇÃO PARA OBTER A DIFICULDADE (b) %%%%%%%%%%%%%%%%%%%%%%%%
@@ -92,9 +95,15 @@ plot(b[1:30],PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Val
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%  REPRODUÇÃO DAS PROFICIÊNCIAS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-plot(Theta[,1],profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
+plot(Theta[,1],theta.mirt.1[,], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+plot(Theta[1:20,1],theta.mirt.1[1:20,], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+hist(theta.mirt.1, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
 
+head(cbind(Theta[1:10,1],theta.mirt.1[1:10]))
+mean(Theta[,1])
+mean(theta.mirt.1)
+sd(Theta[,1])
+sd(theta.mirt.1)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # momento 2
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -112,7 +121,7 @@ rm(P,X,eta)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 mirt.2PL = mirt(U2, 1, itemtype = '2PL')  # 
 PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
+theta.mirt.2 = fscores(mirt.2PL) #estimativas das proficiências individuais
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #%%%%%%%%%%%%%%%%%%%%  TRANSFORMAÇÃO PARA OBTER A DIFICULDADE (b) %%%%%%%%%%%%%%%%%%%%%%%%
@@ -126,8 +135,15 @@ plot(b[21:50],PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Va
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%  REPRODUÇÃO DAS PROFICIÊNCIAS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-plot(Theta[,2],profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
+plot(Theta[,2],theta.mirt.2, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+plot(Theta[1:20,2],theta.mirt.2[1:20,], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+hist(theta.mirt.2, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
+
+head(cbind(Theta[1:10,2],theta.mirt.2[1:10]))
+mean(Theta[,2])
+mean(theta.mirt.2)
+sd(Theta[,2])
+sd(theta.mirt.2)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -147,7 +163,7 @@ rm(P,X,eta)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 mirt.2PL = mirt(U3, 1, itemtype = '2PL')  # 
 PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
+theta.mirt.3 = fscores(mirt.2PL) #estimativas das proficiências individuais
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #%%%%%%%%%%%%%%%%%%%%  TRANSFORMAÇÃO PARA OBTER A DIFICULDADE (b) %%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,11 +177,18 @@ plot(b[41:70],PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Va
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%  REPRODUÇÃO DAS PROFICIÊNCIAS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-plot(Theta[,3],profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
+plot(Theta[,3],theta.mirt.3, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+plot(Theta[1:20,3],theta.mirt.3[1:20,], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+hist(theta.mirt.3, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
 
+head(cbind(Theta[1:10,3],theta.mirt.3[1:10]))
+mean(Theta[,3])
+mean(theta.mirt.3)
+sd(Theta[,3])
+sd(theta.mirt.3)
 
-
+cov(Theta)
+cov(cbind(theta.mirt.1, theta.mirt.2, theta.mirt.3))
 
 head(U1)
 head(U2)
@@ -408,27 +431,61 @@ abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
 # use pars="values" to get the parameters table to set the items parameters values starting values. 
 # in column "value" set the starting value
 # in column "est" set to FALSE to disable estimation. If set to TRUE the parameter will be estimated.
+
+# momento 1
 parameters = mirt(U1, 1, itemtype = '2PL', pars = "values")
 str(parameters)
 
 parameters$value[parameters$name=="a1"] #list all lines labed "a1"
 parameters$value[parameters$name=="a1"] <- item.par.sim[1:30,1]
 parameters$est[parameters$name=="a1"] <- FALSE
-parameters$value[parameters$name=="d"] #list all lines labed "a1"
+parameters$value[parameters$name=="d"] #list all lines labed "d"
 parameters$value[parameters$name=="d"] <- item.par.sim[1:30,4]
 parameters$est[parameters$name=="d"] <- FALSE
 
 mirt.2PL = mirt(U1, 1, itemtype = '2PL', pars = parameters)
 PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
-
+profic1 = fscores(mirt.2PL) #estimativas das proficiências individuais
 plot(Theta[,1],profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
+
+
+# momento 2
+parameters = mirt(U2, 1, itemtype = '2PL', pars = "values")
+str(parameters)
+
+parameters$value[parameters$name=="a1"] #list all lines labed "a1"
+parameters$value[parameters$name=="a1"] <- item.par.sim[31:60,2]
+parameters$est[parameters$name=="a1"] <- FALSE
+parameters$value[parameters$name=="d"] #list all lines labed "d"
+parameters$value[parameters$name=="d"] <- item.par.sim[31:60,4]
+parameters$est[parameters$name=="d"] <- FALSE
+
+mirt.2PL = mirt(U2, 1, itemtype = '2PL', pars = parameters)
+PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
+profic2 = fscores(mirt.2PL) #estimativas das proficiências individuais
+plot(Theta[,2],profic2, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+
+# momento 3
+parameters = mirt(U3, 1, itemtype = '2PL', pars = "values")
+str(parameters)
+
+parameters$value[parameters$name=="a1"] #list all lines labed "a1"
+parameters$value[parameters$name=="a1"] <- item.par.sim[61:90,3]
+parameters$est[parameters$name=="a1"] <- FALSE
+parameters$value[parameters$name=="d"] #list all lines labed "d"
+parameters$value[parameters$name=="d"] <- item.par.sim[61:90,4]
+parameters$est[parameters$name=="d"] <- FALSE
+
+mirt.2PL = mirt(U3, 1, itemtype = '2PL', pars = parameters)
+#PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
+profic3 = fscores(mirt.2PL) #estimativas das proficiências individuais
+plot(Theta[,3],profic3, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+
 
 
 # # código abaixo checa se a programação esta correta.
 # # grafico final deve ser uma linha y=x 
-# mirt.2PL = mirt(U1, 1, itemtype = '2PL')  # 
+# mirt.2PL = mirt(U1, 1, itemtype = '2PL')  #
 # PAR1=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
 # profic1 = fscores(mirt.2PL) #estimativas das proficiências individuais
 # parameters = mirt(U1, 1, itemtype = '2PL', pars = "values")
@@ -442,3 +499,23 @@ hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Freq
 # profic = fscores(mirt.2PL) #estimativas das proficiências individuais
 # plot(profic1,profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
 
+library(ggplot2)
+
+dim(Theta)
+ncol(Theta)
+gmat <- matrix(nrow = nrow(Theta)*3,ncol=3)
+colnames(gmat) <- c("individuo", "theta","momento")
+for(i in 1:nrow(Theta)){
+  for(j in 1:ncol(Theta)){
+    gmat[3*(i-1)+j,1]<- i
+    gmat[3*(i-1)+j,2]<- Theta[i,j]
+    gmat[3*(i-1)+j,3]<- j
+  }
+}
+
+df<-data.frame(gmat)
+
+ggplot(df[1:450,],aes(momento, theta, group=individuo)) +geom_line()
+ggplot(df,aes(momento, theta, group=individuo)) +geom_line()
+
+cor(Theta[1,],Theta[2,])

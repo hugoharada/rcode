@@ -11,17 +11,16 @@ if(!require(lavaan)) install.packages("lavaan"); library(lavaan)
 
 
 ###Generate person parameters
-## subjects
-N <- 1000
-#theta <- rnorm(N,0,1)
-
 
 set.seed(1) # Resetando a semente
 
+N <- 10000 ## subjects
 I= 70  # Number of Items
-N = 30*334
-
 PL=2 # Logistic Model (1,2,3 parameters)
+SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariância AR1, 2 =  Covariância de bandas
+rho<-0.7
+
+
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
 
@@ -31,21 +30,18 @@ if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
   
 d=-a*b # MIRT trabalha com o intercepto (d=-ab) e não com a dificuldade (b)
 
-rho<-0.7
+if(SigmaType==0){
+  Sigma <- lazyCor(c(rho,rho,rho)) #Matriz de Covariância Uniforme
+}else if(SigmaType==1){
+  Sigma <- lazyCor(c(rho,rho*rho,rho)) #Matriz de Covariância AR(1)
+}else if(SigmaType==2){
+  Sigma <- lazyCor(c(rho,0,0)) #Matriz de Covariância de bandas
+}else{
+  Sigma <- NULL
+}
 
-
-#Matriz de Covariância Uniforme
-Sigma <- lazyCor(c(rho,rho,rho))
-
-#Matriz de Covariância AR(1)
-Sigma = lazyCor(c(rho,rho*rho,rho))
-
-#Matriz de Covariância de bandas
-Sigma = lazyCor(c(rho,0,0))
-
-
-Sigma
 Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+
 head(Theta)
 cor(Theta)
 summary(Theta)
@@ -64,26 +60,6 @@ colnames(U1)=paste0("Item.",1:30,".t1")
 
 rm(P,X,eta)
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-mirt.2PL = mirt(U1, 1, itemtype = '2PL')  # 
-PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%  TRANSFORMAÇÃO PARA OBTER A DIFICULDADE (b) %%%%%%%%%%%%%%%%%%%%%%%%
-PAR=cbind(PAR, -PAR[,2]/PAR[,1]) # Coloquei o "b"na última coluna
-colnames(PAR)=c("a","d","c","b")
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%%%%% REPRODUÇÃO DOS PARÂMETROS DOS ITENS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-plot(a[1:30],PAR[,1], main="Recuperação dos parâmetros de discriminação", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-plot(b[1:30],PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%  REPRODUÇÃO DAS PROFICIÊNCIAS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-plot(Theta[,1],profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # momento 2
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -96,27 +72,6 @@ U2 = 1*(X<P)  ; U2=as.data.frame(U2) # AQUI TEMOS OS DADOS DICOTÔMICOS
 colnames(U2)=paste0("Item.",21:50,".t2")
 
 rm(P,X,eta)
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-mirt.2PL = mirt(U2, 1, itemtype = '2PL')  # 
-PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%  TRANSFORMAÇÃO PARA OBTER A DIFICULDADE (b) %%%%%%%%%%%%%%%%%%%%%%%%
-PAR=cbind(PAR, -PAR[,2]/PAR[,1]) # Coloquei o "b"na última coluna
-colnames(PAR)=c("a","d","c","b")
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%%%%% REPRODUÇÃO DOS PARÂMETROS DOS ITENS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-plot(a[21:50],PAR[,1], main="Recuperação dos parâmetros de discriminação", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-plot(b[21:50],PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%  REPRODUÇÃO DAS PROFICIÊNCIAS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-plot(Theta[,2],profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -133,35 +88,125 @@ colnames(U3)=paste0("Item.",41:70,".t3")
 rm(P,X,eta)
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-mirt.2PL = mirt(U2, 1, itemtype = '2PL')  # 
-PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%  TRANSFORMAÇÃO PARA OBTER A DIFICULDADE (b) %%%%%%%%%%%%%%%%%%%%%%%%
-PAR=cbind(PAR, -PAR[,2]/PAR[,1]) # Coloquei o "b"na última coluna
-colnames(PAR)=c("a","d","c","b")
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%%%%% REPRODUÇÃO DOS PARÂMETROS DOS ITENS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-plot(a[41:70],PAR[,1], main="Recuperação dos parâmetros de discriminação", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-plot(b[41:70],PAR[,4], main="Recuperação dos parâmetros de dificuldade",xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%  REPRODUÇÃO DAS PROFICIÊNCIAS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-plot(Theta[,3],profic, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
-hist(profic, main="Recuperação das proficiências", xlab="Estimativas",ylab="Frequência")
-
-
-
-
 head(U1)
 head(U2)
 head(U3)
 U<-cbind(U1,U2,U3)
 head(U)
 
+mNA = rep(NA,(N*20));  dim(mNA)=c(N,20)   # matriz n x I de U(0,1)
+dim(mNA)
+
+itemnames <- c(1:70)
+U1t1 <- cbind(U1,mNA,mNA)
+names(U1t1)<-itemnames
+U2t2 <- cbind(mNA,U2,mNA)
+names(U2t2)<-itemnames
+U3t3 <- cbind(mNA,mNA,U3)
+names(U3t3)<-itemnames
+
+#group names
+group_names= paste0("G",rep(1:3, each=N)) #G1...G1,G2...G2, G3..G3
+
+group_names[0:10]
+group_names[9990:10020]
+group_names[19990:20020]
+
+Ut <-rbind(U1t1,U2t2,U3t3)
+str(Ut)
+Ut[9990:10010,15:35]
+dim(Ut)
+Ut[19990:20010,35:55]
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  ESTIMAÇÃO PELO MIRT  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+#models <- 'F1 = 1-30
+#           F2 = 21-50
+#           F3 = 41-70'
+
+models <- 'F1 = 1-70'
+mod_long <- multipleGroup( data=Ut, 
+                           model=models, 
+                           group = group_names,
+                           itemtype='2PL',
+                           invariance = c(itemnames,'free_means','free_var','slopes','intercepts')) 
+
+par<-coef(mod_long,simplify=TRUE,IRTpars = TRUE)
+par
+str(coef(mod_long,simplify=TRUE))
+profic = fscores(mod_long) #estimativas das proficiÃªncias individuais
+mean(profic)
+
+par2<-mod2values(mod_long) # getting everything that was estimated. Like pars='values'
+
+plot(a[1:30],par$G1[1][['items']][1:30,1], 
+     main="Recuperação dos parâmetros de discriminação - a - t1", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue",)
+
+
+plot(a[21:50],par$G1[1][['items']][21:50,1], 
+     main="Recuperação dos parâmetros de discriminação - a - t2", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue",)
+
+plot(a[41:70],par$G1[1][['items']][41:70,1], 
+     main="Recuperação dos parâmetros de discriminação - a -t3", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue",)
+
+
+
+
+
+plot(b[1:30],par$G1[1][['items']][1:30,2], 
+     main="Recuperação dos parâmetros de dificuldade - b - t1", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue",)
+
+
+plot(b[21:50],par$G1[1][['items']][21:50,2], 
+     main="Recuperação dos parâmetros de dificuldade - b - t2", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue",)
+
+
+plot(b[41:70],par$G1[1][['items']][41:70,2], 
+     main="Recuperação dos parâmetros de dificuldade - b - t3", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue",)
+
+
+plot(Theta[,1],profic[1:N], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+mean(profic[1:N])
+sd(profic[1:N])
+
+plot(Theta[,2],profic[(N+1):(2*N)], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+mean(profic[(N+1):(2*N)])
+sd(profic[(N+1):(2*N)])
+
+
+plot(Theta[,3],profic[(2*N+1):(3*N)], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+mean(profic[(2*N+1):(3*N)])
+sd(profic[(2*N+1):(3*N)])
+
+cor(cbind(profic[1:N],
+      profic[(N+1):(2*N)],
+      profic[(2*N+1):(3*N)] ))
 
 p1<-paste("lambda",1:30,".t1*Item.",1:30,".t1",sep="",collapse = " + ")
 p1<-paste("d1 =~",p1,sep="",collapse = "")
@@ -305,9 +350,16 @@ Item.70.t3 | tlambda70.t3*t1
 
 '
 
-lavaan.model.fit <- cfa(lavaan.model, data = U , std.lv=TRUE )
+lavaan.model.fit <- cfa(lavaan.model, data = U , 
+                        std.lv=TRUE,
+                        parameterization="delta")
 summary ( lavaan.model.fit , standardized = TRUE )
-blavaan.fit<-fitMeasures(lavaan.model.fit)
+fitMeasures(lavaan.model.fit)
+
+
+
+
+
 
 #library("semPlot")
 #semPaths(lavaan.model.fit,title=FALSE, curvePivot = TRUE)
@@ -316,27 +368,59 @@ blavaan.fit<-fitMeasures(lavaan.model.fit)
 
 
 #getting lambda values
-lavInspect(lavaan.model.fit,what = 'est')$lambda
+lavInspect(lavaan.model.fit,what = 'est')$lambda #loadings 
 lambda2 <- lavInspect(lavaan.model.fit,what = 'est')$lambda
-colnames(lambda2) <- c("lambda1","lambda2","lambda3")
+colnames(lambda2) <- c("lambda1","lambda2")
 
 #getting tau values
-lavInspect(lavaan.model.fit,what = 'est')$tau
+lavInspect(lavaan.model.fit,what = 'est')$tau #intercepts
 tau <- lavInspect(lavaan.model.fit,what = 'est')$tau
 colnames(tau) <- c("tau")
 
+#getting mean values
+lavInspect(lavaan.model.fit,what = 'est')$alpha # same as lavInspect(lavaan.model.fit,what = "mean.lv")
+mu <- lavInspect(lavaan.model.fit,what = 'est')$alpha
 
-item.par.sim <- matrix(0,90,4)
-colnames(item.par.sim) <- c("aj_t1_lav","aj_t2_lav","aj_t3_lav","dj_lav")
+#getting cov values
+lavInspect(lavaan.model.fit,what = 'est')$psi # same as lavInspect(lavaan.model.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(lavaan.model.fit,what = 'est')$psi)
 
-for(i in seq(1,90,1)){
-  for(j in c(1,2,3)){
+
+##################################################################
+#
+# Calculo dos parâmetros
+#
+##################################################################
+
+
+item.par.sim <- matrix(0,90,5)
+colnames(item.par.sim) <- c("aj_t1_lav","aj_t2_lav","aj_t3_lav","dj_lav", "bj_lav")
+
+
+
+
+
+#lavaan.model.fit <- cfa(lavaan.model, data = U , 
+#                        std.lv=TRUE,
+#                        parameterization="delta")
+for(i in seq(1,90,1)){# i items
+  for(j in c(1,2,3)){ # j moments
     item.par.sim[i,j] <- lambda2[i,j]/sqrt(1-t(lambda2[i,])%*%lambda2[i,])*1.7
   }
   item.par.sim[i,4] <- tau[i]/sqrt(1-t(lambda2[i,])%*%lambda2[i,])*1.7
 }
 
+item.par.sim
 
+for(i in seq(1,90,1)){# i items
+  if(i>=0 && i<=30){
+    item.par.sim[i,5] <- -item.par.sim[i,4]/item.par.sim[i,1] #b
+  }else if(i>=31 && i<=60){
+    item.par.sim[i,5] <- -item.par.sim[i,4]/item.par.sim[i,2] #b
+  }else{
+    item.par.sim[i,5] <- -item.par.sim[i,4]/item.par.sim[i,3] #b
+  }
+}
 
 item.par.sim
 
@@ -345,16 +429,14 @@ plot(a[1:30],item.par.sim[1:30,1],
      xlab = "Valor real", 
      ylab = "Est. LAVAAN",
      asp=1)
-
 abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
 
-plot(d[1:30],-item.par.sim[1:30,4], 
-     main = "Estimativas de d - momento 1 ", 
+plot(b[1:30],-item.par.sim[1:30,5], 
+     main = "Estimativas de b - momento 1 ", 
      xlab = "Valor real", 
      ylab = "Est. LAVAAN",
      asp=1)
 abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
-
 
 plot(a[21:50],item.par.sim[31:60,2], 
      main = "Estimativas de a - momento 2 ", 
@@ -363,12 +445,19 @@ plot(a[21:50],item.par.sim[31:60,2],
      asp=1)
 abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
 
-plot(d[21:50],-item.par.sim[31:60,4], 
-     main = "Estimativas de d - momento 2 ", 
+plot(b[21:50],-item.par.sim[31:60,5], 
+     main = "Estimativas de b - momento 2 ", 
      xlab = "Valor real", 
      ylab = "Est. LAVAAN",
      asp=1)
 abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
+
+data<-cbind(b[21:50],-item.par.sim[31:60,5])
+colnames(data)=c("real","est")
+reg1 <- lm(est~real,data=data.frame(data) )
+summary(reg1)
+abline(reg1)
+
 
 
 plot(a[41:70],item.par.sim[61:90,3], 
@@ -378,26 +467,133 @@ plot(a[41:70],item.par.sim[61:90,3],
      asp=1)
 abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
 
-plot(d[41:70],-item.par.sim[61:90,4], 
-     main = "Estimativas de d  - momento 3 ", 
+plot(b[41:70],-item.par.sim[61:90,5], 
+     main = "Estimativas de b  - momento 3 ", 
      xlab = "Valor real", 
      ylab = "Est. LAVAAN",
      asp=1)
 abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
 
+data<-cbind(b[41:70],-item.par.sim[61:90,5])
+colnames(data)=c("real","est")
+reg1 <- lm(est~real,data=data.frame(data) )
+abline(reg1)
+summary(reg1)
 
-model <- mirt.model(' T1 = 1-30
-  T2 = 31-60
-  T3 = 61-90
-  CONSTRAIN = (21-30, a1), (31-40, a1)
-  CONSTRAIN = (21-30, d), (31-40, d)
-  CONSTRAIN = (51-60, a1), (61-70, a1)
-  CONSTRAIN = (51-60, d), (61-70, d)
-  COV = T1*T2*T3'
-)
 
-mirt.2PL = mirt(U, model, itemtype = '2PL')  # 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%  REPRODUÇÃO DAS PROFICIÊNCIAS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# use pars="values" to get the parameters table to set the items parameters values starting values. 
+# in column "value" set the starting value
+# in column "est" set to FALSE to disable estimation. If set to TRUE the parameter will be estimated.
+
+# momento 1
+parameters = mirt(U1, 1, itemtype = '2PL', pars = "values")
+str(parameters)
+
+parameters$value[parameters$name=="a1"] #list all lines labed "a1"
+parameters$value[parameters$name=="a1"] <- item.par.sim[1:30,1]
+parameters$est[parameters$name=="a1"] <- FALSE
+parameters$value[parameters$name=="d"] #list all lines labed "d"
+parameters$value[parameters$name=="d"] <- item.par.sim[1:30,4]
+parameters$est[parameters$name=="d"] <- FALSE
+
+mirt.2PL = mirt(U1, 1, itemtype = '2PL', pars = parameters)
 PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
-profic = fscores(mirt.2PL) #estimativas das proficiências individuais
+profic1 = fscores(mirt.2PL) #estimativas das proficiências individuais
+mean(profic1)
+sd(profic1)
+plot(Theta[,1],profic1, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+
+
+# momento 2
+parameters = mirt(U2, 1, itemtype = '2PL', pars = "values")
+str(parameters)
+
+parameters$value[parameters$name=="a1"] #list all lines labed "a1"
+parameters$value[parameters$name=="a1"] <- item.par.sim[31:60,2]
+parameters$est[parameters$name=="a1"] <- FALSE
+parameters$value[parameters$name=="d"] #list all lines labed "d"
+parameters$value[parameters$name=="d"] <- item.par.sim[31:60,4]
+parameters$est[parameters$name=="d"] <- FALSE
+
+mirt.2PL = mirt(U2, 1, itemtype = '2PL', pars = parameters)
+PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
+profic2 = fscores(mirt.2PL) #estimativas das proficiências individuais
+mean(profic2)
+sd(profic2)
+plot(Theta[,2],profic2, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+
+# momento 3
+parameters = mirt(U3, 1, itemtype = '2PL', pars = "values")
+str(parameters)
+
+parameters$value[parameters$name=="a1"] #list all lines labed "a1"
+parameters$value[parameters$name=="a1"] <- item.par.sim[61:90,3]
+parameters$est[parameters$name=="a1"] <- FALSE
+parameters$value[parameters$name=="d"] #list all lines labed "d"
+parameters$value[parameters$name=="d"] <- item.par.sim[61:90,4]
+parameters$est[parameters$name=="d"] <- FALSE
+
+mirt.2PL = mirt(U3, 1, itemtype = '2PL', pars = parameters)
+#PAR=coef(mirt.2PL,simplify=TRUE)$items[,1:3] # Estimação dos parâmetros dos itens: Colunas a,d,c
+profic3 = fscores(mirt.2PL) #estimativas das proficiências individuais
+mean(profic3)
+sd(profic3)
+plot(Theta[,3],profic3, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+
+models2 <- 'F1 = 1-30
+            F2 = 21-50
+            F3 = 41-70'
+mod_long2 <- multipleGroup( data=Ut, 
+                           model=models2, 
+                           group = group_names,
+                           itemtype='2PL',
+                           invariance = c(itemnames,'free_means','free_var','slopes','intercepts'),
+                           technical = list(NCYCLES = 1000)) 
+
+
+par2<-coef(mod_long2,simplify=TRUE)
+par2
+str(coef(mod_long2,simplify=TRUE))
+
+extract.mirt(mod_long2,'time')
+extract.mirt(mod_long2,'covdata')
+
+profic4 = fscores(mod_long2) #estimativas das proficiencias individuais
+mean(profic4)
+
+
+plot(a[1:70],par2$G1[1][['items']][,1], 
+     main="Recuperação dos parâmetros de discriminação", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue")
+
+plot(b[1:70],par2$G1[1][['items']][,2], 
+     main="Recuperação dos parâmetros de dificuldade", 
+     xlab="Valores verdadeiros",
+     ylab="Estimativas",
+     asp = 1);
+lines(c(-4,4),c(-4,4), col = "blue")
+
+plot(Theta[,1],profic4[1:N], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+mean(profic[1:N])
+sd(profic[1:N])
+
+plot(Theta[,2],profic4[(N+1):(2*N)], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+mean(profic[(N+1):(2*N)])
+sd(profic[(N+1):(2*N)])
+
+
+plot(Theta[,3],profic4[(2*N+1):(3*N)], main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
+mean(profic[(2*N+1):(3*N)])
+sd(profic[(2*N+1):(3*N)])
+
+cor(cbind(profic4[1:N],
+          profic4[(N+1):(2*N)],
+          profic4[(2*N+1):(3*N)] ))
+
 
 

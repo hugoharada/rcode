@@ -42,4 +42,3 @@ ggplot(data.long,aes(Var1, value, colour=Var2))+geom_line(aes(linetype=Var2)) +g
 
 
 
-
