@@ -264,7 +264,7 @@ View(parameterTable(lavaan.model.fit))
 lavInspect(lavaan.model.fit,what = "cov.ov")
 lavInspect(lavaan.model.fit,what = "mean.ov")
 
-
+predict(lavaan.model.fit)
 
 
 
@@ -450,3 +450,4 @@ mean(profic3)
 sd(profic3)
 plot(Theta[,3],profic3, main="Recuperação das proficiências", xlab="Valores verdadeiros",ylab="Estimativas"); lines(c(-4,4),c(-4,4), col = "blue")
 
+cov(cbind(profic1,profic2,profic3))
