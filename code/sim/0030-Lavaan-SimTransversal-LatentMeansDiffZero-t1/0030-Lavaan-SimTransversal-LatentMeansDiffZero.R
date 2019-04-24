@@ -1,20 +1,18 @@
 
 rm(list=ls())
 if(!require(mirt)) install.packages("mirt"); library(mirt)
-if(!require(mirtCAT)) install.packages("mirtCAT"); library(mirtCAT) 
 if(!require(MASS)) install.packages("MASS"); library(MASS)
 if(!require(rockchalk)) install.packages("rockchalk"); library(rockchalk)
 if(!require(GPArotation)) install.packages("GPArotation"); library(GPArotation)
 if(!require(pryr)) install.packages("pryr"); library(pryr)
 if(!require(lavaan)) install.packages("lavaan"); library(lavaan)
+if(!require(polycor)) install.packages("polycor"); library(polycor)
 
 ###Generate person parameters
 set.seed(1) # Resetando a semente
 N <- 10000 ## subjects
-I= 70  # Number of Items
+I= 30  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
-SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariância AR1, 2 =  Covariância de bandas
-rho<-0.7
 
 
 coefs <- matrix(ncol=6,nrow=I)
@@ -46,15 +44,22 @@ colnames(U1)=paste0("Item",1:30)
 
 rm(P,X,eta)
 
-
 head(U1)
+str(U1)
 
+ftoordered <-function(x){ as.ordered(x)}
+
+U2<-apply(U1, 2, ftoordered) # apply to every element
+str(U2)
+dU2 <-as.data.frame(U2)
+str(dU2)
+
+
+rm(p1)
 p1<-paste("lambda",1:30,"*Item",1:30,sep="",collapse = " + ")
 p1<-paste("d1 =~",p1,sep="",collapse = "")
 p1
 cat(paste("Item",1:30," | tlambda",1:30,"*t1",sep="",collapse = "\n"))
-
-
 
 
 lavaan.model.std.lv.false <-'
@@ -94,14 +99,29 @@ Item30 | tlambda30*t1
 
 '
 
+lavaan.model.fit <- lavaan( lavaan.model.std.lv.false, 
+                            data = dU2 , 
+                            std.lv=FALSE,
+                            parameterization="delta",
+                            int.ov.free=TRUE,
+                            int.lv.free=TRUE,    
+                            auto.fix.first =TRUE, 
+                            auto.fix.single = FALSE, # NOT_DEFAULT should not make any difference
+                            auto.var=TRUE,
+                            auto.cov.lv.x=FALSE,     # NOT_DEFAULT
+                            auto.th=FALSE,           # NOT_DEFAULT
+                            auto.delta =FALSE,       # NOT_DEFAULT
+                            auto.cov.y = TRUE       
+                        )
 
-lavaan.model.fit <- lavaan(lavaan.model.std.lv.false, data = U1 , 
-                        std.lv=FALSE,
-                        parameterization="delta",
-                        meanstructure = TRUE,
-                        int.lv.free	=TRUE)
+lavaan.model.fit <- cfa(lavaan.model.std.lv.false, data = dU2 , 
+                           std.lv=FALSE,
+                           parameterization="delta"
+)
+
+
 lavOptions()
-
+lavInspect(lavaan.model.fit, "optim.gradient")
 
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)
@@ -147,8 +167,8 @@ colnames(item.par.sim) <- c("aj_t1_lav","aj_t2_lav","aj_t3_lav","dj_lav")
 #lavaan.model.fit <- cfa(lavaan.model, data = U , 
 #                        std.lv=TRUE,
 #                        parameterization="delta")
-for(i in seq(1,90,1)){# i items
-  for(j in c(1,2,3)){ # j moments
+for(i in seq(1,30,1)){# i items
+  for(j in c(1)){ # j moments
     item.par.sim[i,j] <- lambda2[i,j]/sqrt(1-t(lambda2[i,])%*%lambda2[i,])*1.7
   }
   item.par.sim[i,4] <- tau[i]/sqrt(1-t(lambda2[i,])%*%lambda2[i,])*1.7
@@ -177,51 +197,6 @@ reg1 <- lm(est~real,data=data.frame(data) )
 summary(reg1)
 abline(reg1)
 
-
-
-plot(a[21:50],item.par.sim[31:60,2], 
-     main = "Estimativas de a - momento 2 ", 
-     xlab = "Valor real", 
-     ylab = "Est. LAVAAN",
-     asp=1)
-abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
-
-plot(d[21:50],-item.par.sim[31:60,4], 
-     main = "Estimativas de d - momento 2 ", 
-     xlab = "Valor real", 
-     ylab = "Est. LAVAAN",
-     asp=1)
-abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
-
-
-data<-cbind(d[21:50],-item.par.sim[31:60,4])
-colnames(data)=c("real","est")
-
-reg1 <- lm(est~real,data=data.frame(data) )
-summary(reg1)
-abline(reg1)
-
-
-plot(a[41:70],item.par.sim[61:90,3], 
-     main = "Estimativas de a - momento 3 ", 
-     xlab = "Valor real", 
-     ylab = "Est. LAVAAN",
-     asp=1)
-abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
-
-plot(d[41:70],-item.par.sim[61:90,4], 
-     main = "Estimativas de d  - momento 3 ", 
-     xlab = "Valor real", 
-     ylab = "Est. LAVAAN",
-     asp=1)
-abline(c(0,0),c(1,1),lty=2,col="gray",lwd=0.1)
-
-data<-cbind(d[41:70],-item.par.sim[61:90,4])
-colnames(data)=c("real","est")
-
-reg1 <- lm(est~real,data=data.frame(data) )
-summary(reg1)
-abline(reg1)
 
 
 
