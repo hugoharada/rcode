@@ -228,9 +228,9 @@ d1 =~lambda1.t1*Item.1.t1 + lambda2.t1*Item.2.t1 + lambda3.t1*Item.3.t1 + lambda
 d2 =~lambda1.t2*Item.1.t2 + lambda2.t2*Item.2.t2 + lambda3.t2*Item.3.t2 + lambda4.t2*Item.4.t2
 d3 =~lambda1.t3*Item.1.t3 + lambda2.t3*Item.2.t3 + lambda3.t3*Item.3.t3 + lambda4.t3*Item.4.t3
 
-d1~~d2
-d2~~d3
-d1~~d3
+d1~~d1 + d2 + d3
+d2~~d2 + d3
+d3~~d3
 
 Item.1.t1 | tau1.t1*t1
 Item.2.t1 | tau2.t1*t1
@@ -264,18 +264,20 @@ Item.4.t3 ~ mean4.t3*1
 
 0 == mean1.t1 + mean2.t1 + mean3.t1 + mean4.t1
 
-Item.1.t1 ~~ 1*Item.1.t1 + 0*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 1*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 1*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t1 ~~ 1*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + 1*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 1*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t1 ~~ 1*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + 1*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 1*Item.3.t3 + 0*Item.4.t3
-Item.4.t1 ~~ 1*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 1*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 1*Item.4.t3
-Item.1.t2 ~~ 1*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 1*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t2 ~~ 1*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 1*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t2 ~~ 1*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 1*Item.3.t3 + 0*Item.4.t3
-Item.4.t2 ~~ 1*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 1*Item.4.t3
+Item.1.t1 ~~ 1*Item.1.t1 + 0*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + start(1.0)*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.2.t1 ~~ 1*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + start(1.0)*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.3.t1 ~~ 1*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + start(1.0)*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
+Item.4.t1 ~~ 1*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + start(1.0)*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
+Item.1.t2 ~~ 1*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.2.t2 ~~ 1*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.3.t2 ~~ 1*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
+Item.4.t2 ~~ 1*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
 Item.1.t3 ~~ 1*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
 Item.2.t3 ~~ 1*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
 Item.3.t3 ~~ 1*Item.3.t3 + 0*Item.4.t3
 Item.4.t3 ~~ 1*Item.4.t3 
+
+
 
 lambda1.t1 == lambda1.t2
 lambda2.t1 == lambda2.t2
@@ -367,12 +369,12 @@ nu
 
 lavaan.model.parameter.gather <-function(){}
 
-item.par.sim <- matrix(0,90,5)
+item.par.sim <- matrix(0,4,5)
 colnames(item.par.sim) <- c("aj_t1_lav","aj_t2_lav","aj_t3_lav","dj_lav", "bj_lav")
 
 
 #formula setting n<-0
-for(i in seq(1,90,1)){# i items
+for(i in seq(1,4,1)){# i items
   for(j in c(1,2,3)){ # j moments
     item.par.sim[i,j] <- lambda2[i,j]*sqrt(theta_var[j])*1.702
     item.par.sim[i,4] <- (-tau[i]+lambda2[i,j]*mu[j])*1.702
@@ -380,7 +382,7 @@ for(i in seq(1,90,1)){# i items
 }
 
 #derived formula
-for(i in seq(1,90,1)){# i items
+for(i in seq(1,4,1)){# i items
   for(j in c(1,2,3)){ # j moments
     item.par.sim[i,j] <- lambda2[i,j]*sqrt(theta_var[j])*1.702
     item.par.sim[i,4] <- (nu[i,1]-tau[i]+lambda2[i,j]*mu[j])*1.702
