@@ -229,72 +229,9 @@ cat(paste("Item.",21:30,".t1 ~~ Item.",21:30,".t2" ,sep="",collapse = "\n"))
 cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t3" ,sep="",collapse = "\n"))
 cat(paste("Item.",t1_index_range,".t1 ~~ ",t1_index_range,".t1*t1",sep="",collapse = "\n"))
 
-lavaan.model1.tag <-function(){}
+lavaan.model.config.tag <-function(){}
 
-lavaan.model.all.free <-'
-
-d1 =~ lambda1.t1*Item.1.t1 + lambda2.t1*Item.2.t1 + lambda3.t1*Item.3.t1 + lambda4.t1*Item.4.t1
-d2 =~ lambda1.t2*Item.1.t2 + lambda2.t2*Item.2.t2 + lambda3.t2*Item.3.t2 + lambda4.t2*Item.4.t2
-d3 =~ lambda1.t3*Item.1.t3 + lambda2.t3*Item.2.t3 + lambda3.t3*Item.3.t3 + lambda4.t3*Item.4.t3
-
-lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1==4
-
-d1~~d1 + d2 + d3
-d2~~d2 + d3
-d3~~d3
-
-#d1~~d2 + d3
-#d2~~d3
-
-
-Item.1.t1 | tau1.t1*t1
-Item.2.t1 | tau2.t1*t1
-Item.3.t1 | tau3.t1*t1
-Item.4.t1 | tau4.t1*t1
-
-Item.1.t2 | tau1.t2*t1
-Item.2.t2 | tau2.t2*t1
-Item.3.t2 | tau3.t2*t1
-Item.4.t2 | tau4.t2*t1
-
-Item.1.t3 | tau1.t3*t1
-Item.2.t3 | tau2.t3*t1
-Item.3.t3 | tau3.t3*t1
-Item.4.t3 | tau4.t3*t1
-
-Item.1.t1 ~ mean1.t1*1
-Item.2.t1 ~ mean2.t1*1
-Item.3.t1 ~ mean3.t1*1
-Item.4.t1 ~ mean4.t1*1
-
-Item.1.t2 ~ mean1.t2*1
-Item.2.t2 ~ mean2.t2*1
-Item.3.t2 ~ mean3.t2*1
-Item.4.t2 ~ mean4.t2*1
-
-Item.1.t3 ~ mean1.t3*1
-Item.2.t3 ~ mean2.t3*1
-Item.3.t3 ~ mean3.t3*1
-Item.4.t3 ~ mean4.t3*1
-
-0 == mean1.t1 + mean2.t1 + mean3.t1 + mean4.t1
-
-Item.1.t1 ~~ 1*Item.1.t1 + 0*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + start(1.0)*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t1 ~~ 1*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + start(1.0)*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t1 ~~ 1*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + start(1.0)*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
-Item.4.t1 ~~ 1*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + start(1.0)*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
-Item.1.t2 ~~ 1*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t2 ~~ 1*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t2 ~~ 1*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
-Item.4.t2 ~~ 1*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
-Item.1.t3 ~~ 1*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t3 ~~ 1*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t3 ~~ 1*Item.3.t3 + 0*Item.4.t3
-Item.4.t3 ~~ 1*Item.4.t3 
-
-'
-
-lavaan.model.loadings.fixed <-'
+lavaan.model.config <-'
 
 d1 =~ lambda1.t1*Item.1.t1 + lambda2.t1*Item.2.t1 + lambda3.t1*Item.3.t1 + lambda4.t1*Item.4.t1
 d2 =~ lambda1.t2*Item.1.t2 + lambda2.t2*Item.2.t2 + lambda3.t2*Item.3.t2 + lambda4.t2*Item.4.t2
@@ -341,6 +278,8 @@ Item.3.t3 ~ mean3.t3*1
 Item.4.t3 ~ mean4.t3*1
 
 0 == mean1.t1 + mean2.t1 + mean3.t1 + mean4.t1
+0 == mean1.t2 + mean2.t2 + mean3.t2 + mean4.t2
+0 == mean1.t3 + mean2.t3 + mean3.t3 + mean4.t3
 
 Item.1.t1 ~~ 1*Item.1.t1 + 0*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + start(1.0)*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
 Item.2.t1 ~~ 1*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + start(1.0)*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
@@ -355,108 +294,16 @@ Item.2.t3 ~~ 1*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
 Item.3.t3 ~~ 1*Item.3.t3 + 0*Item.4.t3
 Item.4.t3 ~~ 1*Item.4.t3 
 
-lambda1.t1 == lambda1.t2
-lambda2.t1 == lambda2.t2
-lambda3.t1 == lambda3.t2
-lambda4.t1 == lambda4.t2
-
-lambda1.t2 == lambda1.t3
-lambda2.t2 == lambda2.t3
-lambda3.t2 == lambda3.t3
-lambda4.t2 == lambda4.t3
 '
+lavaan.model.weak.tag <-function(){}
 
-lavaan.model.all.fixed <-'
+lavaan.model.weak <-'
 
 d1 =~ lambda1.t1*Item.1.t1 + lambda2.t1*Item.2.t1 + lambda3.t1*Item.3.t1 + lambda4.t1*Item.4.t1
 d2 =~ lambda1.t2*Item.1.t2 + lambda2.t2*Item.2.t2 + lambda3.t2*Item.3.t2 + lambda4.t2*Item.4.t2
 d3 =~ lambda1.t3*Item.1.t3 + lambda2.t3*Item.2.t3 + lambda3.t3*Item.3.t3 + lambda4.t3*Item.4.t3
 
 lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1==4
-
-d1~~d1 + d2 + d3
-d2~~d2 + d3
-d3~~d3
-
-#d1~~d2 + d3
-#d2~~d3
-
-
-Item.1.t1 | tau1.t1*t1
-Item.2.t1 | tau2.t1*t1
-Item.3.t1 | tau3.t1*t1
-Item.4.t1 | tau4.t1*t1
-
-Item.1.t2 | tau1.t2*t1
-Item.2.t2 | tau2.t2*t1
-Item.3.t2 | tau3.t2*t1
-Item.4.t2 | tau4.t2*t1
-
-Item.1.t3 | tau1.t3*t1
-Item.2.t3 | tau2.t3*t1
-Item.3.t3 | tau3.t3*t1
-Item.4.t3 | tau4.t3*t1
-
-Item.1.t1 ~ mean1.t1*1
-Item.2.t1 ~ mean2.t1*1
-Item.3.t1 ~ mean3.t1*1
-Item.4.t1 ~ mean4.t1*1
-
-Item.1.t2 ~ mean1.t2*1
-Item.2.t2 ~ mean2.t2*1
-Item.3.t2 ~ mean3.t2*1
-Item.4.t2 ~ mean4.t2*1
-
-Item.1.t3 ~ mean1.t3*1
-Item.2.t3 ~ mean2.t3*1
-Item.3.t3 ~ mean3.t3*1
-Item.4.t3 ~ mean4.t3*1
-
-0 == mean1.t1 + mean2.t1 + mean3.t1 + mean4.t1
-
-Item.1.t1 ~~ 1*Item.1.t1 + 0*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + start(1.0)*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t1 ~~ 1*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + start(1.0)*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t1 ~~ 1*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + start(1.0)*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
-Item.4.t1 ~~ 1*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + start(1.0)*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
-Item.1.t2 ~~ 1*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t2 ~~ 1*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t2 ~~ 1*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
-Item.4.t2 ~~ 1*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
-Item.1.t3 ~~ 1*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.2.t3 ~~ 1*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
-Item.3.t3 ~~ 1*Item.3.t3 + 0*Item.4.t3
-Item.4.t3 ~~ 1*Item.4.t3 
-
-lambda1.t1 == lambda1.t2
-lambda2.t1 == lambda2.t2
-lambda3.t1 == lambda3.t2
-lambda4.t1 == lambda4.t2
-
-lambda1.t2 == lambda1.t3
-lambda2.t2 == lambda2.t3
-lambda3.t2 == lambda3.t3
-lambda4.t2 == lambda4.t3
-
-mean1.t1 == mean1.t2
-mean2.t1 == mean2.t2
-mean3.t1 == mean3.t2
-mean4.t1 == mean4.t2
-
-mean1.t2 == mean1.t3
-mean2.t2 == mean2.t3
-mean3.t2 == mean3.t3
-mean4.t2 == mean4.t3
-
-'
-lavaan.model.all.fixed.allrestricted <-'
-
-d1 =~ lambda1.t1*Item.1.t1 + lambda2.t1*Item.2.t1 + lambda3.t1*Item.3.t1 + lambda4.t1*Item.4.t1
-d2 =~ lambda1.t2*Item.1.t2 + lambda2.t2*Item.2.t2 + lambda3.t2*Item.3.t2 + lambda4.t2*Item.4.t2
-d3 =~ lambda1.t3*Item.1.t3 + lambda2.t3*Item.2.t3 + lambda3.t3*Item.3.t3 + lambda4.t3*Item.4.t3
-
-lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1==4
-lambda1.t2+lambda2.t2+lambda3.t2+lambda4.t2==4
-lambda1.t3+lambda2.t3+lambda3.t3+lambda4.t3==4
 
 d1~~d1 + d2 + d3
 d2~~d2 + d3
@@ -522,6 +369,80 @@ lambda1.t2 == lambda1.t3
 lambda2.t2 == lambda2.t3
 lambda3.t2 == lambda3.t3
 lambda4.t2 == lambda4.t3
+'
+
+lavaan.model.strong.tag <-function(){}
+
+lavaan.model.strong <-'
+
+d1 =~ lambda1.t1*Item.1.t1 + lambda2.t1*Item.2.t1 + lambda3.t1*Item.3.t1 + lambda4.t1*Item.4.t1
+d2 =~ lambda1.t2*Item.1.t2 + lambda2.t2*Item.2.t2 + lambda3.t2*Item.3.t2 + lambda4.t2*Item.4.t2
+d3 =~ lambda1.t3*Item.1.t3 + lambda2.t3*Item.2.t3 + lambda3.t3*Item.3.t3 + lambda4.t3*Item.4.t3
+
+lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1==4
+
+d1~~d1 + d2 + d3
+d2~~d2 + d3
+d3~~d3
+
+#d1~~d2 + d3
+#d2~~d3
+
+
+Item.1.t1 | tau1.t1*t1
+Item.2.t1 | tau2.t1*t1
+Item.3.t1 | tau3.t1*t1
+Item.4.t1 | tau4.t1*t1
+
+Item.1.t2 | tau1.t2*t1
+Item.2.t2 | tau2.t2*t1
+Item.3.t2 | tau3.t2*t1
+Item.4.t2 | tau4.t2*t1
+
+Item.1.t3 | tau1.t3*t1
+Item.2.t3 | tau2.t3*t1
+Item.3.t3 | tau3.t3*t1
+Item.4.t3 | tau4.t3*t1
+
+Item.1.t1 ~ mean1.t1*1
+Item.2.t1 ~ mean2.t1*1
+Item.3.t1 ~ mean3.t1*1
+Item.4.t1 ~ mean4.t1*1
+
+Item.1.t2 ~ mean1.t2*1
+Item.2.t2 ~ mean2.t2*1
+Item.3.t2 ~ mean3.t2*1
+Item.4.t2 ~ mean4.t2*1
+
+Item.1.t3 ~ mean1.t3*1
+Item.2.t3 ~ mean2.t3*1
+Item.3.t3 ~ mean3.t3*1
+Item.4.t3 ~ mean4.t3*1
+
+0 == mean1.t1 + mean2.t1 + mean3.t1 + mean4.t1
+
+Item.1.t1 ~~ 1*Item.1.t1 + 0*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + start(1.0)*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.2.t1 ~~ 1*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + start(1.0)*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.3.t1 ~~ 1*Item.3.t1 + 0*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + start(1.0)*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
+Item.4.t1 ~~ 1*Item.4.t1 + 0*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + start(1.0)*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
+Item.1.t2 ~~ 1*Item.1.t2 + 0*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + start(1.0)*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.2.t2 ~~ 1*Item.2.t2 + 0*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + start(1.0)*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.3.t2 ~~ 1*Item.3.t2 + 0*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + start(1.0)*Item.3.t3 + 0*Item.4.t3
+Item.4.t2 ~~ 1*Item.4.t2 + 0*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + start(1.0)*Item.4.t3
+Item.1.t3 ~~ 1*Item.1.t3 + 0*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.2.t3 ~~ 1*Item.2.t3 + 0*Item.3.t3 + 0*Item.4.t3
+Item.3.t3 ~~ 1*Item.3.t3 + 0*Item.4.t3
+Item.4.t3 ~~ 1*Item.4.t3 
+
+lambda1.t1 == lambda1.t2
+lambda2.t1 == lambda2.t2
+lambda3.t1 == lambda3.t2
+lambda4.t1 == lambda4.t2
+
+lambda1.t2 == lambda1.t3
+lambda2.t2 == lambda2.t3
+lambda3.t2 == lambda3.t3
+lambda4.t2 == lambda4.t3
 
 mean1.t1 == mean1.t2
 mean2.t1 == mean2.t2
@@ -536,38 +457,38 @@ mean4.t2 == mean4.t3
 '
 
 
-
 lavaan.model.est <-function(){}
 
-lavaan.model <- lavaan.model.all.free
-lavaan.model <- lavaan.model.loadings.fixed
-lavaan.model <- lavaan.model.all.fixed
-lavaan.model <- lavaan.model.all.fixed.allrestricted
+for(i in 1:3){
 
-# no auto vars
-itemnames <- colnames(U)
-lavaan.model.fit <- lavaan(lavaan.model, 
-                           data = U, 
-                           int.ov.free = TRUE,
-                           int.lv.free = TRUE,
-                           meanstructure = TRUE,
-                           std.lv =FALSE,
-                           ordered = itemnames,
-                           parameterization = "theta")
+  lavaan.model <- switch(i,
+                         lavaan.model.config,
+                         lavaan.model.weak,
+                         lavaan.model.strong)
+  # no auto vars
+  itemnames <- colnames(U)
+  lavaan.model.fit <- lavaan(lavaan.model, 
+                             data = U, 
+                             int.ov.free = TRUE,
+                             int.lv.free = TRUE,
+                             meanstructure = TRUE,
+                             std.lv =FALSE,
+                             ordered = itemnames,
+                             parameterization = "theta")
+  
+  switch(i,
+                         lavaan.model.config.fit <- lavaan.model.fit,
+                         lavaan.model.weak.fit <- lavaan.model.fit,
+                         lavaan.model.strong.fit <- lavaan.model.fit)
+}
 
-lavaan.model.all.free.fit <- lavaan.model.fit
-lavaan.model.loadings.fixed.fit <- lavaan.model.fit
-lavaan.model.all.fixed.fit <- lavaan.model.fit
-lavaan.model.all.fixed.allrestricted.fit <- lavaan.model.fit
+#adding tests
+anova(lavaan.model.config.fit,lavaan.model.weak.fit )
+fitMeasures(lavaan.model.all.free.fit)[c("cfi")]-fitMeasures(lavaan.model.weak.fit)[c("cfi")]
 
-anova(lavaan.model.all.free.fit,lavaan.model.loadings.fixed.fit )
-fitMeasures(lavaan.model.all.free.fit)[c("cfi")]-fitMeasures(lavaan.model.loadings.fixed.fit)[c("cfi")]
+anova(lavaan.model.config.fit,lavaan.model.strong.fit )
+fitMeasures(lavaan.model.config.fit)[c("cfi")]-fitMeasures(lavaan.model.strong.fit)[c("cfi")]
 
-anova(lavaan.model.all.free.fit,lavaan.model.all.fixed.fit )
-fitMeasures(lavaan.model.all.free.fit)[c("cfi")]-fitMeasures(lavaan.model.all.fixed.fit)[c("cfi")]
-
-anova(lavaan.model.all.free.fit,lavaan.model.all.fixed.allrestricted.fit )
-fitMeasures(lavaan.model.all.free.fit)[c("cfi")]-fitMeasures(lavaan.model.all.fixed.allrestricted.fit)[c("cfi")]
 
 
 # no auto vars
