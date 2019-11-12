@@ -609,7 +609,7 @@ data.graph <- data.frame(b.true=c(b,b,b),
 )
 ggplot(data.graph, aes(b.true,b.est,color = group)) + geom_point() + 
   geom_abline(intercept = 0, slope = 1)+
-  ggtitle("a common items - Should be the same")
+  ggtitle("b common items - Should be the same")
 
 
 
