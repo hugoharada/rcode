@@ -238,6 +238,8 @@ d2 =~ lambda1.t2*Item.1.t2 + lambda2.t2*Item.2.t2 + lambda3.t2*Item.3.t2 + lambd
 d3 =~ lambda1.t3*Item.1.t3 + lambda2.t3*Item.2.t3 + lambda3.t3*Item.3.t3 + lambda4.t3*Item.4.t3
 
 lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1==4
+lambda1.t2+lambda2.t2+lambda3.t2+lambda4.t2==4
+lambda1.t3+lambda2.t3+lambda3.t3+lambda4.t3==4
 
 d1~~d1 + d2 + d3
 d2~~d2 + d3
@@ -385,9 +387,17 @@ d1~~d1 + d2 + d3
 d2~~d2 + d3
 d3~~d3
 
-#d1~~d2 + d3
-#d2~~d3
+# d1 ~ lv.mean.t1*1
+# d2 ~ lv.mean.t2*1
+# d3 ~ lv.mean.t3*1
 
+d1 ~ lv.mean.t1*1 +  start(0.0)*1
+d2 ~ lv.mean.t2*1 +  start(0.5)*1
+d3 ~ lv.mean.t3*1 +  start(1.0)*1
+
+# d1~~d2
+# d2~~d3
+# d1~~d3
 
 Item.1.t1 | tau1.t1*t1
 Item.2.t1 | tau2.t1*t1
@@ -484,11 +494,14 @@ for(i in 1:3){
 
 #adding tests
 anova(lavaan.model.config.fit,lavaan.model.weak.fit )
-fitMeasures(lavaan.model.all.free.fit)[c("cfi")]-fitMeasures(lavaan.model.weak.fit)[c("cfi")]
+fitMeasures(lavaan.model.config.fit)[c("cfi")]-fitMeasures(lavaan.model.weak.fit)[c("cfi")]
 
 anova(lavaan.model.config.fit,lavaan.model.strong.fit )
 fitMeasures(lavaan.model.config.fit)[c("cfi")]-fitMeasures(lavaan.model.strong.fit)[c("cfi")]
 
+
+lavaan.model <- lavaan.model.strong
+lavaan.model.fit <- lavaan.model.strong.fit
 
 
 # no auto vars
@@ -500,17 +513,17 @@ View(lavParTable(lavaan.model,
                  parameterization = "theta"))
 
 
-
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)
 fitMeasures(lavaan.model.fit)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
-inspect(lavaan.model.fit)
-inspect(lavaan.model.fit,"partable")
-inspect(lavaan.model.fit,"est")
+lavInspect(lavaan.model.fit,what="free")
+lavInspect(lavaan.model.fit,"partable")
+lavInspect(lavaan.model.fit,"est")
 
 lavTables(lavaan.model.fit)
 
 lavInspect(lavaan.model.fit,what = 'cov.all')
+lavInspect(lavaan.model.fit,what = 'vcov')
 
 #library("semPlot")
 #semPaths(lavaan.model.fit,title=FALSE, curvePivot = TRUE)
@@ -541,6 +554,8 @@ lavInspect(lavaan.model.fit,what = 'est')$nu # same as lavInspect(lavaan.model.f
 nu<- lavInspect(lavaan.model.fit,what = 'est')$nu
 nu
 
+scores <- predict(lavaan.model.fit)
+mean(scores)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #
