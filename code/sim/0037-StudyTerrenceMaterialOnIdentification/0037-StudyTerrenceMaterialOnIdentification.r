@@ -25,9 +25,8 @@ fit <- polr(ordered(Y) ~ X1 + X2 + X3, method = "probit")
 fit$zeta
 cbind(X1,X2,X3)
 
-s2 <- sem("Y ~ X1 + X2 + X3", data=data.frame(Y,X1,X2,X3), ordered=c("Y","X1","X2","X3"))
+s2 <- sem("Y ~ X1 + X2 + X3", data=data.frame(Y,X1,X2,X3), ordered=c("Y"))
 summary(s2)
-
 
 
 # Generate Longitudinal Items from a Bivariate LIR
@@ -62,17 +61,17 @@ mod2ind2 <- function(){}
 
 mod2 <- '
 
-y_star =~ l1*y2w1 + l2*y2w2
-
 ## LIR means
 y2w1 ~ mean1*1
 y2w2 ~ mean2*1
+
 ## LIR (co)variances
 y2w1 ~~ var1*y2w1 +0*y2w2
 y2w2 ~~ var2*y2w2
 ## thresholds link LIRs to observed items
 y2w1 | thr1*t1
 y2w2 | thr2*t1
+
 '
 constr2z <- '
 ## Wave 1
@@ -80,10 +79,19 @@ mean1 == 0 ; var1 == 1
 ## Wave 2
 mean2 == 0 ; var2 == 1
 '
+Y <- cbind(dat$y2w1,dat$y2w2)
+prop <- colSums(Y)/nrow(Y)
+th <- qnorm(1-prop)
+th #expected thresholds
+
 fit2z <- lavaan(mod2, data = dat, constraints = constr2z,
+                int.ov.free =TRUE, int.lv.free=TRUE,
                 ordered = c("y2w1","y2w2"),
                 parameterization = "theta")
 
+# obtained thresholds
+qnorm(1-prop[1],mean = lavInspect(fit2z,what = "est")$nu[1], sd = sqrt(lavInspect(fit2z,what = "est")$theta[1,1]))
+qnorm(1-prop[2],mean = lavInspect(fit2z,what = "est")$nu[1], sd = sqrt(lavInspect(fit2z,what = "est")$theta[1,1]))
 summary(fit2z)
 fitMeasures(fit2z)[c('tli',"cfi","rmsea")]
 lavInspect(fit2z,what = "vcov")
@@ -103,8 +111,8 @@ y2w1 ~ mean1*1
 y2w2 ~ mean2*1
 y2w3 ~ mean3*1
 ## LIR (co)variances
-y2w1 ~~ var1*y2w1 
-y2w2 ~~ var2*y2w2
+y2w1 ~~ var1*y2w1 + 0*y2w2 + 0*y2w3 
+y2w2 ~~ var2*y2w2 + 0*y2w3
 y2w3 ~~ var3*y2w3
 ## thresholds link LIRs to observed items
 y2w1 | thr1*t1
@@ -127,6 +135,7 @@ lavTables(mod2ind3.fit)
 summary(mod2ind3.fit)
 fitMeasures(mod2ind3.fit)[c('tli',"cfi","rmsea")]
 lavInspect(mod2ind3.fit,what = "vcov")
+lavInspect(mod2ind3.fit,what = "est")
 
 # Specify Model Parameters for numerical itens
 # 3 indicators with latent variables. 
@@ -174,6 +183,7 @@ lavParTable(mod2ind3lv1,
 summary(mod2ind3lv1.fit)
 fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
 vcov <- lavInspect(mod2ind3lv1.fit,what = "vcov")
+lavInspect(mod2ind3lv1.fit,what = "est")
 eigen(vcov)
 
 

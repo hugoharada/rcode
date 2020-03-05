@@ -5,6 +5,7 @@ if(!require(rockchalk)) install.packages("rockchalk"); library(rockchalk)
 if(!require(lavaan)) install.packages("lavaan"); library(lavaan)
 if(!require(mirt)) install.packages("mirt"); library(mirt)
 
+set.seed(123)
 
 thresholdCalc <- function(){}
 # Threshold calculation 1
@@ -35,11 +36,11 @@ N <- 1000
 mu <- c(wave1 = 0, wave2 = 0.5, wave3 = 1.0, wave4 =1.5)
 # autocorrelation = 0.7 / sqrt(2) = 0.495
 Sigma <- matrix(c(1, .7, .49, .34,.7, 1,.7,.49,.49, .7, 1,.7,.34, .49,.7, 1 ), nrow = 4,byrow = TRUE)
-set.seed(123)
+
 dat <- data.frame(MASS::mvrnorm(N, mu, Sigma))
 # binary (1 threshold)
 dat$y2w1 <- as.numeric(dat$wave1 > -0.5)
-dat$y2w2 <- as.numeric(dat$wave2 > -0.5)
+dat$y2w2 <- as.numeric(dat$wave2 > 0.0)
 dat$y2w3 <- as.numeric(dat$wave3 > 0.5)
 dat$y2w4 <- as.numeric(dat$wave4 > 1.0)
 # ternary (2 thresholds)
@@ -155,8 +156,9 @@ lavParTable(modn_ind3_lv1_means,
 
 summary(modn_ind3_lv1_means.fit)
 fitMeasures(modn_ind3_lv1_means.fit)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
-inspect(modn_ind3_lv1_means.fit)
+inspect(modn_ind3_lv1_means.fit,"free")
 inspect(modn_ind3_lv1_means.fit,"partable")
+inspect(modn_ind3_lv1_means.fit,"est")
 
 mod2_ind3_lv1_nomeans<- function(){}
 

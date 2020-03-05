@@ -4,9 +4,14 @@ if(!require(MASS)) install.packages("MASS"); library(MASS)
 if(!require(rockchalk)) install.packages("rockchalk"); library(rockchalk)
 if(!require(lavaan)) install.packages("lavaan"); library(lavaan)
 if(!require(mirt)) install.packages("mirt"); library(mirt)
+if(!require(mirtCAT)) install.packages("mirtCAT"); library(mirtCAT) 
+if(!require(ltm)) install.packages("ltm"); library(ltm)
+if(!require(pryr)) install.packages("pryr"); library(pryr)
 
 
 thresholdCalc <- function(){}
+set.seed(1) # Resetando a semente
+
 # Threshold calculation 1
 
 # generate ‘ordered’ data with 4 categories
@@ -18,8 +23,6 @@ th <- qnorm(cprop)
 th
 # Threshold calculation 2 - quando há uma dependência de variáveis exógenas.
 
-library(MASS)
-
 X1 <- rnorm(100); X2 <- rnorm(100); X3 <- rnorm(100)
 fit <- polr(ordered(Y) ~ X1 + X2 + X3, method = "probit")
 fit$zeta
@@ -29,411 +32,978 @@ s2 <- sem("Y ~ X1 + X2 + X3", data=data.frame(Y,X1,X2,X3), ordered=c("Y","X1","X
 summary(s2)
 
 
-
 # Generate Longitudinal Items from a Bivariate LIR
 data_creation <-function(){}
 
-N <- 1000
-# mean difference = 0.8
-mu <- c(wave1 = 0, wave2 = 0.5, wave3 = 1.0, wave4 =1.5)
-# autocorrelation = 0.7 / sqrt(2) = 0.495
-Sigma <- matrix(c(1, .7, .49, .34,.7, 1,.7,.49,.49, .7, 1,.7,.34, .49,.7, 1 ), nrow = 4,byrow = TRUE)
-set.seed(123)
-dat <- data.frame(MASS::mvrnorm(N, mu, Sigma))
-# binary (1 threshold)
-dat$y2w1 <- as.numeric(dat$wave1 > -0.5)
-dat$y2w2 <- as.numeric(dat$wave2 > -0.5)
-dat$y2w3 <- as.numeric(dat$wave3 > 0.5)
-dat$y2w4 <- as.numeric(dat$wave4 > 1.0)
-# ternary (2 thresholds)
-dat$y3w1 <- dat$y2w1 + (dat$wave1 > 0.5)
-dat$y3w2 <- dat$y2w2 + (dat$wave2 > 0.5)
-dat$y3w3 <- dat$y2w3 + (dat$wave3 > 0.5)
-# polytomous (3 thresholds)
-dat$y4w1 <- dat$y3w1 + (dat$wave1 > 1)
-dat$y4w2 <- dat$y3w2 + (dat$wave2 > 1)
-dat$y4w3 <- dat$y3w3 + (dat$wave3 > 1)
+N <- 2000 ## subjects
+I= 4  # Number of Items
+PL=2 # Logistic Model (1,2,3 parameters)
+SigmaType <- 3 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
+rho<-0.7
+
+coefs <- matrix(ncol=6,nrow=I)
+colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
+
+if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
+b = runif(I,-2, 2.0)     # U(-2 , 2)
+if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
+
+d=-a*b # MIRT trabalha com o intercepto (d=-ab) e nao com a dificuldade (b)
+
+if(SigmaType==0){
+  Sigma <- lazyCor(c(rho,rho,rho)) #Matriz de Covariancia Uniforme
+}else if(SigmaType==1){
+  Sigma <- lazyCor(c(rho,rho*rho,rho)) #Matriz de Covariancia AR(1)
+}else if(SigmaType==2){
+  Sigma <- lazyCor(c(rho,0,0)) #Matriz de Covariancia de bandas
+}else if(SigmaType==3){
+  Sigma <- lazyCor(c(0,0,0)) #Matriz de Covariancia nula
+}else{
+  Sigma <- NULL
+}
+Sigma
+
+# mirt                              <-	"mirt" 
+# fixed_factor,		delta_marginal 		<-	"ff_dm" 
+# fixed_factor, 		theta_conditional	<- 	"ff_tc"
+# indicator_marker, 	delta_marginal 		<- 	"im_dm"
+# indicator_marker, 	theta_conditional 	<-  "im_tc"
+# indicator_effects, 	delta_marginal   	<- 	"ie_dm"
+# indicator_effects, 	theta_conditional 	<-	"ie_tc"
+# indicator_effects, 	delta_marginal, long   	<- 	"ie_dm_lo"
+experiments <- c("sim", "mirt", "ff_dm" ,"ff_tc","im_dm","im_tc","ie_dm","ie_tc")
+  
+
+acomp <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(acomp) <- experiments
+acomp[,"sim"]<-a
+
+dcomp <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(dcomp) <- experiments
+dcomp[,"sim"]<-d
 
 
+Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
 
-# Specify Model Parameters for Binary Items
-# 2 indicators
-mod2ind2 <- function(){}
+head(Theta)
+cor(Theta)
+var(Theta)
+dim(Theta)
 
-mod2 <- '
+mean(Theta[,1])
+mean(Theta[,2])
+mean(Theta[,3])
 
-y_star =~ l1*y2w1 + l2*y2w2
-y_star ~ y_star_mean*1
-y_star ~~ y_star_var*y_star
+var(Theta[,1])
+var(Theta[,2])
+var(Theta[,3])
 
-## LIR means
-y2w1 ~ mean1*1
-y2w2 ~ mean2*1
-## LIR (co)variances
-y2w1 ~~ var1*y2w1 +0*y2w2
-y2w2 ~~ var2*y2w2
-## thresholds link LIRs to observed items
-y2w1 | thr1*t1
-y2w2 | thr2*t1
-'
-constr2z <- '
-## Wave 1
-mean1 == 0 ; var1 == 1
-## Wave 2
-mean2 == 0 ; var2 == 1
-'
-Y <- cbind(dat$y2w1,dat$y2w2)
-prop <- colSums(Y)/nrow(Y)
+
+dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,2],ncol=1,nrow = length(Theta[,2])))
+dat.1p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,3],ncol=1,nrow = length(Theta[,3])))
+
+colnames(dat) <-     paste("item",1:I,sep="")
+colnames(dat.0p0) <- paste("item",1:I,sep="")
+colnames(dat.0p5) <- paste("item",1:I,sep="")
+colnames(dat.1p0) <- paste("item",1:I,sep="")
+
+#data selection
+dat <- dat.0p0
+#dat <- dat.0p5
+#dat <- dat.1p0
+alpha <- ltm::cronbach.alpha(dat)
+print(alpha)
+
+
+#expected thresholds
+prop <- colSums(dat)/nrow(dat)
+prop
 th <- qnorm(1-prop)
 th
 
-fit2z <- lavaan(mod2, data = dat, constraints = constr2z,
-                int.ov.free =TRUE, int.lv.free=TRUE,
-                ordered = c("y2w1","y2w2"),
-                parameterization = "theta")
+loopn <-200
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_a) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_d) <- paste("item",1:I,sep="")
+for(i in 1:loopn){
+  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  dat <- dat.0p0
+  colnames(dat) <- paste("item",1:I,sep="")
+  mod<-mirt(data=dat,model = 1,itemtype = "2PL")
+  M2(mod)
+  itemfit(mod)
+  coef(mod, simplify=TRUE)
+  coef_a[i,] <- coef(mod, simplify=TRUE)$item[,"a1"]
+  coef_d[i,] <- coef(mod, simplify=TRUE)$item[,"d"]
+}
 
-qnorm(1-prop[1],mean = lavInspect(fit2z,what = "est")$nu[1], sd = sqrt(lavInspect(fit2z,what = "est")$theta[1,1]))
-qnorm(1-prop[1],mean = lavInspect(fit2z,what = "est")$lambda[1]*lavInspect(fit2z,what = "est")$alpha, 
-      sd = sqrt(lavInspect(fit2z,what = "est")$lambda[1]*lavInspect(fit2z,what = "est")$lambda[1]*lavInspect(fit2z,what = "est")$psi +lavInspect(fit2z,what = "est")$theta[1,1]))
+acomp[,"mirt"]<-colMeans(coef_a)
+dcomp[,"mirt"]<-colMeans(coef_d)
 
-
-qnorm(1-prop[2],mean = lavInspect(fit2z,what = "est")$nu[1], sd = sqrt(lavInspect(fit2z,what = "est")$theta[1,1]))
-
-qnorm(1-prop[2],mean = lavInspect(fit2z,what = "est")$lambda[2]*lavInspect(fit2z,what = "est")$alpha, 
-      sd = sqrt(lavInspect(fit2z,what = "est")$lambda[2]*lavInspect(fit2z,what = "est")$lambda[2]*lavInspect(fit2z,what = "est")$psi +lavInspect(fit2z,what = "est")$theta[2,2]))
-
-summary(fit2z)
-fitMeasures(fit2z)[c('tli',"cfi","rmsea")]
-lavInspect(fit2z,what = "vcov")
-varTable(fit2z)
-lavParTable(mod2,
-            parameterization = "theta")
-inspect(fit2z) #free
-inspect(fit2z,"est") #estimated
-
-
-# Specify Model Parameters for Binary Items
-# 3 indicators mean zero
-mod2ind3meanzero <- function(){}
-mod2ind3 <- '
-## LIR means
-y2w1 ~ mean1*1
-y2w2 ~ mean2*1
-y2w3 ~ mean3*1
-## LIR (co)variances
-y2w1 ~~ var1*y2w1 + 0*y2w2 + 0*y2w3 
-y2w2 ~~ var2*y2w2 + 0*y2w3
-y2w3 ~~ var3*y2w3
-## thresholds link LIRs to observed items
-y2w1 | thr1*t1
-y2w2 | thr2*t1
-y2w3 | thr3*t1
-'
-constr2z <- '
-## Wave 1
-mean1 == 0 ; var1 == 1
-## Wave 2
-mean2 == 0 ; var2 == 1
-## Wave 3
-mean3 == 0 ; var3 == 1
-'
-mod2ind3.fit <- lavaan(mod2ind3, data = dat, constraints = constr2z,
-                ordered = c("y2w1","y2w2","y2w3"),
-                parameterization = "theta")
-
-lavTables(mod2ind3.fit) 
-summary(mod2ind3.fit)
-fitMeasures(mod2ind3.fit)[c('tli',"cfi","rmsea")]
-lavInspect(mod2ind3.fit,what = "vcov")
-lavInspect(mod2ind3.fit,what = "est")
+acomp
+dcomp
 
 # Specify Model Parameters for numerical itens
 # 3 indicators with latent variables. 
-mod2ind3lv1<- function(){}
 
-mod2ind3lv1 <- '
+mod2ind3lv1.fixed_factor.delta_marginal.simple<- function(){}
 
-lv1 =~ l1*y2w1 + l2*y2w2 + l3*y2w3 
+mod2ind3lv1.fixed_factor.delta_marginal <- '
+
+lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
+
+'
+
+sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
+
+rm(mod2ind3lv1.fit)
+
+mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                          data = dat, 
+                          std.lv = TRUE,
+                          int.ov.free = TRUE,
+                          int.lv.free = FALSE,
+                          meanstructure =FALSE,
+                          auto.fix.first = FALSE,
+                          auto.var = TRUE,
+                          auto.th = TRUE,
+                          auto.delta = TRUE,
+                          auto.cov.y = TRUE,
+                          ordered = c("item1","item2","item3","item4"),
+                          parameterization = "delta")
+
+
+summary(mod2ind3lv1.fit)
+fitMeasures(mod2ind3lv1.fit)[c("npar","df",'tli',"cfi","rmsea")]
+
+parTable(mod2ind3lv1.fit)
+lavInspect(mod2ind3lv1.fit,what = "partable")
+lavInspect(mod2ind3lv1.fit,what = "est")
+lavInspect(mod2ind3lv1.fit,what = "start")
+vcov(mod2ind3lv1.fit)
+
+#check y* stats
+lavInspect(mod2ind3lv1.fit,what = "mu")
+lavInspect(mod2ind3lv1.fit,what = "vy")
+
+
+
+loopn <-200
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_a) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_d) <- paste("item",1:I,sep="")
+for(i in 1:loopn){
+  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  dat <- dat.0p0
+  colnames(dat) <- paste("item",1:I,sep="")
+  
+  mod2ind3lv1.fixed_factor.delta_marginal <- '
+    lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
+    '
+  sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
+  
+  rm(mod2ind3lv1.fit)
+  
+  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                            data = dat, 
+                            std.lv = TRUE,
+                            int.ov.free = TRUE,
+                            int.lv.free = FALSE,
+                            meanstructure =FALSE,
+                            auto.fix.first = FALSE,
+                            auto.var = TRUE,
+                            auto.th = TRUE,
+                            auto.delta = TRUE,
+                            auto.cov.y = TRUE,
+                            ordered = c("item1","item2","item3","item4"),
+                            parameterization = "delta")
+  
+
+  for(j in (1:I)){
+    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
+    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    
+    coef_a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
+    coef_d[i,j] <-  -tau/sqrt(1-lambda^2)*1.7
+  }
+  
+}
+acomp[,"ff_dm"]<-colMeans(coef_a)
+dcomp[,"ff_dm"]<-colMeans(coef_d)
+acomp
+dcomp
+
+
+mod2ind3lv1.fixed_factor.delta_marginal<- function(){}
+
+mod2ind3lv1.fixed_factor.delta_marginal <- '
+
+lv1 =~ l1*item1 + l2*item2 + l3*item3
+lv1 ~ lv1mean*1
+lv1 ~~ lv1var*lv1
+lv1mean==0
+
+## LIR means
+item1 ~ int1*1
+item2 ~ int2*1
+item3 ~ int3*1
+
+int1+l1*lv1mean==0
+int2+l2*lv1mean==0
+int3+l3*lv1mean==0
+
+## thresholds link LIRs to observed items
+item1 | thr1*t1
+item2 | thr2*t1
+item3 | thr3*t1
+#thr1+thr2+thr3 ==0
+
+## LIR (co)variances
+item1 ~~ var1*item1 + 0*item2 + 0*item3
+item2 ~~ var2*item2 + 0*item3
+item3 ~~ var3*item3
+lv1var*l1^2 + var1 == 1
+lv1var*l2^2 + var2 == 1
+lv1var*l3^2 + var3 == 1
+
+'
+
+sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
+
+rm(mod2ind3lv1.fit)
+
+
+mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                          data = dat, 
+                          std.lv = TRUE,
+                          int.ov.free = TRUE,
+                          int.lv.free = FALSE,
+                          meanstructure =TRUE,
+                          auto.fix.first = FALSE,
+                          auto.var = TRUE,
+                          auto.th = TRUE,
+                          auto.delta = TRUE,
+                          auto.cov.y = TRUE,
+                          ordered = c("item1","item2","item3"),
+                          parameterization = "delta")
+
+
+summary(mod2ind3lv1.fit)
+fitMeasures(mod2ind3lv1.fit)[c("npar","df",'tli',"cfi","rmsea")]
+
+parTable(mod2ind3lv1.fit)
+lavInspect(mod2ind3lv1.fit,what = "free")
+lavInspect(mod2ind3lv1.fit,what = "partable")
+lavInspect(mod2ind3lv1.fit,what = "est")
+lavInspect(mod2ind3lv1.fit,what = "start")
+vcov(mod2ind3lv1.fit)
+
+#check y* stats
+lavInspect(mod2ind3lv1.fit,what = "mu")
+lavInspect(mod2ind3lv1.fit,what = "vy")
+
+
+
+loopn <-200
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_a) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_d) <- paste("item",1:I,sep="")
+for(i in 1:loopn){
+  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  dat <- dat.0p0
+  colnames(dat) <- paste("item",1:I,sep="")
+  mod2ind3lv1.fixed_factor.delta_marginal <- '
+  
+  lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
+  lv1 ~ lv1mean*1
+  lv1 ~~ lv1var*lv1
+  lv1mean==0
+  
+  ## LIR means
+  item1 ~ int1*1
+  item2 ~ int2*1
+  item3 ~ int3*1
+  item4 ~ int4*1
+  
+  int1+l1*lv1mean==0
+  int2+l2*lv1mean==0
+  int3+l3*lv1mean==0
+  int4+l4*lv1mean==0
+  
+  ## thresholds link LIRs to observed items
+  item1 | thr1*t1
+  item2 | thr2*t1
+  item3 | thr3*t1
+  item4 | thr4*t1
+  #thr1+thr2+thr3 ==0
+  
+  ## LIR (co)variances
+  item1 ~~ var1*item1 + 0*item2 + 0*item3 + 0*item4
+  item2 ~~ var2*item2 + 0*item3 + 0*item4
+  item3 ~~ var3*item3 + 0*item4
+  item4 ~~ var4*item4
+  lv1var*l1^2 + var1 == 1
+  lv1var*l2^2 + var2 == 1
+  lv1var*l3^2 + var3 == 1
+  lv1var*l3^2 + var4 == 1
+  
+  '
+  
+  sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
+  
+  rm(mod2ind3lv1.fit)
+  
+  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                            data = dat, 
+                            std.lv = TRUE,
+                            int.ov.free = TRUE,
+                            int.lv.free = FALSE,
+                            meanstructure =TRUE,
+                            auto.fix.first = FALSE,
+                            auto.var = TRUE,
+                            auto.th = TRUE,
+                            auto.delta = TRUE,
+                            auto.cov.y = TRUE,
+                            ordered = c("item1","item2","item3","item4"),
+                            parameterization = "delta")
+  
+  
+  for(j in (1:I)){
+    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
+    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    
+    coef_a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
+    coef_d[i,j] <-  -tau/sqrt(1-lambda^2)*1.7
+  }
+  
+}
+acomp[,"ff_dm"]<-colMeans(coef_a)
+dcomp[,"ff_dm"]<-colMeans(coef_d)
+acomp
+dcomp
+
+mod2ind3lv1.fixed_factor.theta_conditional<- function(){}
+
+mod2ind3lv1.fixed_factor.theta_conditional <- '
+
+  lv1 =~ l1*item1 + l2*item2 + l3*item3
+  lv1 ~ lv1mean*1
+  lv1 ~~ lv1var*lv1
+  lv1mean==0
+  
+  ## LIR means
+  item1 ~ int1*1
+  item2 ~ int2*1
+  item3 ~ int3*1
+  
+  int1+l1*lv1mean==0
+  int2+l2*lv1mean==0
+  int3+l3*lv1mean==0
+  
+  ## thresholds link LIRs to observed items
+  item1 | thr1*t1
+  item2 | thr2*t1
+  item3 | thr3*t1
+  #thr1+thr2+thr3 ==0
+  
+  ## LIR (co)variances
+  item1 ~~ var1*item1 + 0*item2 + 0*item3
+  item2 ~~ var2*item2 + 0*item3
+  item3 ~~ var3*item3
+  var1 == 1
+  var2 == 1
+  var3 == 1
+
+'
+
+sem.model <- mod2ind3lv1.fixed_factor.theta_conditional
+rm(mod2ind3lv1.fit)
+mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                          data = dat, 
+                          std.lv = TRUE,
+                          int.ov.free = TRUE,
+                          int.lv.free = FALSE,
+                          meanstructure =TRUE,
+                          auto.fix.first = FALSE,
+                          auto.var = TRUE,
+                          auto.th = TRUE,
+                          auto.delta = TRUE,
+                          auto.cov.y = TRUE,
+                          ordered = c("item1","item2","item3"),
+                          parameterization = "theta")
+
+summary(mod2ind3lv1.fit)
+fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
+
+
+loopn <-200
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_a) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_d) <- paste("item",1:I,sep="")
+for(i in 1:loopn){
+  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  dat <- dat.0p0
+  colnames(dat) <- paste("item",1:I,sep="")
+  mod2ind3lv1.fixed_factor.delta_marginal <- '
+  
+  lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
+  lv1 ~ lv1mean*1
+  lv1 ~~ lv1var*lv1
+  lv1mean==0
+  
+  ## LIR means
+  item1 ~ int1*1
+  item2 ~ int2*1
+  item3 ~ int3*1
+  item4 ~ int4*1
+  
+  int1+l1*lv1mean==0
+  int2+l2*lv1mean==0
+  int3+l3*lv1mean==0
+  int4+l4*lv1mean==0
+  
+  ## thresholds link LIRs to observed items
+  item1 | thr1*t1
+  item2 | thr2*t1
+  item3 | thr3*t1
+  item4 | thr4*t1
+  #thr1+thr2+thr3 ==0
+  
+  ## LIR (co)variances
+  item1 ~~ var1*item1 + 0*item2 + 0*item3 + 0*item4
+  item2 ~~ var2*item2 + 0*item3 + 0*item4
+  item3 ~~ var3*item3 + 0*item4
+  item4 ~~ var4*item4
+  var1 == 1
+  var2 == 1
+  var3 == 1
+  var4 == 1
+  
+  '
+  
+  sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
+  
+  rm(mod2ind3lv1.fit)
+  
+  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                            data = dat, 
+                            std.lv = TRUE,
+                            int.ov.free = TRUE,
+                            int.lv.free = FALSE,
+                            meanstructure =TRUE,
+                            auto.fix.first = FALSE,
+                            auto.var = TRUE,
+                            auto.th = TRUE,
+                            auto.delta = TRUE,
+                            auto.cov.y = TRUE,
+                            ordered = c("item1","item2","item3","item4"),
+                            parameterization = "theta")
+  
+  
+  for(j in (1:I)){
+    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
+    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    
+    coef_a[i,j] <- lambda*1.7
+    coef_d[i,j] <-  -(tau)*1.7
+  }
+  
+}
+acomp[,"ff_tc"]<-colMeans(coef_a)
+dcomp[,"ff_tc"]<-colMeans(coef_d)
+acomp
+dcomp
+
+
+mod2ind3lv1.indicator_effects.delta_marginal<- function(){}
+
+mod2ind3lv1.indicator_effects.delta_marginal <- '
+
+lv1 =~ l1*item1 + l2*item2 + l3*item3 
+l1 + l2 + l3 == 3 
 
 lv1 ~ lv1mean*1
 lv1 ~~ lv1var*lv1
 
-## LIR means
-y2w1 ~ mean1*1
-y2w2 ~ mean2*1
-y2w3 ~ mean3*1
 
-0 == mean1 + mean2 +mean3
-#lv1mean==0
+## LIR means
+item1 ~ int1*1
+item2 ~ int2*1
+item3 ~ int3*1
+int1+int2+int3==0
+int1+l1*lv1mean==0
+int2+l2*lv1mean==0
+int3+l3*lv1mean==0
+
+## thresholds link LIRs to observed items
+item1 | thr1*t1
+item2 | thr2*t1
+item3 | thr3*t1
+#thr1 + thr2 +thr3 ==0
 
 ## LIR (co)variances
-y2w1 ~~ var1*y2w1 + 0*y2w2 + 0*y2w3
-y2w2 ~~ var2*y2w2 + 0*y2w3
-y2w3 ~~ var3*y2w3
+item1 ~~ var1*item1 + 0*item2 + 0*item3
+item2 ~~ var2*item2 + 0*item3
+item3 ~~ var3*item3
+lv1var*l1^2 + var1 == 1
+lv1var*l2^2 + var2 == 1
+lv1var*l3^2 + var3 == 1
 '
 
-datn <- dat
-names(dat)
-datn <- datn[,c("wave1","wave2","wave3","wave4")]
-colnames(datn)<-c("y2w1","y2w2","y2w3","y2w4")
-datn 
+sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
 rm(mod2ind3lv1.fit)
-mod2ind3lv1.fit <- lavaan(mod2ind3lv1, 
-                          data = datn, 
-                          std.lv = TRUE,
+mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                          data = dat, 
+                          std.lv = FALSE,
+                          int.ov.free = TRUE,
+                          int.lv.free = FALSE,
                           meanstructure =TRUE,
-                          parameterization = "theta")
-
-lavParTable(mod2ind3lv1,
-            std.lv = TRUE,
-            meanstructure =TRUE,
-            parameterization = "theta")
+                          auto.fix.first = FALSE,
+                          auto.var = TRUE,
+                          auto.th = TRUE,
+                          auto.delta = TRUE,
+                          auto.cov.y = TRUE,
+                          ordered = c("item1","item2","item3"),
+                          parameterization = "delta")
 
 
 summary(mod2ind3lv1.fit)
 fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
-vcov <- lavInspect(mod2ind3lv1.fit,what = "vcov")
+
+parTable(mod2ind3lv1.fit)
+lavInspect(mod2ind3lv1.fit,what = "free")
+lavInspect(mod2ind3lv1.fit,what = "partable")
 lavInspect(mod2ind3lv1.fit,what = "est")
-eigen(vcov)
+lavInspect(mod2ind3lv1.fit,what = "start")
+vcov(mod2ind3lv1.fit)
+
+#check y* stats
+lavInspect(mod2ind3lv1.fit,what = "mu")
+lavInspect(mod2ind3lv1.fit,what = "vy")
+
+loopn <-200
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_a) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_d) <- paste("item",1:I,sep="")
+for(i in 1:loopn){
+  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  dat <- dat.0p0
+  colnames(dat) <- paste("item",1:I,sep="")
+  mod2ind3lv1.indicator_effects.delta_marginal <- '
+  
+  lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
+  lv1 ~ lv1mean*1
+  lv1 ~~ lv1var*lv1
+
+  ## LIR means
+  item1 ~ int1*1
+  item2 ~ int2*1
+  item3 ~ int3*1
+  item4 ~ int4*1
+  int1+int2+int3+int4==0
+  int1+l1*lv1mean==0
+  int2+l2*lv1mean==0
+  int3+l3*lv1mean==0
+  int4+l4*lv1mean==0
+  
+  ## thresholds link LIRs to observed items
+  item1 | thr1*t1
+  item2 | thr2*t1
+  item3 | thr3*t1
+  item4 | thr4*t1
+  #thr1+thr2+thr3 ==0
+  
+  ## LIR (co)variances
+  item1 ~~ var1*item1 + 0*item2 + 0*item3 + 0*item4
+  item2 ~~ var2*item2 + 0*item3 + 0*item4
+  item3 ~~ var3*item3 + 0*item4
+  item4 ~~ var4*item4
+  lv1var*l1^2 + var1 == 1
+  lv1var*l2^2 + var2 == 1
+  lv1var*l3^2 + var3 == 1
+  lv1var*l3^2 + var4 == 1
+  
+  '
+  
+  sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
+  
+  rm(mod2ind3lv1.fit)
+  
+  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                            data = dat, 
+                            std.lv = TRUE,
+                            int.ov.free = TRUE,
+                            int.lv.free = FALSE,
+                            meanstructure =TRUE,
+                            auto.fix.first = FALSE,
+                            auto.var = TRUE,
+                            auto.th = TRUE,
+                            auto.delta = TRUE,
+                            auto.cov.y = TRUE,
+                            ordered = c("item1","item2","item3","item4"),
+                            parameterization = "delta")
+  
+  
+  for(j in (1:I)){
+    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
+    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    
+    coef_a[i,j] <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
+    coef_d[i,j] <-   -(tau - lambda*mu)*1.7 / sqrt( 1 - psi*lambda^2)
+  }
+  
+}
+acomp[,"ie_dm"]<-colMeans(coef_a)
+dcomp[,"ie_dm"]<-colMeans(coef_d)
+acomp
+dcomp
 
 
+mod2ind3lv1.indicator_effects.theta_conditional<- function(){}
 
-# Specify Model Parameters for Binary Items
-# 3 indicators. Tau set to zero
-mod2ind3tauzero <- function(){}
+mod2ind3lv1.indicator_effects.theta_conditional <- '
 
-mod2ind3 <- '
-## LIR means
-y2w1 ~ mean1*1
-y2w2 ~ mean2*1
-y2w3 ~ mean3*1
-## LIR (co)variances
-y2w1 ~~ var1*y2w1 
-y2w2 ~~ var2*y2w2
-y2w3 ~~ var3*y2w3
-## thresholds link LIRs to observed items
-y2w1 | thr1*t1
-y2w2 | thr2*t1
-y2w3 | thr3*t1
-'
-constr2z <- '
-## Wave 1
-thr1 == 0 ; var1 == 1
-## Wave 2
-thr2 == 0 ; var2 == 1
-## Wave 3
-thr3 == 0 ; var3 == 1
-'
-mod2ind3.fit <- lavaan(mod2ind3, 
-                       data = dat, 
-                       constraints = constr2z,
-                       ordered = c("y2w1","y2w2","y2w3"),
-                       parameterization = "theta")
-
-summary(mod2ind3.fit)
-fitMeasures(mod2ind3.fit)[c('tli',"cfi","rmsea")]
-lavInspect(mod2ind3.fit,what = "vcov")
-
-mod2ind4 <- function(){}
-
-# Specify Model Parameters for Binary Items
-# 4 indicators. Tau set as simulated
-
-mod2ind4 <- '
-## LIR means
-y2w1 ~ mean1*1
-y2w2 ~ mean2*1
-y2w3 ~ mean3*1
-y2w4 ~ mean4*1
-## LIR (co)variances
-y2w1 ~~ var1*y2w1 
-y2w2 ~~ var2*y2w2
-y2w3 ~~ var3*y2w3
-y2w4 ~~ var4*y2w4
-## thresholds link LIRs to observed items
-y2w1 | thr1*t1
-y2w2 | thr2*t1
-y2w3 | thr3*t1
-y2w4 | thr4*t1
-'
-constr2z <- '
-## Wave 1
-thr1 == -0.5 ; var1 == 1
-## Wave 2
-thr2 == -0.5 ; var2 == 1
-## Wave 3
-thr3 == 0.5 ; var3 == 1
-## Wave 4
-thr4 == 1 ; var4 == 1
-'
-mod2ind4.fit <- lavaan(mod2ind4, 
-                       data = dat, 
-                       constraints = constr2z,
-                       ordered = c("y2w1","y2w2","y2w3",'y2w4'),
-                       parameterization = "theta")
-
-summary(mod2ind4.fit)
-fitMeasures(mod2ind4.fit)[c('tli',"cfi","rmsea")]
-lavInspect(mod2ind4.fit,what = "vcov")
-
-# Specify Model Parameters for Binary Items
-# 3 indicators with latent variables. DF =-2 
-mod2ind3lv1<- function(){}
-
-mod2ind3lv1 <- '
-
-lv1 =~ l1*y2w1 + l2*y2w2 + l3*y2w3 
+lv1 =~ l1*item1 + l2*item2 + l3*item3 
+l1 + l2 + l3 == 3 
 
 lv1 ~ lv1mean*1
 lv1 ~~ lv1var*lv1
 
+
 ## LIR means
-y2w1 ~ mean1*1
-y2w2 ~ mean2*1
-y2w3 ~ mean3*1
-## LIR (co)variances
-y2w1 ~~ var1*y2w1 + 0*y2w2 + 0*y2w3
-y2w2 ~~ var2*y2w2 + 0*y2w3
-y2w3 ~~ var3*y2w3
+item1 ~ int1*1
+item2 ~ int2*1
+item3 ~ int3*1
+int1+int2+int3==0
+int1+l1*lv1mean==0
+int2+l2*lv1mean==0
+int3+l3*lv1mean==0
+
 ## thresholds link LIRs to observed items
-y2w1 | thr1*t1
-y2w2 | thr2*t1
-y2w3 | thr3*t1
-'
-constr2z <- '
-## Wave 1
-thr1 == 0.5 ; var1 == 1
-## Wave 2
-thr2 == 0.5 ; var2 == 1
-## Wave 3
-thr3 == 0.5 ; var3 == 1
+item1 | thr1*t1
+item2 | thr2*t1
+item3 | thr3*t1
+#thr1 + thr2 +thr3 ==0
 
+## LIR (co)variances
+item1 ~~ var1*item1 + 0*item2 + 0*item3
+item2 ~~ var2*item2 + 0*item3
+item3 ~~ var3*item3
+var1 == 1
+var2 == 1
+var3 == 1
 '
 
-datn <- dat
-names(dat)
-datn <- datn[,c("wave1","wave2","wave3","wave4")]
-colnames(datn)<-c("y2w1","y2w2","y2w3","y2w4")
-datn 
+sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
 rm(mod2ind3lv1.fit)
-mod2ind3lv1.fit <- lavaan(mod2ind3lv1, 
-                           data = dat, 
-                           constraints = constr2z,
-                           ordered = c("y2w1","y2w2","y2w3"),
+mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                          data = dat, 
+                          std.lv = FALSE,
+                          int.ov.free = TRUE,
+                          int.lv.free = FALSE,
                           meanstructure =TRUE,
+                          auto.fix.first = FALSE,
+                          auto.var = TRUE,
+                          auto.th = TRUE,
+                          auto.delta = TRUE,
+                          auto.cov.y = TRUE,
+                          ordered = c("item1","item2","item3"),
                           parameterization = "theta")
-
-lavParTable(mod2ind3lv1,
-            constraints = constr2z,
-            meanstructure =TRUE,
-            parameterization = "theta")
 
 
 summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)['tli']
-fitMeasures(mod2ind3lv1.fit)['cfi']
-fitMeasures(mod2ind3lv1.fit)['rmsea']
-vcov <- lavInspect(mod2ind3lv1.fit,what = "vcov")
-eigen(vcov)
+fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
 
-mod2ind4lv1 <- function(){}
-# Specify Model Parameters for Binary Items
-# 4 indicators with latent variables. DF =1 
+summary(mod2ind3lv1.fit)
+fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
 
-mod2ind4lv1 <- '
+parTable(mod2ind3lv1.fit)
+lavInspect(mod2ind3lv1.fit,what = "free")
+lavInspect(mod2ind3lv1.fit,what = "partable")
+lavInspect(mod2ind3lv1.fit,what = "est")
+lavInspect(mod2ind3lv1.fit,what = "start")
+vcov(mod2ind3lv1.fit)
 
-lv1 =~ lmbd1*y2w1 + lmbd2*y2w2 + lmbd3*y2w3 +lmbd4*y2w4
+#check y* stats
+lavInspect(mod2ind3lv1.fit,what = "mu")
+lavInspect(mod2ind3lv1.fit,what = "vy")
+
+loopn <-200
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_a) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_d) <- paste("item",1:I,sep="")
+for(i in 1:loopn){
+  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  dat <- dat.0p0
+  colnames(dat) <- paste("item",1:I,sep="")
+  mod2ind3lv1.indicator_effects.theta_conditional <- '
+  
+  lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
+  l1 + l2 + l3 +l4 == 4 
+
+  lv1 ~ lv1mean*1
+  lv1 ~~ lv1var*lv1
+
+  ## LIR means
+  item1 ~ int1*1
+  item2 ~ int2*1
+  item3 ~ int3*1
+  item4 ~ int4*1
+  int1+int2+int3+int4==0
+  int1+l1*lv1mean==0
+  int2+l2*lv1mean==0
+  int3+l3*lv1mean==0
+  int4+l4*lv1mean==0
+  
+  ## thresholds link LIRs to observed items
+  item1 | thr1*t1
+  item2 | thr2*t1
+  item3 | thr3*t1
+  item4 | thr4*t1
+  #thr1+thr2+thr3 ==0
+  
+  ## LIR (co)variances
+  item1 ~~ var1*item1 + 0*item2 + 0*item3 + 0*item4
+  item2 ~~ var2*item2 + 0*item3 + 0*item4
+  item3 ~~ var3*item3 + 0*item4
+  item4 ~~ var4*item4
+  var1 == 1
+  var2 == 1
+  var3 == 1
+  var4 == 1  
+  '
+  
+  sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
+  
+  rm(mod2ind3lv1.fit)
+  
+  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                            data = dat, 
+                            std.lv = FALSE,
+                            int.ov.free = TRUE,
+                            int.lv.free = FALSE,
+                            meanstructure =TRUE,
+                            auto.fix.first = FALSE,
+                            auto.var = TRUE,
+                            auto.th = TRUE,
+                            auto.delta = TRUE,
+                            auto.cov.y = TRUE,
+                            ordered = c("item1","item2","item3","item4"),
+                            parameterization = "theta")
+  
+  
+  for(j in (1:I)){
+    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
+    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    
+    coef_a[i,j] <- lambda*sqrt(psi)*1.7
+    coef_d[i,j] <- -(tau - lambda*mu)*1.7
+  }
+  
+}
+acomp[,"ie_tc"]<-colMeans(coef_a)
+dcomp[,"ie_tc"]<-colMeans(coef_d)
+acomp
+dcomp
+
+mod2ind3lv1.long.indicator_effects.delta_marginal<- function(){}
+
+mod2ind3lv1.long.indicator_effects.delta_marginal <- '
+
+lv1 =~ l1*item1 + l2*item2 + l3*item3 
+lv2 =~ l4*item4 + l5*item5 + l6*item6 
+l1 + l2 + l3 == 3 
+
+lv2~lv1
 
 lv1 ~ lv1mean*1
+lv2 ~ lv2mean*1
+
 lv1 ~~ lv1var*lv1
+lv2 ~~ lv2var*lv2
+
 
 ## LIR means
-y2w1 ~ mean1*1
-y2w2 ~ mean2*1
-y2w3 ~ mean3*1
-y2w4 ~ mean4*1
-## LIR (co)variances
-y2w1 ~~ var1*y2w1 
-y2w2 ~~ var2*y2w2
-y2w3 ~~ var3*y2w3
-y2w4 ~~ var4*y2w4
+item1 ~ int1*1
+item2 ~ int2*1
+item3 ~ int3*1
+
+item4 ~ int4*1
+item5 ~ int5*1
+item6 ~ int6*1
+
+
+int1+l1*lv1mean==0
+int2+l2*lv1mean==0
+int3+l3*lv1mean==0
+
+int4+l4*lv2mean==0
+int5+l5*lv2mean==0
+int6+l6*lv2mean==0
+
+
+
 ## thresholds link LIRs to observed items
-y2w1 | thr1*t1
-y2w2 | thr2*t1
-y2w3 | thr3*t1
-y2w4 | thr4*t1
+item1 | thr1*t1
+item2 | thr2*t1
+item3 | thr3*t1
+
+item4 | thr4*t1
+item5 | thr5*t1
+item6 | thr6*t1
+
+
+## LIR (co)variances
+item1 ~~ var1*item1 +    0*item2 +    0*item3 + var14*item4 +     0*item5 +     0*item6
+item2 ~~              var2*item2 +    0*item3 +     0*item4 + var25*item5 +     0*item6
+item3 ~~                           var3*item3 +     0*item4 +     0*item5 + var36*item6
+item4 ~~                                         var4*item4 +     0*item5 +     0*item6
+item5 ~~                                                       var5*item5 +     0*item6
+item6 ~~                                                                     var6*item6
+
+lv1var*l1^2 + var1 == 1
+lv1var*l2^2 + var2 == 1
+lv1var*l3^2 + var3 == 1
+
+lv2var*l4^2 + var4 == 1
+lv2var*l5^2 + var5 == 1
+lv2var*l6^2 + var6 == 1
+
+
+
+l1==l4
+l2==l5
+l3==l6
+
+int1==int4
+int2==int5
+int3==int6
+
+thr1==thr4
+thr2==thr5
+thr3==thr6
+
+item4mean := lv2var*l4^2 + var4 
+item5mean := lv2var*l5^2 + var5 
+item6mean := lv2var*l6^2 + var6 
+
+
 '
-constr2z <- '
-## Wave 1
-thr1 == -0.5 ; var1 == 1
-## Wave 2
-thr2 == -0.5 ; var2 == 1
-## Wave 3
-thr3 == 0.5 ; var3 == 1
-## Wave 4
-thr4 == 1.0 ; var4 == 1
-'
 
-mod2ind4lv1.fit <- lavaan(mod2ind4lv1, 
+dat<- cbind(dat.0p0[,1:3],dat.0p5[,1:3])
+head(dat)
+colnames(dat)<- paste("item",1:6,sep="")
+itemnames <- paste("item",1:6,sep="")
+
+sem.model <- mod2ind3lv1.long.indicator_effects.delta_marginal
+rm(mod2ind3lv1.fit)
+mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
-                          constraints = constr2z,
-                          ordered = c("y2w1","y2w2","y2w3","y2w4"),
-                          parameterization = "theta")
-
-lavParTable(mod2ind4lv1, 
-            constraints = constr2z,
-            parameterization = "theta")
-
-summary(mod2ind4lv1.fit)
-fitMeasures(mod2ind4lv1.fit)['tli']
-fitMeasures(mod2ind4lv1.fit)['cfi']
-fitMeasures(mod2ind4lv1.fit)['rmsea']
-vcov <- lavInspect(mod2ind4lv1.fit,what = "vcov")
-eigen(vcov)$values
-resid(mod2ind4lv1.fit, type = "cor")
-View(resid(mod2ind4lv1.fit, type = "cor")$cov)
-
-mod2ind4lv1_parametros <- function(){}
-mod2ind4lv1.fit <- lavaan(mod2ind4lv1, 
-                          data = dat, 
+                          std.lv = FALSE,
                           int.ov.free = TRUE,
-                          int.lv.free = TRUE,
-                          meanstructure = TRUE,
-                          std.lv =FALSE,
-                          constraints = constr2z,
-                          ordered = c("y2w1","y2w2","y2w3"),
-                          parameterization = "theta")
+                          int.lv.free = TRUE, #<- set to TRUE for longitudinal models
+                          meanstructure =TRUE,
+                          auto.fix.first = FALSE,
+                          auto.var = TRUE,
+                          auto.th = TRUE,
+                          auto.delta = TRUE,
+                          auto.cov.y = TRUE,
+                          ordered = itemnames,
+                          parameterization = "delta")
 
-lavParTable(mod2ind4lv1, 
-            int.ov.free = TRUE,
-            int.lv.free = TRUE,
-            meanstructure = TRUE,
-            std.lv =TRUE,
-            constraints = constr2z,
-            parameterization = "theta")
-parTable(mod2ind4lv1.fit)
 
-lavop <- lavInspect(mod2ind4lv1.fit, "options")
-summary(mod2ind4lv1.fit)
-fitMeasures(mod2ind4lv1.fit)['tli']
-fitMeasures(mod2ind4lv1.fit)['cfi']
-fitMeasures(mod2ind4lv1.fit)['rmsea']
+summary(mod2ind3lv1.fit)
+fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
 
-# Fix Thresholds to ZERO = 0 Instead
-# Notice the estimated means are the same magnitude 
-# (but opposite sign) as the previously estimated thresholds
+parTable(mod2ind3lv1.fit)
+lavInspect(mod2ind3lv1.fit,what = "free")
+lavInspect(mod2ind3lv1.fit,what = "partable")
+lavInspect(mod2ind3lv1.fit,what = "est")
+lavInspect(mod2ind3lv1.fit,what = "start")
+vcov(mod2ind3lv1.fit)
 
-constr2t <- '
-## Wave 1
-thr1 == 0 ; var1 == 1
-## Wave 2
-thr2 == 0 ; var2 == 1
-'
-fit2t <- lavaan(mod2, data = dat, constraints = constr2t,
-                ordered = c("y2w1","y2w2"),
-                parameterization = "theta")
-summary(fit2t)
+#check y* stats
+lavInspect(mod2ind3lv1.fit,what = "mu")
+lavInspect(mod2ind3lv1.fit,what = "vy")
 
-lavInspect(fit2t,what = "partable")
-parameterTable(fit2t)
+#check eta stats
+lavInspect(mod2ind3lv1.fit,what = "est")$alpha
+lavInspect(mod2ind3lv1.fit,what = "est")$psi
+
+
+loopn <-2
+coef_a <- matrix(data=NA, nrow = loopn, ncol = 6)
+colnames(coef_a) <- paste("item",1:6,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = 6)
+colnames(coef_d) <- paste("item",1:6,sep="")
+
+for(i in 1:loopn){
+  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,2],ncol=1,nrow = length(Theta[,2])))
+  dat<- cbind(dat.0p0[,1:3],dat.0p5[,1:3])
+  head(dat)
+  colnames(dat)<- paste("item",1:6,sep="")
+  itemnames <- paste("item",1:6,sep="")
+  rm(mod2ind3lv1.fit)
+  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+                            data = dat, 
+                            std.lv = FALSE,
+                            int.ov.free = TRUE,
+                            int.lv.free = TRUE,
+                            meanstructure =TRUE,
+                            auto.fix.first = FALSE,
+                            auto.var = TRUE,
+                            auto.th = TRUE,
+                            auto.delta = TRUE,
+                            auto.cov.y = TRUE,
+                            ordered = itemnames,
+                            parameterization = "delta")
+  
+  for(j in (1:6)){
+    if(j<4){
+      lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j,1]
+      psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi[1,1]
+    }else{
+      lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j,2]
+      psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi[2,2]
+    }
+    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    
+    coef_a[i,j] <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
+    coef_d[i,j] <-   -(tau - lambda*mu)*1.7 / sqrt( 1 - psi*lambda^2)
+  }
+  
+}
+
+along <-colMeans(coef_a)
+dlong <-colMeans(coef_d)
+along
+c(a[1:3],a[1:3])
+dlong
+c(d[1:3],d[1:3])
 
