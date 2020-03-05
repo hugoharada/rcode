@@ -969,7 +969,7 @@ lavInspect(mod2ind3lv1.fit,what = "est")$alpha
 lavInspect(mod2ind3lv1.fit,what = "est")$psi
 
 
-loopn <-200
+loopn <-2
 coef_a <- matrix(data=NA, nrow = loopn, ncol = 6)
 colnames(coef_a) <- paste("item",1:6,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = 6)
