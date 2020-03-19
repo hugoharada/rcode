@@ -7,8 +7,13 @@ item_n <-10
 paste("eta",lv_n,"_",time_n,"=",paste0("l", (item_first):(item_n),"_",time_n,"*item",(item_first):(item_n),"_",time_n,sep="+",collapse = ""),sep="")
 #"eta1_1=l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+"
 
-paste0("item",(item_first):(item_n),"_",time_n)
+paste0(item_n,"==",
+  paste("l",(item_first):(item_n),"_",time_n,sep="",collapse = "+")
+  )
 #"item1_1"  "item2_1"  "item3_1"  "item4_1"  "item5_1"  "item6_1"  "item7_1"  "item8_1"  "item9_1"  "item10_1"
+
+
+
 
 paste("eta",lv_n,"_",time_n," ~ ","eta",lv_n,"_",time_n,"_mean*1",sep="")
 paste("eta",lv_n,"_",time_n," ~~ ","eta",lv_n,"_",time_n,"_var*","eta",lv_n,"_",time_n,sep="")
