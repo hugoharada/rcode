@@ -7,10 +7,28 @@ if(!require(mirt)) install.packages("mirt"); library(mirt)
 if(!require(mirtCAT)) install.packages("mirtCAT"); library(mirtCAT) 
 if(!require(ltm)) install.packages("ltm"); library(ltm)
 if(!require(pryr)) install.packages("pryr"); library(pryr)
+if(!require(cowplot)) install.packages("cowplot"); library(cowplot)
+if(!require(ggplot2)) install.packages("ggplot2"); library(ggplot2)
+if(!require(directlabels)) install.packages("directlabels"); library(directlabels)
+if(!require(gridExtra)) install.packages("gridExtra"); library(gridExtra)
+if(!require(gtable)) install.packages("gtable"); library(gtable)
+if(!require(ltm)) install.packages("ltm"); library(ltm)
+if(!require(readxl)) install.packages("readxl"); library(readxl)
+if(!require(tidyr)) install.packages("tidyr"); library(tidyr)
+if(!require(stringr)) install.packages("stringr"); library(stringr)
+
+if(!require(dplyr)) install.packages("dplyr"); library(dplyr)
+
+get_time<-function(){
+  return(Sys.time())
+}
+get_delta_time<-function(start_time){
+  return(Sys.time()-start_time)
+}
 
 
 thresholdCalc <- function(){}
-set.seed(1) # Resetando a semente
+set.seed(12) # Resetando a semente
 
 # Threshold calculation 1
 
@@ -36,19 +54,34 @@ summary(s2)
 data_creation <-function(){}
 
 N <- 2000 ## subjects
-I= 4  # Number of Items
+I= 10  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
-SigmaType <- 3 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
+SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
 rho<-0.7
+fixed_par <-TRUE
 
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
 
-if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
-b = runif(I,-2, 2.0)     # U(-2 , 2)
-if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
-
+if(!fixed_par){
+  if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
+  b = runif(I,-2, 2.0)     # U(-2 , 2)
+  if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
+}else{
+  a <- c( 0.6, 0.7, 0.8,0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5 )
+  b <- c(-3.0,-2.5,-1.5, -1,   0, 1.0, 1.5, 2.5, 3.0, 3.5 )
+}
 d=-a*b # MIRT trabalha com o intercepto (d=-ab) e nao com a dificuldade (b)
+pars <- cbind(a,b,d)
+
+plot_data <- cbind(sample_p(a=pars[1,"a"],b=pars[1,"b"],c=0),1)
+for(i in 1:nrow(pars)){
+  plot_data <- rbind(plot_data, cbind(sample_p(a=pars[i,"a"],b=pars[i,"b"],c=0),i))
+}
+colnames(plot_data)[4]<-"item"
+ggplot(data=data.frame(plot_data),aes(x=theta_n,y=p,group=item,color=item))+geom_line()
+ggplot(data=data.frame(plot_data),aes(x=theta_n,y=i,group=item,color=item))+geom_line()
+
 
 if(SigmaType==0){
   Sigma <- lazyCor(c(rho,rho,rho)) #Matriz de Covariancia Uniforme
@@ -103,15 +136,15 @@ dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,n
 dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,2],ncol=1,nrow = length(Theta[,2])))
 dat.1p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,3],ncol=1,nrow = length(Theta[,3])))
 
-colnames(dat) <-     paste("item",1:I,sep="")
-colnames(dat.0p0) <- paste("item",1:I,sep="")
-colnames(dat.0p5) <- paste("item",1:I,sep="")
-colnames(dat.1p0) <- paste("item",1:I,sep="")
-
 #data selection
 dat <- dat.0p0
 #dat <- dat.0p5
 #dat <- dat.1p0
+colnames(dat) <-     paste("item",1:I,sep="")
+colnames(dat.0p0) <- paste("item",1:I,sep="")
+colnames(dat.0p5) <- paste("item",1:I,sep="")
+colnames(dat.1p0) <- paste("item",1:I,sep="")
+str(dat)
 alpha <- ltm::cronbach.alpha(dat)
 print(alpha)
 
@@ -151,16 +184,20 @@ dcomp
 
 mod2ind3lv1.fixed_factor.delta_marginal.simple<- function(){}
 
+
 mod2ind3lv1.fixed_factor.delta_marginal <- '
 
-lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
+eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
 
 '
+itemnames <- c( "item1_1","item2_1","item3_1","item4_1","item5_1","item6_1","item7_1","item8_1","item9_1","item10_1")
+colnames(dat)<- itemnames
 
 sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
 
 rm(mod2ind3lv1.fit)
 
+old <- Sys.time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = TRUE,
@@ -172,9 +209,10 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           auto.th = TRUE,
                           auto.delta = TRUE,
                           auto.cov.y = TRUE,
-                          ordered = c("item1","item2","item3","item4"),
+                          ordered = itemnames,
                           parameterization = "delta")
 
+Sys.time()-old 
 
 summary(mod2ind3lv1.fit)
 fitMeasures(mod2ind3lv1.fit)[c("npar","df",'tli',"cfi","rmsea")]
@@ -191,7 +229,7 @@ lavInspect(mod2ind3lv1.fit,what = "vy")
 
 
 
-loopn <-200
+loopn <-3
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -200,11 +238,13 @@ for(i in 1:loopn){
   Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
   dat <- dat.0p0
-  colnames(dat) <- paste("item",1:I,sep="")
+  colnames(dat)<- itemnames
   
   mod2ind3lv1.fixed_factor.delta_marginal <- '
-    lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
-    '
+
+  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
+
+  '
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
   
   rm(mod2ind3lv1.fit)
@@ -220,7 +260,7 @@ for(i in 1:loopn){
                             auto.th = TRUE,
                             auto.delta = TRUE,
                             auto.cov.y = TRUE,
-                            ordered = c("item1","item2","item3","item4"),
+                            ordered = itemnames,
                             parameterization = "delta")
   
 
@@ -245,41 +285,83 @@ mod2ind3lv1.fixed_factor.delta_marginal<- function(){}
 
 mod2ind3lv1.fixed_factor.delta_marginal <- '
 
-lv1 =~ l1*item1 + l2*item2 + l3*item3
-lv1 ~ lv1mean*1
-lv1 ~~ lv1var*lv1
-lv1mean==0
+eta1_1 =~ l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
+#latent var means and var
+eta1_1 ~ eta1_1_mean*1
+eta1_1 ~~ eta1_1_var*eta1_1
 
-## LIR means
-item1 ~ int1*1
-item2 ~ int2*1
-item3 ~ int3*1
+## Latent response variable (LRV) intercepts
+item1_1 ~ int1_1*1
+item2_1 ~ int2_1*1
+item3_1 ~ int3_1*1
+item4_1 ~ int4_1*1
+item5_1 ~ int5_1*1
+item6_1 ~ int6_1*1
+item7_1 ~ int7_1*1
+item8_1 ~ int8_1*1
+item9_1 ~ int9_1*1
+item10_1 ~ int10_1*1
+int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1==0
 
-int1+l1*lv1mean==0
-int2+l2*lv1mean==0
-int3+l3*lv1mean==0
+#Latent response variable (LRV) mean constraint
 
-## thresholds link LIRs to observed items
-item1 | thr1*t1
-item2 | thr2*t1
-item3 | thr3*t1
-#thr1+thr2+thr3 ==0
+int1_1 + l1_1*eta1_1_mean == 0
+int2_1 + l2_1*eta1_1_mean == 0
+int3_1 + l3_1*eta1_1_mean == 0
+int4_1 + l4_1*eta1_1_mean == 0
+int5_1 + l5_1*eta1_1_mean == 0
+int6_1 + l6_1*eta1_1_mean == 0
+int7_1 + l7_1*eta1_1_mean == 0
+int8_1 + l8_1*eta1_1_mean == 0
+int9_1 + l9_1*eta1_1_mean == 0
+int10_1 + l10_1*eta1_1_mean == 0
 
-## LIR (co)variances
-item1 ~~ var1*item1 + 0*item2 + 0*item3
-item2 ~~ var2*item2 + 0*item3
-item3 ~~ var3*item3
-lv1var*l1^2 + var1 == 1
-lv1var*l2^2 + var2 == 1
-lv1var*l3^2 + var3 == 1
+## thresholds link  LRVs to observed items
+item1_1 | thr1_1*t1
+item2_1 | thr2_1*t1
+item3_1 | thr3_1*t1
+item4_1 | thr4_1*t1
+item5_1 | thr5_1*t1
+item6_1 | thr6_1*t1
+item7_1 | thr7_1*t1
+item8_1 | thr8_1*t1
+item9_1 | thr9_1*t1
+item10_1 | thr10_1*t1
+#thr1_1 + thr2_1 + thr3_1 + thr4_1 + thr5_1 + thr6_1 + thr7_1 + thr8_1 + thr9_1 + thr10_1==0
+
+## LRVs (co)variances
+item1_1  ~~  var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
+item2_1  ~~  var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
+item3_1  ~~  var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
+item4_1  ~~  var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
+item5_1  ~~  var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
+item6_1  ~~  var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
+item7_1  ~~  var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
+item8_1  ~~  var8_1*item8_1+ 0*item9_1+ 0*item10_1
+item9_1  ~~  var9_1*item9_1+ 0*item10_1
+item10_1 ~~ var10_1*item10_1
+
+
+## LRVs variances constraints
+eta1_1_var*l1_1^2 + var1_1 == 1
+eta1_1_var*l2_1^2 + var2_1 == 1
+eta1_1_var*l3_1^2 + var3_1 == 1
+eta1_1_var*l4_1^2 + var4_1 == 1
+eta1_1_var*l5_1^2 + var5_1 == 1
+eta1_1_var*l6_1^2 + var6_1 == 1
+eta1_1_var*l7_1^2 + var7_1 == 1
+eta1_1_var*l8_1^2 + var8_1 == 1
+eta1_1_var*l9_1^2 + var9_1 == 1
+eta1_1_var*l10_1^2 + var10_1 == 1
 
 '
+
 
 sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
 
 rm(mod2ind3lv1.fit)
 
-
+start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = TRUE,
@@ -291,8 +373,9 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           auto.th = TRUE,
                           auto.delta = TRUE,
                           auto.cov.y = TRUE,
-                          ordered = c("item1","item2","item3"),
+                          ordered = itemnames,
                           parameterization = "delta")
+print(get_delta_time(start_time))
 
 
 summary(mod2ind3lv1.fit)
@@ -311,7 +394,7 @@ lavInspect(mod2ind3lv1.fit,what = "vy")
 
 
 
-loopn <-200
+loopn <-50
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -320,44 +403,7 @@ for(i in 1:loopn){
   Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
   dat <- dat.0p0
-  colnames(dat) <- paste("item",1:I,sep="")
-  mod2ind3lv1.fixed_factor.delta_marginal <- '
-  
-  lv1 =~ l1*item1 + l2*item2 + l3*item3 + l4*item4
-  lv1 ~ lv1mean*1
-  lv1 ~~ lv1var*lv1
-  lv1mean==0
-  
-  ## LIR means
-  item1 ~ int1*1
-  item2 ~ int2*1
-  item3 ~ int3*1
-  item4 ~ int4*1
-  
-  int1+l1*lv1mean==0
-  int2+l2*lv1mean==0
-  int3+l3*lv1mean==0
-  int4+l4*lv1mean==0
-  
-  ## thresholds link LIRs to observed items
-  item1 | thr1*t1
-  item2 | thr2*t1
-  item3 | thr3*t1
-  item4 | thr4*t1
-  #thr1+thr2+thr3 ==0
-  
-  ## LIR (co)variances
-  item1 ~~ var1*item1 + 0*item2 + 0*item3 + 0*item4
-  item2 ~~ var2*item2 + 0*item3 + 0*item4
-  item3 ~~ var3*item3 + 0*item4
-  item4 ~~ var4*item4
-  lv1var*l1^2 + var1 == 1
-  lv1var*l2^2 + var2 == 1
-  lv1var*l3^2 + var3 == 1
-  lv1var*l3^2 + var4 == 1
-  
-  '
-  
+  colnames(dat)<- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
   
   rm(mod2ind3lv1.fit)
@@ -373,7 +419,7 @@ for(i in 1:loopn){
                             auto.th = TRUE,
                             auto.delta = TRUE,
                             auto.cov.y = TRUE,
-                            ordered = c("item1","item2","item3","item4"),
+                            ordered = itemnames,
                             parameterization = "delta")
   
   
@@ -969,7 +1015,7 @@ lavInspect(mod2ind3lv1.fit,what = "est")$alpha
 lavInspect(mod2ind3lv1.fit,what = "est")$psi
 
 
-loopn <-2
+loopn <-100
 coef_a <- matrix(data=NA, nrow = loopn, ncol = 6)
 colnames(coef_a) <- paste("item",1:6,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = 6)
@@ -1021,4 +1067,58 @@ along
 c(a[1:3],a[1:3])
 dlong
 c(d[1:3],d[1:3])
+
+
+
+p_calc<- function(a=1,b,c=0,D=1, theta){
+  p <- c + (1-c)/(1+exp(-a*D*(theta-b)))
+}
+
+i_calc<- function(a=1,b,c=0,D=1, theta){
+  p <- c + (1-c)/(1+exp(-a*(theta-b)))
+  i <- D^2*a^2*(1-p)/p*((p-c)/(1-c))^2
+}
+
+sample_p <- function(upper_limit=6, lower_limit=-6, a,b,c,n=200){
+  
+  theta_n <- runif(n=n,min=lower_limit,max=upper_limit)
+  p <- p_calc(a=a,b=b,c=c,theta=theta_n)
+  i <- i_calc(a=a,b=b,c=c,theta=theta_n)
+  return <-cbind(theta_n,p,i)   
+}
+
+# plot_cci(a=1,b=-2,c=.18)
+# plot_cci(a=1,b=-2,c=.18,plot_info=TRUE)
+# plot_cci(a=.45,b=-1,c=.15,500)
+# plot_cci(a=1,b=-1,c=0,500,item_id = "CH34")
+# plot_cci(a=1,b=-1,c=0,500,item_id = "CN76",plot_info = TRUE)
+# setwd("C:\\Users\\hugo\\Downloads")
+# plot_cci(a=1,b=-1,c=0,500,item_id = "CN76",plot_info = TRUE,filename="cci_cii.pdf")
+# if filename is passed. image is saved in working dir.
+plot_cci <- function(a=1,b,c=0,n=200,filename=NULL,item_id="", plot_info=FALSE){
+  
+  data <- sample_p(a=a,b=b,c=c,n=n)
+  title <- sprintf("Curva Característica do Item %s", item_id)
+  subtitle <- sprintf("a = %.2f; b = %.2f; c = %.2f",a,b,c)
+  pfinal<-ggplot(data.frame(data),aes(x=theta_n,y=p))+geom_line(colour="blue")+
+    ylim(0,1)+geom_hline(yintercept=0.5,linetype="dotted")+
+    labs(x="Proficiência", y="Probabilidade de acerto",title =title, subtitle = subtitle )
+  if(plot_info==TRUE){
+    title <- sprintf("Curva de Informação do Item %s", item_id)
+    h<-ggplot(data.frame(data),aes(x=theta_n,y=i))+geom_line(colour="red")+
+      ylim(0,NA)+geom_hline(yintercept=0.5,linetype="dotted")+
+      labs(x="Proficiência", y="Informação",title =title, subtitle = subtitle )
+    require(cowplot)
+    title <- sprintf("Item %s", item_id)
+    title <- ggdraw() + draw_label(title, fontface='bold')
+    pfinal <- cowplot::plot_grid(title, pfinal,h,nrow=3,rel_heights=c(0.1, 1,1))
+  }
+  print(pfinal)
+  if(!is.null(filename)){
+    ggsave(filename)
+  }
+  return(pfinal)
+}
+
+
 
