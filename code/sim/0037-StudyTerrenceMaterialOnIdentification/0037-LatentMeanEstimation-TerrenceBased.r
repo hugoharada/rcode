@@ -16,14 +16,66 @@ if(!require(ltm)) install.packages("ltm"); library(ltm)
 if(!require(readxl)) install.packages("readxl"); library(readxl)
 if(!require(tidyr)) install.packages("tidyr"); library(tidyr)
 if(!require(stringr)) install.packages("stringr"); library(stringr)
-
 if(!require(dplyr)) install.packages("dplyr"); library(dplyr)
+
+function_definition <- function(){}
 
 get_time<-function(){
   return(Sys.time())
 }
 get_delta_time<-function(start_time){
   return(Sys.time()-start_time)
+}
+
+
+p_calc<- function(a=1,b,c=0,D=1, theta){
+  p <- c + (1-c)/(1+exp(-a*D*(theta-b)))
+}
+
+i_calc<- function(a=1,b,c=0,D=1, theta){
+  p <- c + (1-c)/(1+exp(-a*(theta-b)))
+  i <- D^2*a^2*(1-p)/p*((p-c)/(1-c))^2
+}
+
+sample_p <- function(upper_limit=6, lower_limit=-6, a,b,c,n=200){
+  
+  theta_n <- runif(n=n,min=lower_limit,max=upper_limit)
+  p <- p_calc(a=a,b=b,c=c,theta=theta_n)
+  i <- i_calc(a=a,b=b,c=c,theta=theta_n)
+  return <-cbind(theta_n,p,i)   
+}
+
+# plot_cci(a=1,b=-2,c=.18)
+# plot_cci(a=1,b=-2,c=.18,plot_info=TRUE)
+# plot_cci(a=.45,b=-1,c=.15,500)
+# plot_cci(a=1,b=-1,c=0,500,item_id = "CH34")
+# plot_cci(a=1,b=-1,c=0,500,item_id = "CN76",plot_info = TRUE)
+# setwd("C:\\Users\\hugo\\Downloads")
+# plot_cci(a=1,b=-1,c=0,500,item_id = "CN76",plot_info = TRUE,filename="cci_cii.pdf")
+# if filename is passed. image is saved in working dir.
+plot_cci <- function(a=1,b,c=0,n=200,filename=NULL,item_id="", plot_info=FALSE){
+  
+  data <- sample_p(a=a,b=b,c=c,n=n)
+  title <- sprintf("Curva Característica do Item %s", item_id)
+  subtitle <- sprintf("a = %.2f; b = %.2f; c = %.2f",a,b,c)
+  pfinal<-ggplot(data.frame(data),aes(x=theta_n,y=p))+geom_line(colour="blue")+
+    ylim(0,1)+geom_hline(yintercept=0.5,linetype="dotted")+
+    labs(x="Proficiência", y="Probabilidade de acerto",title =title, subtitle = subtitle )
+  if(plot_info==TRUE){
+    title <- sprintf("Curva de Informação do Item %s", item_id)
+    h<-ggplot(data.frame(data),aes(x=theta_n,y=i))+geom_line(colour="red")+
+      ylim(0,NA)+geom_hline(yintercept=0.5,linetype="dotted")+
+      labs(x="Proficiência", y="Informação",title =title, subtitle = subtitle )
+    require(cowplot)
+    title <- sprintf("Item %s", item_id)
+    title <- ggdraw() + draw_label(title, fontface='bold')
+    pfinal <- cowplot::plot_grid(title, pfinal,h,nrow=3,rel_heights=c(0.1, 1,1))
+  }
+  print(pfinal)
+  if(!is.null(filename)){
+    ggsave(filename)
+  }
+  return(pfinal)
 }
 
 
@@ -53,11 +105,11 @@ summary(s2)
 # Generate Longitudinal Items from a Bivariate LIR
 data_creation <-function(){}
 
-#N <- 2000 ## subjects
-#loopn <-10
+N <- 2000 ## subjects
+loopn <-10
 
-N <- 10000 ## subjects
-loopn <-1000
+#N <- 10000 ## subjects
+#loopn <-1000
 
 
 I= 13  # Number of Items
@@ -140,31 +192,31 @@ coef_d_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiment
 colnames(coef_d_sd) <- experiments
 
 
-Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
 
-head(Theta)
-cor(Theta)
-var(Theta)
-dim(Theta)
+head(Eta)
+cor(Eta)
+var(Eta)
+dim(Eta)
 
-mean(Theta[,1])
-mean(Theta[,2])
-mean(Theta[,3])
+mean(Eta[,1])
+mean(Eta[,2])
+mean(Eta[,3])
 
-var(Theta[,1])
-var(Theta[,2])
-var(Theta[,3])
+var(Eta[,1])
+var(Eta[,2])
+var(Eta[,3])
 
 
-dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
-dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,2],ncol=1,nrow = length(Theta[,2])))
-dat.1p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,3],ncol=1,nrow = length(Theta[,3])))
+dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
+dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,2],ncol=1,nrow = length(Eta[,2])))
+dat.1p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,3],ncol=1,nrow = length(Eta[,3])))
 
 #data selection
 dat <- dat.0p0
 #dat <- dat.0p5
 #dat <- dat.1p0
-itemnames <- paste("item",1:I,"_",time_n,sep="")
+itemnames <- paste("item",1:I,"_",1,sep="")
 colnames(dat) <-     itemnames
 colnames(dat.0p0) <- itemnames
 colnames(dat.0p5) <- itemnames
@@ -178,6 +230,9 @@ prop
 th <- qnorm(1-prop)
 th
 
+mirt.estimations<- function(){}
+
+
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -186,8 +241,8 @@ coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_b) <- paste("item",1:I,sep="")
 
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
   dat <- dat.0p0
   colnames(dat) <- paste("item",1:I,sep="")
   mod<-mirt(data=dat,model = 1,itemtype = "2PL")
@@ -266,8 +321,8 @@ coef_d_mean
 # coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 # colnames(coef_d) <- paste("item",1:I,sep="")
 # for(i in 1:loopn){
-#   Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-#   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+#   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+#   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
 #   dat <- dat.0p0
 #   colnames(dat)<- itemnames
 #   
@@ -448,8 +503,8 @@ colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
   dat <- dat.0p0
   colnames(dat)<- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
@@ -559,19 +614,19 @@ mod2ind3lv1.fixed_factor.theta_conditional <- '
   item13_1 | thr13_1*t1
   
   ## LRVs (co)variances
-item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-item12_1 ~~ var12_1*item12_1+ 0*item13_1
-item13_1 ~~ var13_1*item13_1
+  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+  item12_1 ~~ var12_1*item12_1+ 0*item13_1
+  item13_1 ~~ var13_1*item13_1
   
   var1_1 ==1
   var2_1 ==1
@@ -618,8 +673,8 @@ colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
@@ -677,75 +732,90 @@ mod2ind3lv1.indicator_effects.delta_marginal<- function(){}
 
 mod2ind3lv1.indicator_effects.delta_marginal <- '
 
-eta1_1 =~ l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
-10==l1_1+l2_1+l3_1+l4_1+l5_1+l6_1+l7_1+l8_1+l9_1+l10_1
+  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
+  13==l1_1+l2_1+l3_1+l4_1+l5_1+l6_1+l7_1+l8_1+l9_1+l10_1+l11_1+l12_1+l13_1
 
 #latent var means and var
-eta1_1 ~ eta1_1_mean*1
-eta1_1 ~~ eta1_1_var*eta1_1
+  eta1_1 ~ eta1_1_mean*1
+  eta1_1 ~~ eta1_1_var*eta1_1
 
 ## Latent response variable (LRV) intercepts
-item1_1 ~ int1_1*1
-item2_1 ~ int2_1*1
-item3_1 ~ int3_1*1
-item4_1 ~ int4_1*1
-item5_1 ~ int5_1*1
-item6_1 ~ int6_1*1
-item7_1 ~ int7_1*1
-item8_1 ~ int8_1*1
-item9_1 ~ int9_1*1
-item10_1 ~ int10_1*1
-int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1==0
+  item1_1 ~ int1_1*1
+  item2_1 ~ int2_1*1
+  item3_1 ~ int3_1*1
+  item4_1 ~ int4_1*1
+  item5_1 ~ int5_1*1
+  item6_1 ~ int6_1*1
+  item7_1 ~ int7_1*1
+  item8_1 ~ int8_1*1
+  item9_1 ~ int9_1*1
+  item10_1 ~ int10_1*1
+  item11_1 ~ int11_1*1
+  item12_1 ~ int12_1*1
+  item13_1 ~ int13_1*1
+  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
 
 #Latent response variable (LRV) mean constraint
 
-int1_1 + l1_1*eta1_1_mean == 0
-int2_1 + l2_1*eta1_1_mean == 0
-int3_1 + l3_1*eta1_1_mean == 0
-int4_1 + l4_1*eta1_1_mean == 0
-int5_1 + l5_1*eta1_1_mean == 0
-int6_1 + l6_1*eta1_1_mean == 0
-int7_1 + l7_1*eta1_1_mean == 0
-int8_1 + l8_1*eta1_1_mean == 0
-int9_1 + l9_1*eta1_1_mean == 0
-int10_1 + l10_1*eta1_1_mean == 0
+  int1_1 + l1_1*eta1_1_mean == 0
+  int2_1 + l2_1*eta1_1_mean == 0
+  int3_1 + l3_1*eta1_1_mean == 0
+  int4_1 + l4_1*eta1_1_mean == 0
+  int5_1 + l5_1*eta1_1_mean == 0
+  int6_1 + l6_1*eta1_1_mean == 0
+  int7_1 + l7_1*eta1_1_mean == 0
+  int8_1 + l8_1*eta1_1_mean == 0
+  int9_1 + l9_1*eta1_1_mean == 0
+  int10_1 + l10_1*eta1_1_mean == 0
+  int11_1 + l11_1*eta1_1_mean == 0
+  int12_1 + l12_1*eta1_1_mean == 0
+  int13_1 + l13_1*eta1_1_mean == 0
 
 ## thresholds link  LRVs to observed items
-item1_1 | thr1_1*t1
-item2_1 | thr2_1*t1
-item3_1 | thr3_1*t1
-item4_1 | thr4_1*t1
-item5_1 | thr5_1*t1
-item6_1 | thr6_1*t1
-item7_1 | thr7_1*t1
-item8_1 | thr8_1*t1
-item9_1 | thr9_1*t1
-item10_1 | thr10_1*t1
+  item1_1 | thr1_1*t1
+  item2_1 | thr2_1*t1
+  item3_1 | thr3_1*t1
+  item4_1 | thr4_1*t1
+  item5_1 | thr5_1*t1
+  item6_1 | thr6_1*t1
+  item7_1 | thr7_1*t1
+  item8_1 | thr8_1*t1
+  item9_1 | thr9_1*t1
+  item10_1 | thr10_1*t1
+  item11_1 | thr11_1*t1
+  item12_1 | thr12_1*t1
+  item13_1 | thr13_1*t1
 
 ## LRVs (co)variances
-item1_1  ~~  var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item2_1  ~~  var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item3_1  ~~  var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item4_1  ~~  var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item5_1  ~~  var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item6_1  ~~  var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item7_1  ~~  var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item8_1  ~~  var8_1*item8_1+ 0*item9_1+ 0*item10_1
-item9_1  ~~  var9_1*item9_1+ 0*item10_1
-item10_1 ~~ var10_1*item10_1
+  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+  item12_1 ~~ var12_1*item12_1+ 0*item13_1
+  item13_1 ~~ var13_1*item13_1
 
 
 ## LRVs variances constraints
-eta1_1_var*l1_1^2 + var1_1 == 1
-eta1_1_var*l2_1^2 + var2_1 == 1
-eta1_1_var*l3_1^2 + var3_1 == 1
-eta1_1_var*l4_1^2 + var4_1 == 1
-eta1_1_var*l5_1^2 + var5_1 == 1
-eta1_1_var*l6_1^2 + var6_1 == 1
-eta1_1_var*l7_1^2 + var7_1 == 1
-eta1_1_var*l8_1^2 + var8_1 == 1
-eta1_1_var*l9_1^2 + var9_1 == 1
-eta1_1_var*l10_1^2 + var10_1 == 1
+  eta1_1_var*l1_1^2 + var1_1 == 1
+  eta1_1_var*l2_1^2 + var2_1 == 1
+  eta1_1_var*l3_1^2 + var3_1 == 1
+  eta1_1_var*l4_1^2 + var4_1 == 1
+  eta1_1_var*l5_1^2 + var5_1 == 1
+  eta1_1_var*l6_1^2 + var6_1 == 1
+  eta1_1_var*l7_1^2 + var7_1 == 1
+  eta1_1_var*l8_1^2 + var8_1 == 1
+  eta1_1_var*l9_1^2 + var9_1 == 1
+  eta1_1_var*l10_1^2 + var10_1 == 1
+  eta1_1_var*l11_1^2 + var11_1 == 1
+  eta1_1_var*l12_1^2 + var12_1 == 1
+  eta1_1_var*l13_1^2 + var13_1 == 1
 '
 
 sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
@@ -781,14 +851,15 @@ vcov(mod2ind3lv1.fit)
 lavInspect(mod2ind3lv1.fit,what = "mu")
 lavInspect(mod2ind3lv1.fit,what = "vy")
 
-loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
@@ -816,27 +887,47 @@ for(i in 1:loopn){
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
     coef_d[i,j] <-   -(tau - lambda*mu)*1.7 / sqrt( 1 - psi*lambda^2)
+    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
   }
   
 }
+
 coef_a_mean[,"ie_dm"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ie_dm"]<-colMeans(coef_b,na.rm=TRUE)
 coef_d_mean[,"ie_dm"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"ie_dm"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ie_dm"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ie_dm"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
 coef_a_mean
+coef_b_mean
 coef_d_mean
+
+write.table(coef_a_mean, 'coef_a_mean_ie_dm.txt')
+write.table(coef_b_mean, 'coef_b_mean_ie_dm.txt')
+write.table(coef_d_mean, 'coef_d_mean_ie_dm.txt')
+
+write.table(coef_a_sd, 'coef_a_sd_ie_dm.txt')
+write.table(coef_b_sd, 'coef_b_sd_ie_dm.txt')
+write.table(coef_d_sd, 'coef_d_sd_ie_dm.txt')
+
+
 
 
 mod2ind3lv1.indicator_effects.theta_conditional<- function(){}
 
 mod2ind3lv1.indicator_effects.theta_conditional <- '
 
-  eta1_1 =~ l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
-  10==l1_1+l2_1+l3_1+l4_1+l5_1+l6_1+l7_1+l8_1+l9_1+l10_1
 
-  #latent var means and var
+  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
+  13==l1_1+l2_1+l3_1+l4_1+l5_1+l6_1+l7_1+l8_1+l9_1+l10_1+l11_1+l12_1+l13_1
+
+#latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-  
-  ## Latent response variable (LRV) intercepts
+
+## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
   item3_1 ~ int3_1*1
@@ -847,10 +938,13 @@ mod2ind3lv1.indicator_effects.theta_conditional <- '
   item8_1 ~ int8_1*1
   item9_1 ~ int9_1*1
   item10_1 ~ int10_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1==0
-  
-  #Latent response variable (LRV) mean constraint
-  
+  item11_1 ~ int11_1*1
+  item12_1 ~ int12_1*1
+  item13_1 ~ int13_1*1
+  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+
+#Latent response variable (LRV) mean constraint
+
   int1_1 + l1_1*eta1_1_mean == 0
   int2_1 + l2_1*eta1_1_mean == 0
   int3_1 + l3_1*eta1_1_mean == 0
@@ -861,8 +955,11 @@ mod2ind3lv1.indicator_effects.theta_conditional <- '
   int8_1 + l8_1*eta1_1_mean == 0
   int9_1 + l9_1*eta1_1_mean == 0
   int10_1 + l10_1*eta1_1_mean == 0
-  
-  ## thresholds link  LRVs to observed items
+  int11_1 + l11_1*eta1_1_mean == 0
+  int12_1 + l12_1*eta1_1_mean == 0
+  int13_1 + l13_1*eta1_1_mean == 0
+
+## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
   item2_1 | thr2_1*t1
   item3_1 | thr3_1*t1
@@ -873,29 +970,38 @@ mod2ind3lv1.indicator_effects.theta_conditional <- '
   item8_1 | thr8_1*t1
   item9_1 | thr9_1*t1
   item10_1 | thr10_1*t1
+  item11_1 | thr11_1*t1
+  item12_1 | thr12_1*t1
+  item13_1 | thr13_1*t1
 
-  ## LRVs (co)variances
-  item1_1  ~~  var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item2_1  ~~  var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item3_1  ~~  var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item4_1  ~~  var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item5_1  ~~  var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item6_1  ~~  var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item7_1  ~~  var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item8_1  ~~  var8_1*item8_1+ 0*item9_1+ 0*item10_1
-  item9_1  ~~  var9_1*item9_1+ 0*item10_1
-  item10_1 ~~ var10_1*item10_1
+## LRVs (co)variances
+  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+  item12_1 ~~ var12_1*item12_1+ 0*item13_1
+  item13_1 ~~ var13_1*item13_1
 
-  var1_1==1
-  var2_1==1
-  var3_1==1
-  var4_1==1
-  var5_1==1
-  var6_1==1
-  var7_1==1
-  var8_1==1
-  var9_1==1
-  var10_1==1
+  var1_1 ==1
+  var2_1 ==1
+  var3_1 ==1
+  var4_1 ==1
+  var5_1 ==1
+  var6_1 ==1
+  var7_1 ==1
+  var8_1 ==1
+  var9_1 ==1
+  var10_1 ==1
+  var11_1 ==1
+  var12_1 ==1
+  var13_1 ==1
 '
 
 sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
@@ -933,11 +1039,13 @@ lavInspect(mod2ind3lv1.fit,what = "vy")
 loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
@@ -963,14 +1071,30 @@ for(i in 1:loopn){
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7
     coef_d[i,j] <- -(tau - lambda*mu)*1.7
+    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
   }
   
 }
+
 coef_a_mean[,"ie_tc"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ie_tc"]<-colMeans(coef_b,na.rm=TRUE)
 coef_d_mean[,"ie_tc"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"ie_tc"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ie_tc"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ie_tc"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
 coef_a_mean
+coef_b_mean
 coef_d_mean
 
+write.table(coef_a_mean, 'coef_a_mean_ie_tc.txt')
+write.table(coef_b_mean, 'coef_b_mean_ie_tc.txt')
+write.table(coef_d_mean, 'coef_d_mean_ie_tc.txt')
+
+write.table(coef_a_sd, 'coef_a_sd_ie_tc.txt')
+write.table(coef_b_sd, 'coef_b_sd_ie_tc.txt')
+write.table(coef_d_sd, 'coef_d_sd_ie_tc.txt')
 
 
 
@@ -978,8 +1102,8 @@ mod2ind3lv1.indicator_marker.delta_marginal<- function(){}
 
 mod2ind3lv1.indicator_marker.delta_marginal <- '
 
-  eta1_1 =~ l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
-  l5_1==1
+  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
+  l4_1==1
 
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
@@ -996,10 +1120,13 @@ mod2ind3lv1.indicator_marker.delta_marginal <- '
   item8_1 ~ int8_1*1
   item9_1 ~ int9_1*1
   item10_1 ~ int10_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1==0
-  
+  item11_1 ~ int11_1*1
+  item12_1 ~ int12_1*1
+  item13_1 ~ int13_1*1
+  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+    
   #Latent response variable (LRV) mean constraint
-  
+    
   int1_1 + l1_1*eta1_1_mean == 0
   int2_1 + l2_1*eta1_1_mean == 0
   int3_1 + l3_1*eta1_1_mean == 0
@@ -1010,8 +1137,11 @@ mod2ind3lv1.indicator_marker.delta_marginal <- '
   int8_1 + l8_1*eta1_1_mean == 0
   int9_1 + l9_1*eta1_1_mean == 0
   int10_1 + l10_1*eta1_1_mean == 0
-  
-  ## thresholds link  LRVs to observed items
+  int11_1 + l11_1*eta1_1_mean == 0
+  int12_1 + l12_1*eta1_1_mean == 0
+  int13_1 + l13_1*eta1_1_mean == 0
+    
+    ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
   item2_1 | thr2_1*t1
   item3_1 | thr3_1*t1
@@ -1022,29 +1152,38 @@ mod2ind3lv1.indicator_marker.delta_marginal <- '
   item8_1 | thr8_1*t1
   item9_1 | thr9_1*t1
   item10_1 | thr10_1*t1
-
+  item11_1 | thr11_1*t1
+  item12_1 | thr12_1*t1
+  item13_1 | thr13_1*t1
+  
   ## LRVs (co)variances
-  item1_1  ~~  var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item2_1  ~~  var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item3_1  ~~  var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item4_1  ~~  var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item5_1  ~~  var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item6_1  ~~  var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item7_1  ~~  var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item8_1  ~~  var8_1*item8_1+ 0*item9_1+ 0*item10_1
-  item9_1  ~~  var9_1*item9_1+ 0*item10_1
-  item10_1 ~~ var10_1*item10_1
-
-  var1_1==1
-  var2_1==1
-  var3_1==1
-  var4_1==1
-  var5_1==1
-  var6_1==1
-  var7_1==1
-  var8_1==1
-  var9_1==1
-  var10_1==1
+  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+  item12_1 ~~ var12_1*item12_1+ 0*item13_1
+  item13_1 ~~ var13_1*item13_1
+  
+  eta1_1_var*l1_1^2 + var1_1 == 1
+  eta1_1_var*l2_1^2 + var2_1 == 1
+  eta1_1_var*l3_1^2 + var3_1 == 1
+  eta1_1_var*l4_1^2 + var4_1 == 1
+  eta1_1_var*l5_1^2 + var5_1 == 1
+  eta1_1_var*l6_1^2 + var6_1 == 1
+  eta1_1_var*l7_1^2 + var7_1 == 1
+  eta1_1_var*l8_1^2 + var8_1 == 1
+  eta1_1_var*l9_1^2 + var9_1 == 1
+  eta1_1_var*l10_1^2 + var10_1 == 1
+  eta1_1_var*l11_1^2 + var11_1 == 1
+  eta1_1_var*l12_1^2 + var12_1 == 1
+  eta1_1_var*l13_1^2 + var13_1 == 1
 '
 
 sem.model <- mod2ind3lv1.indicator_marker.delta_marginal
@@ -1082,11 +1221,13 @@ lavInspect(mod2ind3lv1.fit,what = "vy")
 loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_marker.delta_marginal
@@ -1112,20 +1253,40 @@ for(i in 1:loopn){
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7
     coef_d[i,j] <- -(tau - lambda*mu)*1.7
+    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
+    
   }
   
 }
+
 coef_a_mean[,"im_dm"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"im_dm"]<-colMeans(coef_b,na.rm=TRUE)
 coef_d_mean[,"im_dm"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"im_dm"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"im_dm"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"im_dm"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
 coef_a_mean
+coef_b_mean
 coef_d_mean
+
+write.table(coef_a_mean, 'coef_a_mean_im_dm.txt')
+write.table(coef_b_mean, 'coef_b_mean_im_dm.txt')
+write.table(coef_d_mean, 'coef_d_mean_im_dm.txt')
+
+write.table(coef_a_sd, 'coef_a_sd_im_dm.txt')
+write.table(coef_b_sd, 'coef_b_sd_im_dm.txt')
+write.table(coef_d_sd, 'coef_d_sd_im_dm.txt')
+
+
 
 mod2ind3lv1.indicator_marker.theta_conditional<- function(){}
 
 mod2ind3lv1.indicator_marker.theta_conditional <- '
 
-  eta1_1 =~ l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
-  l5_1==1
+  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
+  l4_1==1
 
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
@@ -1142,10 +1303,13 @@ mod2ind3lv1.indicator_marker.theta_conditional <- '
   item8_1 ~ int8_1*1
   item9_1 ~ int9_1*1
   item10_1 ~ int10_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1==0
-  
+  item11_1 ~ int11_1*1
+  item12_1 ~ int12_1*1
+  item13_1 ~ int13_1*1
+  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+    
   #Latent response variable (LRV) mean constraint
-  
+    
   int1_1 + l1_1*eta1_1_mean == 0
   int2_1 + l2_1*eta1_1_mean == 0
   int3_1 + l3_1*eta1_1_mean == 0
@@ -1156,8 +1320,11 @@ mod2ind3lv1.indicator_marker.theta_conditional <- '
   int8_1 + l8_1*eta1_1_mean == 0
   int9_1 + l9_1*eta1_1_mean == 0
   int10_1 + l10_1*eta1_1_mean == 0
-  
-  ## thresholds link  LRVs to observed items
+  int11_1 + l11_1*eta1_1_mean == 0
+  int12_1 + l12_1*eta1_1_mean == 0
+  int13_1 + l13_1*eta1_1_mean == 0
+    
+    ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
   item2_1 | thr2_1*t1
   item3_1 | thr3_1*t1
@@ -1168,19 +1335,25 @@ mod2ind3lv1.indicator_marker.theta_conditional <- '
   item8_1 | thr8_1*t1
   item9_1 | thr9_1*t1
   item10_1 | thr10_1*t1
-
+  item11_1 | thr11_1*t1
+  item12_1 | thr12_1*t1
+  item13_1 | thr13_1*t1
+  
   ## LRVs (co)variances
-  item1_1  ~~  var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item2_1  ~~  var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item3_1  ~~  var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item4_1  ~~  var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item5_1  ~~  var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item6_1  ~~  var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item7_1  ~~  var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item8_1  ~~  var8_1*item8_1+ 0*item9_1+ 0*item10_1
-  item9_1  ~~  var9_1*item9_1+ 0*item10_1
-  item10_1 ~~ var10_1*item10_1
-
+  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+  item12_1 ~~ var12_1*item12_1+ 0*item13_1
+  item13_1 ~~ var13_1*item13_1
+  
   var1_1==1
   var2_1==1
   var3_1==1
@@ -1191,6 +1364,9 @@ mod2ind3lv1.indicator_marker.theta_conditional <- '
   var8_1==1
   var9_1==1
   var10_1==1
+  var11_1 ==1
+  var12_1 ==1
+  var13_1 ==1
 '
 
 sem.model <- mod2ind3lv1.indicator_marker.theta_conditional
@@ -1228,11 +1404,13 @@ lavInspect(mod2ind3lv1.fit,what = "vy")
 loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_marker.theta_conditional
@@ -1258,13 +1436,33 @@ for(i in 1:loopn){
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7
     coef_d[i,j] <- -(tau - lambda*mu)*1.7
+    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
+    
   }
   
 }
+
 coef_a_mean[,"im_tc"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"im_tc"]<-colMeans(coef_b,na.rm=TRUE)
 coef_d_mean[,"im_tc"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"im_tc"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"im_tc"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"im_tc"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
 coef_a_mean
+coef_b_mean
 coef_d_mean
+
+write.table(coef_a_mean, 'coef_a_mean_im_tc.txt')
+write.table(coef_b_mean, 'coef_b_mean_im_tc.txt')
+write.table(coef_d_mean, 'coef_d_mean_im_tc.txt')
+
+write.table(coef_a_sd, 'coef_a_sd_im_tc.txt')
+write.table(coef_b_sd, 'coef_b_sd_im_tc.txt')
+write.table(coef_d_sd, 'coef_d_sd_im_tc.txt')
+
+
 
 
 mod2ind3lv1.long.indicator_effects.delta_marginal<- function(){}
@@ -1414,9 +1612,9 @@ coef_d <- matrix(data=NA, nrow = loopn, ncol = 6)
 colnames(coef_d) <- paste("item",1:6,sep="")
 
 for(i in 1:loopn){
-  Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
-  dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,2],ncol=1,nrow = length(Theta[,2])))
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
+  dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,2],ncol=1,nrow = length(Eta[,2])))
   dat<- cbind(dat.0p0[,1:3],dat.0p5[,1:3])
   head(dat)
   colnames(dat)<- paste("item",1:6,sep="")
@@ -1461,56 +1659,6 @@ dlong
 c(d[1:3],d[1:3])
 
 
-
-p_calc<- function(a=1,b,c=0,D=1, theta){
-  p <- c + (1-c)/(1+exp(-a*D*(theta-b)))
-}
-
-i_calc<- function(a=1,b,c=0,D=1, theta){
-  p <- c + (1-c)/(1+exp(-a*(theta-b)))
-  i <- D^2*a^2*(1-p)/p*((p-c)/(1-c))^2
-}
-
-sample_p <- function(upper_limit=6, lower_limit=-6, a,b,c,n=200){
-  
-  theta_n <- runif(n=n,min=lower_limit,max=upper_limit)
-  p <- p_calc(a=a,b=b,c=c,theta=theta_n)
-  i <- i_calc(a=a,b=b,c=c,theta=theta_n)
-  return <-cbind(theta_n,p,i)   
-}
-
-# plot_cci(a=1,b=-2,c=.18)
-# plot_cci(a=1,b=-2,c=.18,plot_info=TRUE)
-# plot_cci(a=.45,b=-1,c=.15,500)
-# plot_cci(a=1,b=-1,c=0,500,item_id = "CH34")
-# plot_cci(a=1,b=-1,c=0,500,item_id = "CN76",plot_info = TRUE)
-# setwd("C:\\Users\\hugo\\Downloads")
-# plot_cci(a=1,b=-1,c=0,500,item_id = "CN76",plot_info = TRUE,filename="cci_cii.pdf")
-# if filename is passed. image is saved in working dir.
-plot_cci <- function(a=1,b,c=0,n=200,filename=NULL,item_id="", plot_info=FALSE){
-  
-  data <- sample_p(a=a,b=b,c=c,n=n)
-  title <- sprintf("Curva Característica do Item %s", item_id)
-  subtitle <- sprintf("a = %.2f; b = %.2f; c = %.2f",a,b,c)
-  pfinal<-ggplot(data.frame(data),aes(x=theta_n,y=p))+geom_line(colour="blue")+
-    ylim(0,1)+geom_hline(yintercept=0.5,linetype="dotted")+
-    labs(x="Proficiência", y="Probabilidade de acerto",title =title, subtitle = subtitle )
-  if(plot_info==TRUE){
-    title <- sprintf("Curva de Informação do Item %s", item_id)
-    h<-ggplot(data.frame(data),aes(x=theta_n,y=i))+geom_line(colour="red")+
-      ylim(0,NA)+geom_hline(yintercept=0.5,linetype="dotted")+
-      labs(x="Proficiência", y="Informação",title =title, subtitle = subtitle )
-    require(cowplot)
-    title <- sprintf("Item %s", item_id)
-    title <- ggdraw() + draw_label(title, fontface='bold')
-    pfinal <- cowplot::plot_grid(title, pfinal,h,nrow=3,rel_heights=c(0.1, 1,1))
-  }
-  print(pfinal)
-  if(!is.null(filename)){
-    ggsave(filename)
-  }
-  return(pfinal)
-}
 
 
 
