@@ -54,22 +54,34 @@ summary(s2)
 data_creation <-function(){}
 
 N <- 2000 ## subjects
-I= 10  # Number of Items
+loopn <-10
+
+# N <- 10000 ## subjects
+# loopn <-1000
+
+
+I= 15  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
 SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
 rho<-0.7
-fixed_par <-TRUE
 
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
 
-if(!fixed_par){
+
+#par_type <- 1 #random
+#par_type <- 2 #a and b varying.
+par_type <- 3 #a=1, b varying
+if(par_type==1){
   if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
   b = runif(I,-2, 2.0)     # U(-2 , 2)
   if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
-}else{
-  a <- c( 0.6, 0.7, 0.8,0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5 )
-  b <- c(-3.0,-2.5,-1.5, -1,   0, 1.0, 1.5, 2.5, 3.0, 3.5 )
+}else if(par_type==2){
+  a <- rep(1,13)
+  b <- seq(-3.0,3.0,by=0.5)
+}else if(par_type==3){
+  a <- c(rep(seq(0.75,1.5,by=0.25),3),0.75)
+  b <- seq(-3,3,by=0.5)
 }
 d=-a*b # MIRT trabalha com o intercepto (d=-ab) e nao com a dificuldade (b)
 pars <- cbind(a,b,d)
@@ -107,13 +119,25 @@ Sigma
 experiments <- c("sim", "mirt", "ff_dm" ,"ff_tc","im_dm","im_tc","ie_dm","ie_tc")
   
 
-acomp <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(acomp) <- experiments
-acomp[,"sim"]<-a
+coef_a_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(coef_a_mean) <- experiments
+coef_a_mean[,"sim"]<-a
+coef_a_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(coef_a_sd) <- experiments
 
-dcomp <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(dcomp) <- experiments
-dcomp[,"sim"]<-d
+
+coef_b_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(coef_b_mean) <- experiments
+coef_b_mean[,"sim"]<-b
+coef_b_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(coef_b_sd) <- experiments
+
+
+coef_d_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(coef_d_mean) <- experiments
+coef_d_mean[,"sim"]<-d
+coef_d_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(coef_d_sd) <- experiments
 
 
 Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
@@ -140,14 +164,12 @@ dat.1p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,3],ncol=1,n
 dat <- dat.0p0
 #dat <- dat.0p5
 #dat <- dat.1p0
-itemnames <- c( "item1_1","item2_1","item3_1","item4_1","item5_1","item6_1","item7_1","item8_1","item9_1","item10_1")
+itemnames <- paste("item",1:I,"_",time_n,sep="")
 colnames(dat) <-     itemnames
 colnames(dat.0p0) <- itemnames
 colnames(dat.0p5) <- itemnames
 colnames(dat.1p0) <- itemnames
 str(dat)
-alpha <- ltm::cronbach.alpha(dat)
-print(alpha)
 
 
 #expected thresholds
@@ -156,11 +178,13 @@ prop
 th <- qnorm(1-prop)
 th
 
-loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
+
 for(i in 1:loopn){
   Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Theta[,1],ncol=1,nrow = length(Theta[,1])))
@@ -172,13 +196,20 @@ for(i in 1:loopn){
   coef(mod, simplify=TRUE)
   coef_a[i,] <- coef(mod, simplify=TRUE)$item[,"a1"]
   coef_d[i,] <- coef(mod, simplify=TRUE)$item[,"d"]
+  coef_b[i,] <- -coef_d[i,]/coef_a[i,]
 }
 
-acomp[,"mirt"]<-colMeans(coef_a,na.rm=TRUE)
-dcomp[,"mirt"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean[,"mirt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"mirt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"mirt"]<-colMeans(coef_d,na.rm=TRUE)
 
-acomp
-dcomp
+coef_a_sd[,"mirt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"mirt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"mirt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+coef_a_mean
+coef_b_mean
+coef_d_mean
 
 # Specify Model Parameters for numerical itens
 
@@ -275,17 +306,17 @@ dcomp
 #   }
 #   
 # }
-# acomp[,"ff_dm"]<-colMeans(coef_a,na.rm=TRUE)
-# dcomp[,"ff_dm"]<-colMeans(coef_d,na.rm=TRUE)
-# acomp
-# dcomp
+# coef_a_mean[,"ff_dm"]<-colMeans(coef_a,na.rm=TRUE)
+# coef_d_mean[,"ff_dm"]<-colMeans(coef_d,na.rm=TRUE)
+# coef_a_mean
+# coef_d_mean
 
 
 mod2ind3lv1.fixed_factor.delta_marginal<- function(){}
 
 mod2ind3lv1.fixed_factor.delta_marginal <- '
 
-eta1_1 =~ l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
+eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
 #latent var means and var
 eta1_1 ~ eta1_1_mean*1
 eta1_1 ~~ eta1_1_var*eta1_1
@@ -301,8 +332,11 @@ item7_1 ~ int7_1*1
 item8_1 ~ int8_1*1
 item9_1 ~ int9_1*1
 item10_1 ~ int10_1*1
-int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1==0
+item11_1 ~ int11_1*1
+item12_1 ~ int12_1*1
+item13_1 ~ int13_1*1
 
+int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1==0
 #Latent response variable (LRV) mean constraint
 
 int1_1 + l1_1*eta1_1_mean == 0
@@ -315,6 +349,9 @@ int7_1 + l7_1*eta1_1_mean == 0
 int8_1 + l8_1*eta1_1_mean == 0
 int9_1 + l9_1*eta1_1_mean == 0
 int10_1 + l10_1*eta1_1_mean == 0
+int11_1 + l11_1*eta1_1_mean == 0
+int12_1 + l12_1*eta1_1_mean == 0
+int13_1 + l13_1*eta1_1_mean == 0
 
 ## thresholds link  LRVs to observed items
 item1_1 | thr1_1*t1
@@ -327,19 +364,26 @@ item7_1 | thr7_1*t1
 item8_1 | thr8_1*t1
 item9_1 | thr9_1*t1
 item10_1 | thr10_1*t1
-#thr1_1 + thr2_1 + thr3_1 + thr4_1 + thr5_1 + thr6_1 + thr7_1 + thr8_1 + thr9_1 + thr10_1==0
+item11_1 | thr11_1*t1
+item12_1 | thr12_1*t1
+item13_1 | thr13_1*t1
+
+#thr1_1 + thr2_1 + thr3_1 + thr4_1 + thr5_1 + thr6_1 + thr7_1 + thr8_1 + thr9_1 + thr10_1 + thr11_1 + thr12_1 + thr13_1==0
 
 ## LRVs (co)variances
-item1_1  ~~  var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item2_1  ~~  var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item3_1  ~~  var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item4_1  ~~  var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item5_1  ~~  var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item6_1  ~~  var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item7_1  ~~  var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-item8_1  ~~  var8_1*item8_1+ 0*item9_1+ 0*item10_1
-item9_1  ~~  var9_1*item9_1+ 0*item10_1
-item10_1 ~~ var10_1*item10_1
+item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+item12_1 ~~ var12_1*item12_1+ 0*item13_1
+item13_1 ~~ var13_1*item13_1
 
 
 ## LRVs variances constraints
@@ -353,6 +397,9 @@ eta1_1_var*l7_1^2 + var7_1 == 1
 eta1_1_var*l8_1^2 + var8_1 == 1
 eta1_1_var*l9_1^2 + var9_1 == 1
 eta1_1_var*l10_1^2 + var10_1 == 1
+eta1_1_var*l11_1^2 + var11_1 == 1
+eta1_1_var*l12_1^2 + var12_1 == 1
+eta1_1_var*l13_1^2 + var13_1 == 1
 
 '
 
@@ -360,7 +407,7 @@ eta1_1_var*l10_1^2 + var10_1 == 1
 sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
 
 rm(mod2ind3lv1.fit)
-
+colnames(dat)<- itemnames
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
@@ -394,9 +441,10 @@ lavInspect(mod2ind3lv1.fit,what = "vy")
 
 
 
-loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
@@ -405,9 +453,7 @@ for(i in 1:loopn){
   dat <- dat.0p0
   colnames(dat)<- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
-  
   rm(mod2ind3lv1.fit)
-  
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = TRUE,
@@ -431,18 +477,36 @@ for(i in 1:loopn){
     
     coef_a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
     coef_d[i,j] <-  -tau/sqrt(1-lambda^2)*1.7
+    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
   }
   
 }
-acomp[,"ff_dm"]<-colMeans(coef_a,na.rm=TRUE)
-dcomp[,"ff_dm"]<-colMeans(coef_d,na.rm=TRUE)
-acomp
-dcomp
+
+coef_a_mean[,"ff_dm"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ff_dm"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"ff_dm"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"ff_dm"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ff_dm"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ff_dm"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+coef_a_mean
+coef_b_mean
+coef_d_mean
+
+write.table(coef_a_mean, 'coef_a_mean_ff_dm.txt')
+write.table(coef_b_mean, 'coef_b_mean_ff_dm.txt')
+write.table(coef_d_mean, 'coef_d_mean_ff_dm.txt')
+
+write.table(coef_a_sd, 'coef_a_sd_ff_dm.txt')
+write.table(coef_b_sd, 'coef_b_sd_ff_dm.txt')
+write.table(coef_d_sd, 'coef_d_sd_ff_dm.txt')
+
 
 mod2ind3lv1.fixed_factor.theta_conditional<- function(){}
 
 mod2ind3lv1.fixed_factor.theta_conditional <- '
-  eta1_1 =~ l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
+  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
@@ -458,10 +522,13 @@ mod2ind3lv1.fixed_factor.theta_conditional <- '
   item8_1 ~ int8_1*1
   item9_1 ~ int9_1*1
   item10_1 ~ int10_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1==0
-  
+  item11_1 ~ int11_1*1
+  item12_1 ~ int12_1*1
+  item13_1 ~ int13_1*1
+  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+    
   #Latent response variable (LRV) mean constraint
-  
+    
   int1_1 + l1_1*eta1_1_mean == 0
   int2_1 + l2_1*eta1_1_mean == 0
   int3_1 + l3_1*eta1_1_mean == 0
@@ -472,8 +539,11 @@ mod2ind3lv1.fixed_factor.theta_conditional <- '
   int8_1 + l8_1*eta1_1_mean == 0
   int9_1 + l9_1*eta1_1_mean == 0
   int10_1 + l10_1*eta1_1_mean == 0
-  
-  ## thresholds link  LRVs to observed items
+  int11_1 + l11_1*eta1_1_mean == 0
+  int12_1 + l12_1*eta1_1_mean == 0
+  int13_1 + l13_1*eta1_1_mean == 0
+    
+    ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
   item2_1 | thr2_1*t1
   item3_1 | thr3_1*t1
@@ -484,33 +554,43 @@ mod2ind3lv1.fixed_factor.theta_conditional <- '
   item8_1 | thr8_1*t1
   item9_1 | thr9_1*t1
   item10_1 | thr10_1*t1
-
+  item11_1 | thr11_1*t1
+  item12_1 | thr12_1*t1
+  item13_1 | thr13_1*t1
+  
   ## LRVs (co)variances
-  item1_1  ~~  var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item2_1  ~~  var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item3_1  ~~  var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item4_1  ~~  var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item5_1  ~~  var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item6_1  ~~  var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item7_1  ~~  var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1
-  item8_1  ~~  var8_1*item8_1+ 0*item9_1+ 0*item10_1
-  item9_1  ~~  var9_1*item9_1+ 0*item10_1
-  item10_1 ~~ var10_1*item10_1
-
-  var1_1==1
-  var2_1==1
-  var3_1==1
-  var4_1==1
-  var5_1==1
-  var6_1==1
-  var7_1==1
-  var8_1==1
-  var9_1==1
-  var10_1==1
+item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+item12_1 ~~ var12_1*item12_1+ 0*item13_1
+item13_1 ~~ var13_1*item13_1
+  
+  var1_1 ==1
+  var2_1 ==1
+  var3_1 ==1
+  var4_1 ==1
+  var5_1 ==1
+  var6_1 ==1
+  var7_1 ==1
+  var8_1 ==1
+  var9_1 ==1
+  var10_1 ==1
+  var11_1 ==1
+  var12_1 ==1
+  var13_1 ==1
 '
 
 sem.model <- mod2ind3lv1.fixed_factor.theta_conditional
 rm(mod2ind3lv1.fit)
+colnames(dat)<- itemnames
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
@@ -531,9 +611,10 @@ summary(mod2ind3lv1.fit)
 fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
 
 
-loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
 coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
@@ -566,13 +647,30 @@ for(i in 1:loopn){
     
     coef_a[i,j] <- lambda*1.7
     coef_d[i,j] <-  -(tau)*1.7
+    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
   }
   
 }
-acomp[,"ff_tc"]<-colMeans(coef_a,na.rm=TRUE)
-dcomp[,"ff_tc"]<-colMeans(coef_d,na.rm=TRUE)
-acomp
-dcomp
+
+coef_a_mean[,"ff_tc"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ff_tc"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"ff_tc"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"ff_tc"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ff_tc"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ff_tc"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+coef_a_mean
+coef_b_mean
+coef_d_mean
+
+write.table(coef_a_mean, 'coef_a_mean_ff_tc.txt')
+write.table(coef_b_mean, 'coef_b_mean_ff_tc.txt')
+write.table(coef_d_mean, 'coef_d_mean_ff_tc.txt')
+
+write.table(coef_a_sd, 'coef_a_sd_ff_tc.txt')
+write.table(coef_b_sd, 'coef_b_sd_ff_tc.txt')
+write.table(coef_d_sd, 'coef_d_sd_ff_tc.txt')
 
 
 mod2ind3lv1.indicator_effects.delta_marginal<- function(){}
@@ -721,10 +819,10 @@ for(i in 1:loopn){
   }
   
 }
-acomp[,"ie_dm"]<-colMeans(coef_a,na.rm=TRUE)
-dcomp[,"ie_dm"]<-colMeans(coef_d,na.rm=TRUE)
-acomp
-dcomp
+coef_a_mean[,"ie_dm"]<-colMeans(coef_a,na.rm=TRUE)
+coef_d_mean[,"ie_dm"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean
+coef_d_mean
 
 
 mod2ind3lv1.indicator_effects.theta_conditional<- function(){}
@@ -868,10 +966,10 @@ for(i in 1:loopn){
   }
   
 }
-acomp[,"ie_tc"]<-colMeans(coef_a,na.rm=TRUE)
-dcomp[,"ie_tc"]<-colMeans(coef_d,na.rm=TRUE)
-acomp
-dcomp
+coef_a_mean[,"ie_tc"]<-colMeans(coef_a,na.rm=TRUE)
+coef_d_mean[,"ie_tc"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean
+coef_d_mean
 
 
 
@@ -1017,10 +1115,10 @@ for(i in 1:loopn){
   }
   
 }
-acomp[,"im_dm"]<-colMeans(coef_a,na.rm=TRUE)
-dcomp[,"im_dm"]<-colMeans(coef_d,na.rm=TRUE)
-acomp
-dcomp
+coef_a_mean[,"im_dm"]<-colMeans(coef_a,na.rm=TRUE)
+coef_d_mean[,"im_dm"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean
+coef_d_mean
 
 mod2ind3lv1.indicator_marker.theta_conditional<- function(){}
 
@@ -1163,10 +1261,10 @@ for(i in 1:loopn){
   }
   
 }
-acomp[,"im_tc"]<-colMeans(coef_a,na.rm=TRUE)
-dcomp[,"im_tc"]<-colMeans(coef_d,na.rm=TRUE)
-acomp
-dcomp
+coef_a_mean[,"im_tc"]<-colMeans(coef_a,na.rm=TRUE)
+coef_d_mean[,"im_tc"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean
+coef_d_mean
 
 
 mod2ind3lv1.long.indicator_effects.delta_marginal<- function(){}
