@@ -53,14 +53,14 @@ summary(s2)
 # Generate Longitudinal Items from a Bivariate LIR
 data_creation <-function(){}
 
-N <- 2000 ## subjects
-loopn <-10
+#N <- 2000 ## subjects
+#loopn <-10
 
-# N <- 10000 ## subjects
-# loopn <-1000
+N <- 10000 ## subjects
+loopn <-1000
 
 
-I= 15  # Number of Items
+I= 13  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
 SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
 rho<-0.7
