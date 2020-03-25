@@ -20,6 +20,45 @@ if(!require(dplyr)) install.packages("dplyr"); library(dplyr)
 
 function_definition <- function(){}
 
+
+
+#' is_var_defined
+#'
+#' Check if a variable is defined in memory
+#' @param var - Variable to check
+#'
+#' @return true or false
+#' @export
+#'
+#' @examples
+#' a <- 2
+#' is_var_defined(a) #returns TRUE
+#' is_var_defined(b) #returns FALSE
+is_var_defined <- function(var) {
+  var <- deparse(substitute(var))
+  env <- parent.frame()
+  exists(var, env)
+}
+
+#' remove_var
+#'
+#' Delete var from memory
+#'
+#' @param var - name of a variable
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' remove_var(prova_lc) #removes var prova_lc  from memory
+#'
+#'
+remove_var <-function(var){
+  if(is_var_defined(var)){rm(var)}
+}
+
+
+
 get_time<-function(){
   return(Sys.time())
 }
@@ -105,11 +144,11 @@ summary(s2)
 # Generate Longitudinal Items from a Bivariate LIR
 data_creation <-function(){}
 
-N <- 2000 ## subjects
-loopn <-10
+# N <- 1000 ## subjects
+# loopn <-10
 
-#N <- 10000 ## subjects
-#loopn <-1000
+N <- 10000 ## subjects
+loopn <-1000
 
 
 I= 13  # Number of Items
@@ -281,7 +320,7 @@ coef_d_mean
 # 
 # sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
 # 
-# rm(mod2ind3lv1.fit)
+# remove_var(mod2ind3lv1.fit)
 # 
 # start_time <- get_time()
 # mod2ind3lv1.fit <- lavaan(model = sem.model, 
@@ -315,7 +354,6 @@ coef_d_mean
 # 
 # 
 # 
-# loopn <-200
 # coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 # colnames(coef_a) <- paste("item",1:I,sep="")
 # coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -333,7 +371,7 @@ coef_d_mean
 #   '
 #   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
 #   
-#   rm(mod2ind3lv1.fit)
+#   remove_var(mod2ind3lv1.fit)
 #   
 #   mod2ind3lv1.fit <- lavaan(model = sem.model, 
 #                             data = dat, 
@@ -460,8 +498,7 @@ eta1_1_var*l13_1^2 + var13_1 == 1
 
 
 sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
-
-rm(mod2ind3lv1.fit)
+remove_var(mod2ind3lv1.fit)
 colnames(dat)<- itemnames
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
@@ -508,7 +545,7 @@ for(i in 1:loopn){
   dat <- dat.0p0
   colnames(dat)<- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
-  rm(mod2ind3lv1.fit)
+  remove_var(mod2ind3lv1.fit)
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = TRUE,
@@ -644,7 +681,7 @@ mod2ind3lv1.fixed_factor.theta_conditional <- '
 '
 
 sem.model <- mod2ind3lv1.fixed_factor.theta_conditional
-rm(mod2ind3lv1.fit)
+remove_var(mod2ind3lv1.fit)
 colnames(dat)<- itemnames
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
@@ -678,7 +715,7 @@ for(i in 1:loopn){
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
-  rm(mod2ind3lv1.fit)
+  remove_var(mod2ind3lv1.fit)
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = TRUE,
@@ -819,7 +856,7 @@ mod2ind3lv1.indicator_effects.delta_marginal <- '
 '
 
 sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
-rm(mod2ind3lv1.fit)
+remove_var(mod2ind3lv1.fit)
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
@@ -863,7 +900,7 @@ for(i in 1:loopn){
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
-  rm(mod2ind3lv1.fit)
+  remove_var(mod2ind3lv1.fit)
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
@@ -1005,7 +1042,7 @@ mod2ind3lv1.indicator_effects.theta_conditional <- '
 '
 
 sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
-rm(mod2ind3lv1.fit)
+remove_var(mod2ind3lv1.fit)
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
@@ -1036,7 +1073,6 @@ vcov(mod2ind3lv1.fit)
 lavInspect(mod2ind3lv1.fit,what = "mu")
 lavInspect(mod2ind3lv1.fit,what = "vy")
 
-loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
 coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -1049,7 +1085,7 @@ for(i in 1:loopn){
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
-  rm(mod2ind3lv1.fit)
+  remove_var(mod2ind3lv1.fit)
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
@@ -1187,7 +1223,7 @@ mod2ind3lv1.indicator_marker.delta_marginal <- '
 '
 
 sem.model <- mod2ind3lv1.indicator_marker.delta_marginal
-rm(mod2ind3lv1.fit)
+remove_var(mod2ind3lv1.fit)
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
@@ -1218,7 +1254,6 @@ vcov(mod2ind3lv1.fit)
 lavInspect(mod2ind3lv1.fit,what = "mu")
 lavInspect(mod2ind3lv1.fit,what = "vy")
 
-loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
 coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -1231,7 +1266,7 @@ for(i in 1:loopn){
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_marker.delta_marginal
-  rm(mod2ind3lv1.fit)
+  remove_var(mod2ind3lv1.fit)
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
@@ -1370,7 +1405,7 @@ mod2ind3lv1.indicator_marker.theta_conditional <- '
 '
 
 sem.model <- mod2ind3lv1.indicator_marker.theta_conditional
-rm(mod2ind3lv1.fit)
+remove_var(mod2ind3lv1.fit)
 start_time <- get_time()
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
@@ -1401,7 +1436,6 @@ vcov(mod2ind3lv1.fit)
 lavInspect(mod2ind3lv1.fit,what = "mu")
 lavInspect(mod2ind3lv1.fit,what = "vy")
 
-loopn <-200
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
 coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -1414,7 +1448,7 @@ for(i in 1:loopn){
   dat <- dat.0p0
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_marker.theta_conditional
-  rm(mod2ind3lv1.fit)
+  remove_var(mod2ind3lv1.fit)
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
@@ -1570,7 +1604,7 @@ colnames(dat)<- paste("item",1:6,sep="")
 itemnames <- paste("item",1:6,sep="")
 
 sem.model <- mod2ind3lv1.long.indicator_effects.delta_marginal
-rm(mod2ind3lv1.fit)
+remove_var(mod2ind3lv1.fit)
 mod2ind3lv1.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = FALSE,
@@ -1605,10 +1639,11 @@ lavInspect(mod2ind3lv1.fit,what = "est")$alpha
 lavInspect(mod2ind3lv1.fit,what = "est")$psi
 
 
-loopn <-100
-coef_a <- matrix(data=NA, nrow = loopn, ncol = 6)
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:6,sep="")
-coef_d <- matrix(data=NA, nrow = loopn, ncol = 6)
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:6,sep="")
 
 for(i in 1:loopn){
@@ -1619,7 +1654,7 @@ for(i in 1:loopn){
   head(dat)
   colnames(dat)<- paste("item",1:6,sep="")
   itemnames <- paste("item",1:6,sep="")
-  rm(mod2ind3lv1.fit)
+  remove_var(mod2ind3lv1.fit)
   mod2ind3lv1.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
