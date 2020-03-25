@@ -2,7 +2,7 @@
 lv_n <- 1
 time_n <- 1
 item_first <-1
-item_n <-15
+item_n <-13
 
 paste("item",1:item_n,"_",time_n,sep="")
 
@@ -111,4 +111,12 @@ for(i in (item_first):(item_n)){
 # [1] "eta1_1_var*l1_1^2 + var1_1 == 1"
 # [1] "eta1_1_var*l2_1^2 + var2_1 == 1"
 # [1] "eta1_1_var*l3_1^2 + var3_1 == 1"
+
+
+for(i in (item_first):(item_n)){
+  print(
+    paste("var",i,"_",time_n," ==1",sep="")
+  )
+}
+
 
