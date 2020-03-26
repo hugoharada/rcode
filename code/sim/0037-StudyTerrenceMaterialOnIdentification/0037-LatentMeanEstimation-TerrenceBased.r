@@ -17,6 +17,7 @@ if(!require(readxl)) install.packages("readxl"); library(readxl)
 if(!require(tidyr)) install.packages("tidyr"); library(tidyr)
 if(!require(stringr)) install.packages("stringr"); library(stringr)
 if(!require(dplyr)) install.packages("dplyr"); library(dplyr)
+if(!require(xlsx)) install.packages("xlsx"); library(xlsx)
 
 function_definition <- function(){}
 
@@ -1497,6 +1498,13 @@ write.table(coef_b_sd, 'coef_b_sd_im_tc.txt')
 write.table(coef_d_sd, 'coef_d_sd_im_tc.txt')
 
 
+write.xlsx(coef_a_sd, "N10000_loopn1000_resultados_final.xlsx", sheetName = "a_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_b_sd, "N10000_loopn1000_resultados_final.xlsx", sheetName = "b_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_d_sd, "N10000_loopn1000_resultados_final.xlsx", sheetName = "d_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
+
+write.xlsx(coef_a_mean, "N10000_loopn1000_resultados_final.xlsx", sheetName = "a_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_b_mean, "N10000_loopn1000_resultados_final.xlsx", sheetName = "b_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_d_mean, "N10000_loopn1000_resultados_final.xlsx", sheetName = "d_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
 
 
 mod2ind3lv1.long.indicator_effects.delta_marginal<- function(){}
