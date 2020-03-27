@@ -156,14 +156,16 @@ I= 13  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
 SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
 rho<-0.7
+y_star_mean <- 1 #'0p0'=1,'0p5'=2, '1p0'=3 
 
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
 
 
 #par_type <- 1 #random
-#par_type <- 2 #a and b varying.
-par_type <- 3 #a=1, b varying
+#par_type <- 2 # a=1, b varying
+#par_type <- 3 # a and b varying.
+par_type <- 4  # a=0.7, b varying
 if(par_type==1){
   if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
   b = runif(I,-2, 2.0)     # U(-2 , 2)
@@ -174,6 +176,9 @@ if(par_type==1){
 }else if(par_type==3){
   a <- c(rep(seq(0.75,1.5,by=0.25),3),0.75)
   b <- seq(-3,3,by=0.5)
+}else if(par_type==4){
+  a <- rep(0.7,13)
+  b <- seq(-3.0,3.0,by=0.5)
 }
 d=-a*b # MIRT trabalha com o intercepto (d=-ab) e nao com a dificuldade (b)
 pars <- cbind(a,b,d)
@@ -252,15 +257,10 @@ dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nro
 dat.0p5 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,2],ncol=1,nrow = length(Eta[,2])))
 dat.1p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,3],ncol=1,nrow = length(Eta[,3])))
 
-#data selection
-dat <- dat.0p0
-#dat <- dat.0p5
-#dat <- dat.1p0
+
+dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,2])))
 itemnames <- paste("item",1:I,"_",1,sep="")
 colnames(dat) <-     itemnames
-colnames(dat.0p0) <- itemnames
-colnames(dat.0p5) <- itemnames
-colnames(dat.1p0) <- itemnames
 str(dat)
 
 
@@ -282,7 +282,7 @@ colnames(coef_b) <- paste("item",1:I,sep="")
 
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
+  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   dat <- dat.0p0
   colnames(dat) <- paste("item",1:I,sep="")
   mod<-mirt(data=dat,model = 1,itemtype = "2PL")
@@ -361,7 +361,7 @@ coef_d_mean
 # colnames(coef_d) <- paste("item",1:I,sep="")
 # for(i in 1:loopn){
 #   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-#   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
+#   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
 #   dat <- dat.0p0
 #   colnames(dat)<- itemnames
 #   
@@ -542,8 +542,7 @@ coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
-  dat <- dat.0p0
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat)<- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
   remove_var(mod2ind3lv1.fit)
@@ -712,8 +711,7 @@ coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
-  dat <- dat.0p0
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
   remove_var(mod2ind3lv1.fit)
@@ -897,8 +895,7 @@ coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
-  dat <- dat.0p0
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
   remove_var(mod2ind3lv1.fit)
@@ -1082,8 +1079,7 @@ coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
-  dat <- dat.0p0
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
   remove_var(mod2ind3lv1.fit)
@@ -1263,8 +1259,7 @@ coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
-  dat <- dat.0p0
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_marker.delta_marginal
   remove_var(mod2ind3lv1.fit)
@@ -1445,8 +1440,7 @@ coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_d) <- paste("item",1:I,sep="")
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
-  dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,1],ncol=1,nrow = length(Eta[,1])))
-  dat <- dat.0p0
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
   sem.model <- mod2ind3lv1.indicator_marker.theta_conditional
   remove_var(mod2ind3lv1.fit)
@@ -1498,13 +1492,13 @@ write.table(coef_b_sd, 'coef_b_sd_im_tc.txt')
 write.table(coef_d_sd, 'coef_d_sd_im_tc.txt')
 
 
-write.xlsx(coef_a_sd, "N10000_loopn1000_resultados_final.xlsx", sheetName = "a_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
-write.xlsx(coef_b_sd, "N10000_loopn1000_resultados_final.xlsx", sheetName = "b_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
-write.xlsx(coef_d_sd, "N10000_loopn1000_resultados_final.xlsx", sheetName = "d_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_a_sd, "parType4_N10000_loopn1000_resultados_final.xlsx", sheetName = "a_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_b_sd, "parType4_N10000_loopn1000_resultados_final.xlsx", sheetName = "b_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_d_sd, "parType4_N10000_loopn1000_resultados_final.xlsx", sheetName = "d_sd", col.names = TRUE, row.names = TRUE, append = TRUE)
 
-write.xlsx(coef_a_mean, "N10000_loopn1000_resultados_final.xlsx", sheetName = "a_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
-write.xlsx(coef_b_mean, "N10000_loopn1000_resultados_final.xlsx", sheetName = "b_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
-write.xlsx(coef_d_mean, "N10000_loopn1000_resultados_final.xlsx", sheetName = "d_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_a_mean, "parType4_N10000_loopn1000_resultados_final.xlsx", sheetName = "a_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_b_mean, "parType4_N10000_loopn1000_resultados_final.xlsx", sheetName = "b_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
+write.xlsx(coef_d_mean, "parType4_N10000_loopn1000_resultados_final.xlsx", sheetName = "d_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
 
 
 mod2ind3lv1.long.indicator_effects.delta_marginal<- function(){}
