@@ -68,6 +68,31 @@ get_delta_time<-function(start_time){
 }
 
 
+
+
+#' Title
+#'
+#' @param lambda - loadings
+#' @param nu     - latent response variable intercepts
+#' @param tau    - latent response variable threshold
+#' @param mu     - latent variable mean - common factor mean
+#' @param psi    - latent variable var  - common factor var
+#'
+#' @return a, b, d IRT parameters - alpha = a ; d = beta 
+#' @export
+#'
+#' @examples
+irt_param_calc <- function(lambda, nu, tau, mu, psi,alpha){
+  
+  a <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
+  d <- (nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)
+  b <- -d/a
+  return(c(a=a,b=b,d=d))
+  
+}
+
+
+
 p_calc<- function(a=1,b,c=0,D=1, theta){
   p <- c + (1-c)/(1+exp(-a*D*(theta-b)))
 }
@@ -84,6 +109,16 @@ sample_p <- function(upper_limit=6, lower_limit=-6, a,b,c,n=200){
   i <- i_calc(a=a,b=b,c=c,theta=theta_n)
   return <-cbind(theta_n,p,i)   
 }
+
+
+threshold_calc <- function( vectorY){
+  prop <- table(vectorY)/sum(table(vectorY))
+  cprop <- c(0, cumsum(prop))
+  th <- qnorm(cprop)
+  return(th)
+}
+
+
 
 # plot_cci(a=1,b=-2,c=.18)
 # plot_cci(a=1,b=-2,c=.18,plot_info=TRUE)
@@ -145,12 +180,11 @@ summary(s2)
 # Generate Longitudinal Items from a Bivariate LIR
 data_creation <-function(){}
 
-# N <- 1000 ## subjects
-# loopn <-10
+N <- 1000    ## subjects
+loopn <-50   ## number of runs
 
-N <- 10000 ## subjects
-loopn <-1000
-
+# N <- 10000 ## subjects
+# loopn <-1000   ## number of runs
 
 I= 13  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
@@ -205,36 +239,91 @@ if(SigmaType==0){
 }
 Sigma
 
-# mirt                              <-	"mirt" 
-# fixed_factor,		delta_marginal 		<-	"ff_dm" 
-# fixed_factor, 		theta_conditional	<- 	"ff_tc"
-# indicator_marker, 	delta_marginal 		<- 	"im_dm"
-# indicator_marker, 	theta_conditional 	<-  "im_tc"
-# indicator_effects, 	delta_marginal   	<- 	"ie_dm"
-# indicator_effects, 	theta_conditional 	<-	"ie_tc"
-# indicator_effects, 	delta_marginal, long   	<- 	"ie_dm_lo"
-experiments <- c("sim", "mirt", "ff_dm" ,"ff_tc","im_dm","im_tc","ie_dm","ie_tc")
+# fixed_factor,		    delta_marginal 		  ystar_thre_free  	<-	"ff_dm_yt"
+# fixed_factor,		    delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym"
+# fixed_factor, 		  theta_conditional	  ystar_thre_free 	<- 	"ff_tc_yt"
+# fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym"
+
+# indicator_marker, 	delta_marginal 		  ystar_thre_free 	<- 	"im_dm_yt"
+# indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym"
+# indicator_marker, 	theta_conditional 	ystar_thre_free 	<-  "im_tc_yt"
+# indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym"
+
+# indicator_effects, 	delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
+# indicator_effects, 	delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
+# indicator_effects, 	theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
+# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
+
+
+experiments <- c("sim", "mirt", "ff_dm_yt","ff_dm_ym","ff_tc_yt","ff_tc_ym","im_dm_yt","im_dm_ym","im_tc_yt","im_tc_ym","ie_dm_yt","ie_dm_ym","ie_tc_yt","ie_tc_ym")
   
 
-coef_a_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(coef_a_mean) <- experiments
-coef_a_mean[,"sim"]<-a
-coef_a_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(coef_a_sd) <- experiments
+placeholder <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+colnames(placeholder) <- experiments
+
+loop_placeholder <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(loop_placeholder) <- paste("item",1:I,sep="")
 
 
-coef_b_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(coef_b_mean) <- experiments
-coef_b_mean[,"sim"]<-b
-coef_b_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(coef_b_sd) <- experiments
+# coef_a_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+# colnames(coef_a_mean) <- experiments
+# coef_a_mean[,"sim"]<-a
+# coef_a_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+# colnames(coef_a_sd) <- experiments
+# 
+# 
+# coef_b_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+# colnames(coef_b_mean) <- experiments
+# coef_b_mean[,"sim"]<-b
+# coef_b_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+# colnames(coef_b_sd) <- experiments
+# 
+# coef_d_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+# colnames(coef_d_mean) <- experiments
+# coef_d_mean[,"sim"]<-d
+# coef_d_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
+# colnames(coef_d_sd) <- experiments
 
 
-coef_d_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(coef_d_mean) <- experiments
-coef_d_mean[,"sim"]<-d
-coef_d_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-colnames(coef_d_sd) <- experiments
+est.param <-list(
+  a   = list(mean = placeholder,  sd= placeholder),
+  b   = list(mean = placeholder, sd= placeholder),
+  d   = list(mean = placeholder, sd =placeholder),
+  lambda = list(mean = placeholder, sd =placeholder),
+  tau = list(mean = placeholder, sd =placeholder),
+  nu = list(mean = placeholder, sd =placeholder),
+  psi = list(mean = placeholder,  sd= placeholder),
+  alpha = list(mean = placeholder,  sd= placeholder),
+  eta = list(sim = list(mean = mean(Eta[,y_star_mean]), var = var(Eta[,y_star_mean])),
+             ebm = list(mean = NA, var = NA),
+             ml  = list(mean = NA, var = NA)),
+  fit = list(tli = NA,cfi = NA,rmsea = NA, time=NA),
+  param = list(N = N, loopn = loopn, item_n = I)
+)
+
+
+est.param2 <-est.param
+
+est.param$a$mean[,"sim"]<-a
+est.param$b$mean[,"sim"]<-b
+est.param$d$mean[,"sim"]<-d
+
+
+loop_tmp <-list(
+  a   = loop_placeholder,
+  b   = loop_placeholder,
+  d   = loop_placeholder,
+  lambda = loop_placeholder,
+  tau = loop_placeholder,
+  nu = loop_placeholder,
+  eta = list(ebm = loop_placeholder,
+             ml  = loop_placeholder),
+  fit = list(tli = loop_placeholder,
+             cfi = loop_placeholder,
+             rmsea = loop_placeholder,
+             time = loop_placeholder)
+)
+
 
 
 Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
@@ -273,12 +362,22 @@ th
 mirt.estimations<- function(){}
 
 
-coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
-colnames(coef_a) <- paste("item",1:I,sep="")
-coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
-colnames(coef_d) <- paste("item",1:I,sep="")
-coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
-colnames(coef_b) <- paste("item",1:I,sep="")
+loop_tmp <-list(
+  a   = loop_placeholder,
+  b   = loop_placeholder,
+  d   = loop_placeholder,
+  lambda = loop_placeholder,
+  tau = loop_placeholder,
+  nu = loop_placeholder,
+  eta = list(ebm = loop_placeholder,
+             ml  = loop_placeholder),
+  fit = list(tli = loop_placeholder,
+             cfi = loop_placeholder,
+             rmsea = loop_placeholder,
+             time = loop_placeholder)
+)
+
+
 
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
@@ -289,29 +388,29 @@ for(i in 1:loopn){
   M2(mod)
   itemfit(mod)
   coef(mod, simplify=TRUE)
-  coef_a[i,] <- coef(mod, simplify=TRUE)$item[,"a1"]
-  coef_d[i,] <- coef(mod, simplify=TRUE)$item[,"d"]
-  coef_b[i,] <- -coef_d[i,]/coef_a[i,]
+  loop_tmp$a[i,] <- coef(mod, simplify=TRUE)$item[,"a1"]
+  loop_tmp$d[i,] <- coef(mod, simplify=TRUE)$item[,"d"]
+  loop_tmp$b[i,] <- -coef_d[i,]/coef_a[i,]
 }
 
-coef_a_mean[,"mirt"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"mirt"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"mirt"]<-colMeans(coef_d,na.rm=TRUE)
 
-coef_a_sd[,"mirt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"mirt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"mirt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$a$mean[,"mirt"] <-colMeans(loop_tmp$a,na.rm=TRUE)
+est.param$b$mean[,"mirt"] <-colMeans(loop_tmp$b,na.rm=TRUE)
+est.param$d$mean[,"mirt"] <-colMeans(loop_tmp$d,na.rm=TRUE)
 
-coef_a_mean
-coef_b_mean
-coef_d_mean
+est.param$a$sd[,"mirt"] <-apply(loop_tmp$a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$b$sd[,"mirt"] <-apply(loop_tmp$b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$d$sd[,"mirt"] <-apply(loop_tmp$d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+est.param$a$mean
+est.param$b$mean
 
 # Specify Model Parameters for numerical itens
 
-# mod2ind3lv1.fixed_factor.delta_marginal.simple<- function(){}
+# mod.fixed_factor.delta_marginal.simple<- function(){}
 # 
 # 
-# mod2ind3lv1.fixed_factor.delta_marginal <- '
+# mod.fixed_factor.delta_marginal <- '
 # 
 # eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
 # 
@@ -319,12 +418,12 @@ coef_d_mean
 # itemnames <- c( "item1_1","item2_1","item3_1","item4_1","item5_1","item6_1","item7_1","item8_1","item9_1","item10_1")
 # colnames(dat)<- itemnames
 # 
-# sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
+# sem.model <- mod.fixed_factor.delta_marginal
 # 
-# remove_var(mod2ind3lv1.fit)
+# remove_var(mod.fit)
 # 
 # start_time <- get_time()
-# mod2ind3lv1.fit <- lavaan(model = sem.model, 
+# mod.fit <- lavaan(model = sem.model, 
 #                           data = dat, 
 #                           std.lv = TRUE,
 #                           int.ov.free = TRUE,
@@ -340,18 +439,18 @@ coef_d_mean
 # 
 # print(get_delta_time(start_time))
 # 
-# summary(mod2ind3lv1.fit)
-# fitMeasures(mod2ind3lv1.fit)[c("npar","df",'tli',"cfi","rmsea")]
+# summary(mod.fit)
+# fitMeasures(mod.fit)[c("npar","df",'tli',"cfi","rmsea")]
 # 
-# parTable(mod2ind3lv1.fit)
-# lavInspect(mod2ind3lv1.fit,what = "partable")
-# lavInspect(mod2ind3lv1.fit,what = "est")
-# lavInspect(mod2ind3lv1.fit,what = "start")
-# vcov(mod2ind3lv1.fit)
+# parTable(mod.fit)
+# lavInspect(mod.fit,what = "partable")
+# lavInspect(mod.fit,what = "est")
+# lavInspect(mod.fit,what = "start")
+# vcov(mod.fit)
 # 
 # #check y* stats
-# lavInspect(mod2ind3lv1.fit,what = "mu")
-# lavInspect(mod2ind3lv1.fit,what = "vy")
+# lavInspect(mod.fit,what = "mu")
+# lavInspect(mod.fit,what = "vy")
 # 
 # 
 # 
@@ -365,16 +464,16 @@ coef_d_mean
 #   dat <- dat.0p0
 #   colnames(dat)<- itemnames
 #   
-#   mod2ind3lv1.fixed_factor.delta_marginal <- '
+#   mod.fixed_factor.delta_marginal <- '
 # 
 #   eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1
 # 
 #   '
-#   sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
+#   sem.model <- mod.fixed_factor.delta_marginal
 #   
-#   remove_var(mod2ind3lv1.fit)
+#   remove_var(mod.fit)
 #   
-#   mod2ind3lv1.fit <- lavaan(model = sem.model, 
+#   mod.fit <- lavaan(model = sem.model, 
 #                             data = dat, 
 #                             std.lv = TRUE,
 #                             int.ov.free = TRUE,
@@ -390,25 +489,25 @@ coef_d_mean
 #   
 # 
 #   for(j in (1:I)){
-#     lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
-#     psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
-#     tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-#     mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+#     lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+#     psi <- lavInspect(mod.fit,what = "est")$psi
+#     tau <- lavInspect(mod.fit,what = "est")$tau[j]
+#     mu <- lavInspect(mod.fit,what = "mu")[j]
 #     
 #     coef_a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
 #     coef_d[i,j] <-  -tau/sqrt(1-lambda^2)*1.7
 #   }
 #   
 # }
-# coef_a_mean[,"ff_dm"]<-colMeans(coef_a,na.rm=TRUE)
-# coef_d_mean[,"ff_dm"]<-colMeans(coef_d,na.rm=TRUE)
+# coef_a_mean[,"ff_dm_yt"]<-colMeans(coef_a,na.rm=TRUE)
+# coef_d_mean[,"ff_dm_yt"]<-colMeans(coef_d,na.rm=TRUE)
 # coef_a_mean
 # coef_d_mean
 
 
-mod2ind3lv1.fixed_factor.delta_marginal<- function(){}
+mod.fixed_factor.delta_marginal.ystar_thre_free <- function(){}
 
-mod2ind3lv1.fixed_factor.delta_marginal <- '
+mod.fixed_factor.delta_marginal.ystar_thre_free <- '
 
 eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
 #latent var means and var
@@ -498,11 +597,12 @@ eta1_1_var*l13_1^2 + var13_1 == 1
 '
 
 
-sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
-remove_var(mod2ind3lv1.fit)
+sem.model <- mod.fixed_factor.delta_marginal.ystar_thre_free
+remove_var(mod.fit)
+dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
 colnames(dat)<- itemnames
 start_time <- get_time()
-mod2ind3lv1.fit <- lavaan(model = sem.model, 
+mod.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = TRUE,
                           int.ov.free = TRUE,
@@ -517,36 +617,64 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           parameterization = "delta")
 print(get_delta_time(start_time))
 
+scores.regr <- lavPredict(mod.fit, method = "regression")
+scores.bart <- lavPredict(mod.fit, method = "Bartlett")
 
-summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)[c("npar","df",'tli',"cfi","rmsea")]
+summary(mod.fit)
+summary(mod.fit,fit.measures=TRUE)
 
-parTable(mod2ind3lv1.fit)
-lavInspect(mod2ind3lv1.fit,what = "free")
-lavInspect(mod2ind3lv1.fit,what = "partable")
-lavInspect(mod2ind3lv1.fit,what = "est")
-lavInspect(mod2ind3lv1.fit,what = "start")
-vcov(mod2ind3lv1.fit)
+fitMeasures(mod.fit)[c("npar","df",'tli',"cfi","rmsea")]
+
+parTable(mod.fit)
+lavInspect(mod.fit,what = "free")
+lavInspect(mod.fit,what = "partable")
+lavInspect(mod.fit,what = "est")
+lavInspect(mod.fit,what = "start")
+vcov(mod.fit)
 
 #check y* stats
-lavInspect(mod2ind3lv1.fit,what = "mu")
-lavInspect(mod2ind3lv1.fit,what = "vy")
+lavInspect(mod.fit,what = "mu")
+lavInspect(mod.fit,what = "vy")
 
 
 
-coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
-colnames(coef_a) <- paste("item",1:I,sep="")
-coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
-colnames(coef_b) <- paste("item",1:I,sep="")
-coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
-colnames(coef_d) <- paste("item",1:I,sep="")
+
+loop_tmp <-list(
+  a   = loop_placeholder,
+  b   = loop_placeholder,
+  d   = loop_placeholder,
+  lambda = loop_placeholder,
+  tau = loop_placeholder,
+  nu = loop_placeholder,
+  eta = list(ebm = loop_placeholder,
+             ml  = loop_placeholder),
+  fit = list(tli = loop_placeholder,
+             cfi = loop_placeholder,
+             rmsea = loop_placeholder)
+)
+
+loop_tmp2 <-list(
+  a   = loop_placeholder,
+  b   = loop_placeholder,
+  d   = loop_placeholder,
+  lambda = loop_placeholder,
+  tau = loop_placeholder,
+  nu = loop_placeholder,
+  eta = list(ebm = loop_placeholder,
+             ml  = loop_placeholder),
+  fit = list(tli = loop_placeholder,
+             cfi = loop_placeholder,
+             rmsea = loop_placeholder)
+)
+
+
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat)<- itemnames
-  sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
-  remove_var(mod2ind3lv1.fit)
-  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+  sem.model <- mod.fixed_factor.delta_marginal.ystar_thre_free
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = TRUE,
                             int.ov.free = TRUE,
@@ -562,25 +690,69 @@ for(i in 1:loopn){
   
   
   for(j in (1:I)){
-    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
-    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
-    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    nu <- lavInspect(mod.fit,what = "est")$nu[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
+    psi <- lavInspect(mod.fit,what = "est")$psi[1,1]
+    alpha <- lavInspect(mod.fit,what = "est")$alpha[1,1]
     
-    coef_a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
-    coef_d[i,j] <-  -tau/sqrt(1-lambda^2)*1.7
-    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
-  }
+    
+    loop_tmp2$a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
+    loop_tmp2$d[i,j] <-  -tau/sqrt(1-lambda^2)*1.7
+    loop_tmp2$b[i,j] <- -coef_d[i,j]/coef_a[i,j]
+
+    tmp<-irt_param_calc(lambda=lambda,
+                   nu=nu,
+                   tau=tau,
+                   alpha=alpha,
+                   psi = psi)
+    loop_tmp$a[i,j] <- tmp["a"]
+    loop_tmp$d[i,j] <- tmp["d"]
+    loop_tmp$b[i,j] <- tmp["b"]
+    loop_tmp$lambda[i,j] <- lambda
+    loop_tmp$tau[i,j] <- tau
+    loop_tmp$nu[i,j] <- nu
+    
+    }
   
 }
 
-coef_a_mean[,"ff_dm"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"ff_dm"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"ff_dm"]<-colMeans(coef_d,na.rm=TRUE)
 
-coef_a_sd[,"ff_dm"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"ff_dm"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"ff_dm"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+est.param$a$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$a,na.rm=TRUE)
+est.param$b$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$b,na.rm=TRUE)
+est.param$d$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$d,na.rm=TRUE)
+est.param$lambda$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$lambda,na.rm=TRUE)
+est.param$tau$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$tau,na.rm=TRUE)
+est.param$nu$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$nu,na.rm=TRUE)
+
+est.param$a$sd[,"ff_dm_yt"] <-apply(loop_tmp$a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$b$sd[,"ff_dm_yt"] <-apply(loop_tmp$b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$d$sd[,"ff_dm_yt"] <-apply(loop_tmp$d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$lambda$sd[,"ff_dm_yt"] <-apply(loop_tmp$lambda,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$tau$sd[,"ff_dm_yt"] <-apply(loop_tmp$tau,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param$nu$sd[,"ff_dm_yt"] <-apply(loop_tmp$nu,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+
+est.param2$a$mean[,"ff_dm_yt"] <-colMeans(loop_tmp2$a,na.rm=TRUE)
+est.param2$b$mean[,"ff_dm_yt"] <-colMeans(loop_tmp2$b,na.rm=TRUE)
+est.param2$d$mean[,"ff_dm_yt"] <-colMeans(loop_tmp2$d,na.rm=TRUE)
+
+est.param2$a$sd[,"ff_dm_yt"] <-apply(loop_tmp2$a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param2$b$sd[,"ff_dm_yt"] <-apply(loop_tmp2$b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+est.param2$d$sd[,"ff_dm_yt"] <-apply(loop_tmp2$d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+
+
+
+coef_a_mean[,"ff_dm_yt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ff_dm_yt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"ff_dm_yt"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"ff_dm_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ff_dm_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ff_dm_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 
 coef_a_mean
 coef_b_mean
@@ -595,9 +767,198 @@ write.table(coef_b_sd, 'coef_b_sd_ff_dm.txt')
 write.table(coef_d_sd, 'coef_d_sd_ff_dm.txt')
 
 
-mod2ind3lv1.fixed_factor.theta_conditional<- function(){}
 
-mod2ind3lv1.fixed_factor.theta_conditional <- '
+mod.fixed_factor.delta_marginal.ystar_mean_free<- function(){}
+
+mod.fixed_factor.delta_marginal.ystar_mean_free <- '
+
+eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
+#latent var means and var
+eta1_1 ~ eta1_1_mean*1
+eta1_1 ~~ eta1_1_var*eta1_1
+
+## Latent response variable (LRV) intercepts
+item1_1 ~ int1_1*1
+item2_1 ~ int2_1*1
+item3_1 ~ int3_1*1
+item4_1 ~ int4_1*1
+item5_1 ~ int5_1*1
+item6_1 ~ int6_1*1
+item7_1 ~ int7_1*1
+item8_1 ~ int8_1*1
+item9_1 ~ int9_1*1
+item10_1 ~ int10_1*1
+item11_1 ~ int11_1*1
+item12_1 ~ int12_1*1
+item13_1 ~ int13_1*1
+
+int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1==0
+
+## thresholds link  LRVs to observed items
+item1_1 | thr1_1*t1
+item2_1 | thr2_1*t1
+item3_1 | thr3_1*t1
+item4_1 | thr4_1*t1
+item5_1 | thr5_1*t1
+item6_1 | thr6_1*t1
+item7_1 | thr7_1*t1
+item8_1 | thr8_1*t1
+item9_1 | thr9_1*t1
+item10_1 | thr10_1*t1
+item11_1 | thr11_1*t1
+item12_1 | thr12_1*t1
+item13_1 | thr13_1*t1
+
+thr1_1==0
+thr2_1==0
+thr3_1==0
+thr4_1==0
+thr5_1==0
+thr6_1==0
+thr7_1==0
+thr8_1==0
+thr9_1==0
+thr10_1==0
+thr11_1==0
+thr12_1==0
+thr13_1==0
+
+## LRVs (co)variances
+item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
+item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
+item12_1 ~~ var12_1*item12_1+ 0*item13_1
+item13_1 ~~ var13_1*item13_1
+
+
+## LRVs variances constraints
+eta1_1_var*l1_1^2 + var1_1 == 1
+eta1_1_var*l2_1^2 + var2_1 == 1
+eta1_1_var*l3_1^2 + var3_1 == 1
+eta1_1_var*l4_1^2 + var4_1 == 1
+eta1_1_var*l5_1^2 + var5_1 == 1
+eta1_1_var*l6_1^2 + var6_1 == 1
+eta1_1_var*l7_1^2 + var7_1 == 1
+eta1_1_var*l8_1^2 + var8_1 == 1
+eta1_1_var*l9_1^2 + var9_1 == 1
+eta1_1_var*l10_1^2 + var10_1 == 1
+eta1_1_var*l11_1^2 + var11_1 == 1
+eta1_1_var*l12_1^2 + var12_1 == 1
+eta1_1_var*l13_1^2 + var13_1 == 1
+
+'
+
+
+sem.model <- mod.fixed_factor.delta_marginal.ystar_mean_free
+remove_var(mod.fit)
+colnames(dat)<- itemnames
+start_time <- get_time()
+mod.fit <- lavaan(model = sem.model, 
+                          data = dat, 
+                          std.lv = TRUE,
+                          int.ov.free = TRUE,
+                          int.lv.free = FALSE,
+                          meanstructure =TRUE,
+                          auto.fix.first = FALSE,
+                          auto.var = TRUE,
+                          auto.th = TRUE,
+                          auto.delta = TRUE,
+                          auto.cov.y = TRUE,
+                          ordered = itemnames,
+                          parameterization = "delta")
+print(get_delta_time(start_time))
+
+summary(mod.fit)
+fitMeasures(mod.fit)[c("npar","df",'tli',"cfi","rmsea")]
+
+parTable(mod.fit)
+lavInspect(mod.fit,what = "free")
+lavInspect(mod.fit,what = "partable")
+lavInspect(mod.fit,what = "est")
+lavInspect(mod.fit,what = "start")
+vcov(mod.fit)
+
+#check y* stats
+lavInspect(mod.fit,what = "mu")
+lavInspect(mod.fit,what = "vy")
+
+
+
+coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_a) <- paste("item",1:I,sep="")
+coef_b <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_b) <- paste("item",1:I,sep="")
+coef_d <- matrix(data=NA, nrow = loopn, ncol = I)
+colnames(coef_d) <- paste("item",1:I,sep="")
+for(i in 1:loopn){
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
+  colnames(dat)<- itemnames
+  sem.model <- mod.fixed_factor.delta_marginal.ystar_mean_free
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
+                            data = dat, 
+                            std.lv = TRUE,
+                            int.ov.free = TRUE,
+                            int.lv.free = FALSE,
+                            meanstructure =TRUE,
+                            auto.fix.first = FALSE,
+                            auto.var = TRUE,
+                            auto.th = TRUE,
+                            auto.delta = TRUE,
+                            auto.cov.y = TRUE,
+                            ordered = itemnames,
+                            parameterization = "delta")
+  
+  
+  for(j in (1:I)){
+    lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod.fit,what = "est")$psi
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    nu <- lavInspect(mod.fit,what = "est")$nu[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
+
+    coef_a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
+    coef_d[i,j] <-  (nu-tau)/sqrt(1-lambda^2)*1.7
+    coef_b[i,j] <- -coef_d[i,j]/coef_a[i,j]
+  }
+  
+}
+
+coef_a_mean[,"ie_dm_yt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ie_dm_yt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"ie_dm_yt"]<-colMeans(coef_d,na.rm=TRUE)
+
+coef_a_sd[,"ie_dm_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ie_dm_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ie_dm_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+coef_a_mean
+coef_b_mean
+coef_d_mean
+
+write.table(coef_a_mean, 'coef_a_mean_ff_dm.txt')
+write.table(coef_b_mean, 'coef_b_mean_ff_dm.txt')
+write.table(coef_d_mean, 'coef_d_mean_ff_dm.txt')
+
+write.table(coef_a_sd, 'coef_a_sd_ff_dm.txt')
+write.table(coef_b_sd, 'coef_b_sd_ff_dm.txt')
+write.table(coef_d_sd, 'coef_d_sd_ff_dm.txt')
+
+
+
+
+mod.fixed_factor.theta_conditional.ystar_thre_free<- function(){}
+
+mod.fixed_factor.theta_conditional.ystar_thre_free <- '
   eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
@@ -680,11 +1041,11 @@ mod2ind3lv1.fixed_factor.theta_conditional <- '
   var13_1 ==1
 '
 
-sem.model <- mod2ind3lv1.fixed_factor.theta_conditional
-remove_var(mod2ind3lv1.fit)
+sem.model <- mod.fixed_factor.theta_conditional.ystar_thre_free
+remove_var(mod.fit)
 colnames(dat)<- itemnames
 start_time <- get_time()
-mod2ind3lv1.fit <- lavaan(model = sem.model, 
+mod.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = TRUE,
                           int.ov.free = TRUE,
@@ -699,8 +1060,8 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           parameterization = "theta")
 print(get_delta_time(start_time))
 
-summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
+summary(mod.fit)
+fitMeasures(mod.fit)[c("df",'tli',"cfi","rmsea")]
 
 
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -713,9 +1074,9 @@ for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
-  sem.model <- mod2ind3lv1.fixed_factor.delta_marginal
-  remove_var(mod2ind3lv1.fit)
-  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+  sem.model <- mod.fixed_factor.delta_marginal.ystar_thre_free
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = TRUE,
                             int.ov.free = TRUE,
@@ -731,10 +1092,10 @@ for(i in 1:loopn){
   
   
   for(j in (1:I)){
-    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
-    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
-    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod.fit,what = "est")$psi
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
     
     coef_a[i,j] <- lambda*1.7
     coef_d[i,j] <-  -(tau)*1.7
@@ -743,13 +1104,13 @@ for(i in 1:loopn){
   
 }
 
-coef_a_mean[,"ff_tc"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"ff_tc"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"ff_tc"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean[,"ff_tc_yt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ff_tc_yt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"ff_tc_yt"]<-colMeans(coef_d,na.rm=TRUE)
 
-coef_a_sd[,"ff_tc"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"ff_tc"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"ff_tc"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_a_sd[,"ff_tc_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ff_tc_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ff_tc_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 
 coef_a_mean
 coef_b_mean
@@ -763,10 +1124,9 @@ write.table(coef_a_sd, 'coef_a_sd_ff_tc.txt')
 write.table(coef_b_sd, 'coef_b_sd_ff_tc.txt')
 write.table(coef_d_sd, 'coef_d_sd_ff_tc.txt')
 
+mod.indicator_effects.delta_marginal.ystar_thre_free<- function(){}
 
-mod2ind3lv1.indicator_effects.delta_marginal<- function(){}
-
-mod2ind3lv1.indicator_effects.delta_marginal <- '
+mod.indicator_effects.delta_marginal.ystar_thre_free <- '
 
   eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
   13==l1_1+l2_1+l3_1+l4_1+l5_1+l6_1+l7_1+l8_1+l9_1+l10_1+l11_1+l12_1+l13_1
@@ -854,10 +1214,10 @@ mod2ind3lv1.indicator_effects.delta_marginal <- '
   eta1_1_var*l13_1^2 + var13_1 == 1
 '
 
-sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
-remove_var(mod2ind3lv1.fit)
+sem.model <- mod.indicator_effects.delta_marginal.ystar_thre_free
+remove_var(mod.fit)
 start_time <- get_time()
-mod2ind3lv1.fit <- lavaan(model = sem.model, 
+mod.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = FALSE,
                           int.ov.free = TRUE,
@@ -873,19 +1233,19 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
 print(get_delta_time(start_time))
 
 
-summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
+summary(mod.fit)
+fitMeasures(mod.fit)[c("df",'tli',"cfi","rmsea")]
 
-parTable(mod2ind3lv1.fit)
-lavInspect(mod2ind3lv1.fit,what = "free")
-lavInspect(mod2ind3lv1.fit,what = "partable")
-lavInspect(mod2ind3lv1.fit,what = "est")
-lavInspect(mod2ind3lv1.fit,what = "start")
-vcov(mod2ind3lv1.fit)
+parTable(mod.fit)
+lavInspect(mod.fit,what = "free")
+lavInspect(mod.fit,what = "partable")
+lavInspect(mod.fit,what = "est")
+lavInspect(mod.fit,what = "start")
+vcov(mod.fit)
 
 #check y* stats
-lavInspect(mod2ind3lv1.fit,what = "mu")
-lavInspect(mod2ind3lv1.fit,what = "vy")
+lavInspect(mod.fit,what = "mu")
+lavInspect(mod.fit,what = "vy")
 
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
@@ -897,9 +1257,9 @@ for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
-  sem.model <- mod2ind3lv1.indicator_effects.delta_marginal
-  remove_var(mod2ind3lv1.fit)
-  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+  sem.model <- mod.indicator_effects.delta_marginal.ystar_thre_free
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
                             int.ov.free = TRUE,
@@ -915,10 +1275,10 @@ for(i in 1:loopn){
   
   
   for(j in (1:I)){
-    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
-    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
-    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod.fit,what = "est")$psi
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
     coef_d[i,j] <-   -(tau - lambda*mu)*1.7 / sqrt( 1 - psi*lambda^2)
@@ -927,13 +1287,13 @@ for(i in 1:loopn){
   
 }
 
-coef_a_mean[,"ie_dm"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"ie_dm"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"ie_dm"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean[,"ie_dm_yt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ie_dm_yt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"ie_dm_yt"]<-colMeans(coef_d,na.rm=TRUE)
 
-coef_a_sd[,"ie_dm"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"ie_dm"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"ie_dm"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_a_sd[,"ie_dm_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ie_dm_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ie_dm_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 
 coef_a_mean
 coef_b_mean
@@ -950,9 +1310,9 @@ write.table(coef_d_sd, 'coef_d_sd_ie_dm.txt')
 
 
 
-mod2ind3lv1.indicator_effects.theta_conditional<- function(){}
+mod.indicator_effects.theta_conditional.ystar_thre_free<- function(){}
 
-mod2ind3lv1.indicator_effects.theta_conditional <- '
+mod.indicator_effects.theta_conditional.ystar_thre_free <- '
 
 
   eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
@@ -1039,10 +1399,10 @@ mod2ind3lv1.indicator_effects.theta_conditional <- '
   var13_1 ==1
 '
 
-sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
-remove_var(mod2ind3lv1.fit)
+sem.model <- mod.indicator_effects.theta_conditional.ystar_thre_free
+remove_var(mod.fit)
 start_time <- get_time()
-mod2ind3lv1.fit <- lavaan(model = sem.model, 
+mod.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = FALSE,
                           int.ov.free = TRUE,
@@ -1057,19 +1417,19 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           parameterization = "theta")
 print(get_delta_time(start_time))
 
-summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
+summary(mod.fit)
+fitMeasures(mod.fit)[c("df",'tli',"cfi","rmsea")]
 
-parTable(mod2ind3lv1.fit)
-lavInspect(mod2ind3lv1.fit,what = "free")
-lavInspect(mod2ind3lv1.fit,what = "partable")
-lavInspect(mod2ind3lv1.fit,what = "est")
-lavInspect(mod2ind3lv1.fit,what = "start")
-vcov(mod2ind3lv1.fit)
+parTable(mod.fit)
+lavInspect(mod.fit,what = "free")
+lavInspect(mod.fit,what = "partable")
+lavInspect(mod.fit,what = "est")
+lavInspect(mod.fit,what = "start")
+vcov(mod.fit)
 
 #check y* stats
-lavInspect(mod2ind3lv1.fit,what = "mu")
-lavInspect(mod2ind3lv1.fit,what = "vy")
+lavInspect(mod.fit,what = "mu")
+lavInspect(mod.fit,what = "vy")
 
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
@@ -1081,9 +1441,9 @@ for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
-  sem.model <- mod2ind3lv1.indicator_effects.theta_conditional
-  remove_var(mod2ind3lv1.fit)
-  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+  sem.model <- mod.indicator_effects.theta_conditional.ystar_thre_free
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
                             int.ov.free = TRUE,
@@ -1097,10 +1457,10 @@ for(i in 1:loopn){
                             ordered = itemnames,
                             parameterization = "theta")
   for(j in (1:I)){
-    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
-    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
-    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod.fit,what = "est")$psi
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7
     coef_d[i,j] <- -(tau - lambda*mu)*1.7
@@ -1109,13 +1469,13 @@ for(i in 1:loopn){
   
 }
 
-coef_a_mean[,"ie_tc"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"ie_tc"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"ie_tc"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean[,"ie_tc_yt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"ie_tc_yt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"ie_tc_yt"]<-colMeans(coef_d,na.rm=TRUE)
 
-coef_a_sd[,"ie_tc"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"ie_tc"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"ie_tc"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_a_sd[,"ie_tc_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"ie_tc_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"ie_tc_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 
 coef_a_mean
 coef_b_mean
@@ -1131,9 +1491,9 @@ write.table(coef_d_sd, 'coef_d_sd_ie_tc.txt')
 
 
 
-mod2ind3lv1.indicator_marker.delta_marginal<- function(){}
+mod.indicator_marker.delta_marginal.ystar_thre_free<- function(){}
 
-mod2ind3lv1.indicator_marker.delta_marginal <- '
+mod.indicator_marker.delta_marginal.ystar_thre_free <- '
 
   eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
   l4_1==1
@@ -1219,10 +1579,10 @@ mod2ind3lv1.indicator_marker.delta_marginal <- '
   eta1_1_var*l13_1^2 + var13_1 == 1
 '
 
-sem.model <- mod2ind3lv1.indicator_marker.delta_marginal
-remove_var(mod2ind3lv1.fit)
+sem.model <- mod.indicator_marker.delta_marginal.ystar_thre_free
+remove_var(mod.fit)
 start_time <- get_time()
-mod2ind3lv1.fit <- lavaan(model = sem.model, 
+mod.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = FALSE,
                           int.ov.free = TRUE,
@@ -1237,19 +1597,19 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           parameterization = "delta")
 print(get_delta_time(start_time))
 
-summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
+summary(mod.fit)
+fitMeasures(mod.fit)[c("df",'tli',"cfi","rmsea")]
 
-parTable(mod2ind3lv1.fit)
-lavInspect(mod2ind3lv1.fit,what = "free")
-lavInspect(mod2ind3lv1.fit,what = "partable")
-lavInspect(mod2ind3lv1.fit,what = "est")
-lavInspect(mod2ind3lv1.fit,what = "start")
-vcov(mod2ind3lv1.fit)
+parTable(mod.fit)
+lavInspect(mod.fit,what = "free")
+lavInspect(mod.fit,what = "partable")
+lavInspect(mod.fit,what = "est")
+lavInspect(mod.fit,what = "start")
+vcov(mod.fit)
 
 #check y* stats
-lavInspect(mod2ind3lv1.fit,what = "mu")
-lavInspect(mod2ind3lv1.fit,what = "vy")
+lavInspect(mod.fit,what = "mu")
+lavInspect(mod.fit,what = "vy")
 
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
@@ -1261,9 +1621,9 @@ for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
-  sem.model <- mod2ind3lv1.indicator_marker.delta_marginal
-  remove_var(mod2ind3lv1.fit)
-  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+  sem.model <- mod.indicator_marker.delta_marginal.ystar_thre_free
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
                             int.ov.free = TRUE,
@@ -1277,10 +1637,10 @@ for(i in 1:loopn){
                             ordered = itemnames,
                             parameterization = "delta")
   for(j in (1:I)){
-    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
-    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
-    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod.fit,what = "est")$psi
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7
     coef_d[i,j] <- -(tau - lambda*mu)*1.7
@@ -1290,13 +1650,13 @@ for(i in 1:loopn){
   
 }
 
-coef_a_mean[,"im_dm"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"im_dm"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"im_dm"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean[,"im_dm_yt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"im_dm_yt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"im_dm_yt"]<-colMeans(coef_d,na.rm=TRUE)
 
-coef_a_sd[,"im_dm"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"im_dm"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"im_dm"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_a_sd[,"im_dm_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"im_dm_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"im_dm_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 
 coef_a_mean
 coef_b_mean
@@ -1312,9 +1672,9 @@ write.table(coef_d_sd, 'coef_d_sd_im_dm.txt')
 
 
 
-mod2ind3lv1.indicator_marker.theta_conditional<- function(){}
+mod.indicator_marker.theta_conditional.ystar_thre_free<- function(){}
 
-mod2ind3lv1.indicator_marker.theta_conditional <- '
+mod.indicator_marker.theta_conditional.ystar_thre_free <- '
 
   eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
   l4_1==1
@@ -1400,10 +1760,10 @@ mod2ind3lv1.indicator_marker.theta_conditional <- '
   var13_1 ==1
 '
 
-sem.model <- mod2ind3lv1.indicator_marker.theta_conditional
-remove_var(mod2ind3lv1.fit)
+sem.model <- mod.indicator_marker.theta_conditional.ystar_thre_free
+remove_var(mod.fit)
 start_time <- get_time()
-mod2ind3lv1.fit <- lavaan(model = sem.model, 
+mod.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = FALSE,
                           int.ov.free = TRUE,
@@ -1418,19 +1778,19 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           parameterization = "theta")
 print(get_delta_time(start_time))
 
-summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
+summary(mod.fit)
+fitMeasures(mod.fit)[c("df",'tli',"cfi","rmsea")]
 
-parTable(mod2ind3lv1.fit)
-lavInspect(mod2ind3lv1.fit,what = "free")
-lavInspect(mod2ind3lv1.fit,what = "partable")
-lavInspect(mod2ind3lv1.fit,what = "est")
-lavInspect(mod2ind3lv1.fit,what = "start")
-vcov(mod2ind3lv1.fit)
+parTable(mod.fit)
+lavInspect(mod.fit,what = "free")
+lavInspect(mod.fit,what = "partable")
+lavInspect(mod.fit,what = "est")
+lavInspect(mod.fit,what = "start")
+vcov(mod.fit)
 
 #check y* stats
-lavInspect(mod2ind3lv1.fit,what = "mu")
-lavInspect(mod2ind3lv1.fit,what = "vy")
+lavInspect(mod.fit,what = "mu")
+lavInspect(mod.fit,what = "vy")
 
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(coef_a) <- paste("item",1:I,sep="")
@@ -1442,9 +1802,9 @@ for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
   dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   colnames(dat) <- itemnames
-  sem.model <- mod2ind3lv1.indicator_marker.theta_conditional
-  remove_var(mod2ind3lv1.fit)
-  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+  sem.model <- mod.indicator_marker.theta_conditional.ystar_thre_free
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
                             int.ov.free = TRUE,
@@ -1458,10 +1818,10 @@ for(i in 1:loopn){
                             ordered = itemnames,
                             parameterization = "theta")
   for(j in (1:I)){
-    lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j]
-    psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi
-    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
+    psi <- lavInspect(mod.fit,what = "est")$psi
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7
     coef_d[i,j] <- -(tau - lambda*mu)*1.7
@@ -1471,13 +1831,13 @@ for(i in 1:loopn){
   
 }
 
-coef_a_mean[,"im_tc"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"im_tc"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"im_tc"]<-colMeans(coef_d,na.rm=TRUE)
+coef_a_mean[,"im_tc_yt"]<-colMeans(coef_a,na.rm=TRUE)
+coef_b_mean[,"im_tc_yt"]<-colMeans(coef_b,na.rm=TRUE)
+coef_d_mean[,"im_tc_yt"]<-colMeans(coef_d,na.rm=TRUE)
 
-coef_a_sd[,"im_tc"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"im_tc"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"im_tc"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_a_sd[,"im_tc_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_b_sd[,"im_tc_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+coef_d_sd[,"im_tc_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 
 coef_a_mean
 coef_b_mean
@@ -1501,9 +1861,9 @@ write.xlsx(coef_b_mean, "parType4_N10000_loopn1000_resultados_final.xlsx", sheet
 write.xlsx(coef_d_mean, "parType4_N10000_loopn1000_resultados_final.xlsx", sheetName = "d_mean", col.names = TRUE, row.names = TRUE, append = TRUE)
 
 
-mod2ind3lv1.long.indicator_effects.delta_marginal<- function(){}
+mod.long.indicator_effects.delta_marginal<- function(){}
 
-mod2ind3lv1.long.indicator_effects.delta_marginal <- '
+mod.long.indicator_effects.delta_marginal <- '
 
 lv1 =~ l1*item1 + l2*item2 + l3*item3 
 lv2 =~ l4*item4 + l5*item5 + l6*item6 
@@ -1605,9 +1965,9 @@ head(dat)
 colnames(dat)<- paste("item",1:6,sep="")
 itemnames <- paste("item",1:6,sep="")
 
-sem.model <- mod2ind3lv1.long.indicator_effects.delta_marginal
-remove_var(mod2ind3lv1.fit)
-mod2ind3lv1.fit <- lavaan(model = sem.model, 
+sem.model <- mod.long.indicator_effects.delta_marginal
+remove_var(mod.fit)
+mod.fit <- lavaan(model = sem.model, 
                           data = dat, 
                           std.lv = FALSE,
                           int.ov.free = TRUE,
@@ -1622,23 +1982,23 @@ mod2ind3lv1.fit <- lavaan(model = sem.model,
                           parameterization = "delta")
 
 
-summary(mod2ind3lv1.fit)
-fitMeasures(mod2ind3lv1.fit)[c("df",'tli',"cfi","rmsea")]
+summary(mod.fit)
+fitMeasures(mod.fit)[c("df",'tli',"cfi","rmsea")]
 
-parTable(mod2ind3lv1.fit)
-lavInspect(mod2ind3lv1.fit,what = "free")
-lavInspect(mod2ind3lv1.fit,what = "partable")
-lavInspect(mod2ind3lv1.fit,what = "est")
-lavInspect(mod2ind3lv1.fit,what = "start")
-vcov(mod2ind3lv1.fit)
+parTable(mod.fit)
+lavInspect(mod.fit,what = "free")
+lavInspect(mod.fit,what = "partable")
+lavInspect(mod.fit,what = "est")
+lavInspect(mod.fit,what = "start")
+vcov(mod.fit)
 
 #check y* stats
-lavInspect(mod2ind3lv1.fit,what = "mu")
-lavInspect(mod2ind3lv1.fit,what = "vy")
+lavInspect(mod.fit,what = "mu")
+lavInspect(mod.fit,what = "vy")
 
 #check eta stats
-lavInspect(mod2ind3lv1.fit,what = "est")$alpha
-lavInspect(mod2ind3lv1.fit,what = "est")$psi
+lavInspect(mod.fit,what = "est")$alpha
+lavInspect(mod.fit,what = "est")$psi
 
 
 coef_a <- matrix(data=NA, nrow = loopn, ncol = I)
@@ -1656,8 +2016,8 @@ for(i in 1:loopn){
   head(dat)
   colnames(dat)<- paste("item",1:6,sep="")
   itemnames <- paste("item",1:6,sep="")
-  remove_var(mod2ind3lv1.fit)
-  mod2ind3lv1.fit <- lavaan(model = sem.model, 
+  remove_var(mod.fit)
+  mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = FALSE,
                             int.ov.free = TRUE,
@@ -1673,14 +2033,14 @@ for(i in 1:loopn){
   
   for(j in (1:6)){
     if(j<4){
-      lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j,1]
-      psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi[1,1]
+      lambda <- lavInspect(mod.fit,what = "est")$lambda[j,1]
+      psi <- lavInspect(mod.fit,what = "est")$psi[1,1]
     }else{
-      lambda <- lavInspect(mod2ind3lv1.fit,what = "est")$lambda[j,2]
-      psi <- lavInspect(mod2ind3lv1.fit,what = "est")$psi[2,2]
+      lambda <- lavInspect(mod.fit,what = "est")$lambda[j,2]
+      psi <- lavInspect(mod.fit,what = "est")$psi[2,2]
     }
-    tau <- lavInspect(mod2ind3lv1.fit,what = "est")$tau[j]
-    mu <- lavInspect(mod2ind3lv1.fit,what = "mu")[j]
+    tau <- lavInspect(mod.fit,what = "est")$tau[j]
+    mu <- lavInspect(mod.fit,what = "mu")[j]
     
     coef_a[i,j] <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
     coef_d[i,j] <-   -(tau - lambda*mu)*1.7 / sqrt( 1 - psi*lambda^2)
