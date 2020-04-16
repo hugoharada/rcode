@@ -1,36 +1,34 @@
 
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+#
+# Var def
+#
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
 lv_n <- 1
 time_n <- 1
 item_first <-1
 item_n <-13
 
+#"item1_1"  "item2_1"  "item3_1"  "item4_1"  "item5_1"  "item6_1"  "item7_1"  "item8_1"  "item9_1"  "item10_1"
 paste("item",1:item_n,"_",time_n,sep="")
 
-paste("eta",lv_n,"_",time_n,"=~",paste0("l", (item_first):(item_n),"_",time_n,"*item",(item_first):(item_n),"_",time_n,sep="+",collapse = ""),sep="")
-#"eta1_1=l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+"
 
+#"eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+"
+
+paste("eta",lv_n,"_",time_n,"=~",paste0("l", (item_first):(item_n),"_",time_n,"*item",(item_first):(item_n),"_",time_n,sep="+",collapse = ""),sep="")
+
+#effects coding
 paste0(item_n,"==",
   paste("l",(item_first):(item_n),"_",time_n,sep="",collapse = "+")
   )
-#"item1_1"  "item2_1"  "item3_1"  "item4_1"  "item5_1"  "item6_1"  "item7_1"  "item8_1"  "item9_1"  "item10_1"
-
-
-
-
-paste("eta",lv_n,"_",time_n," ~ ","eta",lv_n,"_",time_n,"_mean*1",sep="")
-paste("eta",lv_n,"_",time_n," ~~ ","eta",lv_n,"_",time_n,"_var*","eta",lv_n,"_",time_n,sep="")
 
 #latent var means and var
 #"eta1_1 ~ eta1_1_mean*1"
 #"eta1_1 ~~ eta1_1_var*eta1_1"
 
-
-for(i in (item_first):(item_n)){
-  print(
-    paste("item",i,"_",time_n," ~ int",i,"_",time_n,"*1",sep="", collapse = "##")
-  )
-}
-paste0(paste("int",(item_first):(item_n),"_",time_n,sep="", collapse = " + "),"==0")
+paste("eta",lv_n,"_",time_n," ~ ","eta",lv_n,"_",time_n,"_mean*1",sep="")
+paste("eta",lv_n,"_",time_n," ~~ ","eta",lv_n,"_",time_n,"_var*","eta",lv_n,"_",time_n,sep="")
 
 ## LIR intercepts
 # item1_1 ~ int1_1*1
@@ -44,16 +42,21 @@ paste0(paste("int",(item_first):(item_n),"_",time_n,sep="", collapse = " + "),"=
 # item9_1 ~ int9_1*1
 # item10_1 ~ int10_1*1
 
-
-#LIR constraint
 for(i in (item_first):(item_n)){
   print(
-  paste0(
-    paste("int",i,"_",time_n," + l",i,"_",time_n,"*eta",lv_n,"_",time_n,"_mean",sep=""),
-    " == 0"
-  )
+    paste("item",i,"_",time_n," ~ int",i,"_",time_n,"*1",sep="", collapse = "##")
   )
 }
+paste0(paste("int",(item_first):(item_n),"_",time_n,sep="", collapse = " + "),"==0")
+
+#intercept constraints
+for(i in (item_first):(item_n)){
+  print(
+    paste("int",i,"_",time_n,"==0",sep="", collapse = "##")
+  )
+}
+
+
 
 # int1_1 + l1_1*eta1_1_mean
 # int2_1 + l2_1*eta1_1_mean
@@ -66,6 +69,22 @@ for(i in (item_first):(item_n)){
 # int9_1 + l9_1*eta1_1_mean
 # int10_1 + l10_1*eta1_1_mean
 
+for(i in (item_first):(item_n)){
+  print(
+  paste0(
+    paste("int",i,"_",time_n," + l",i,"_",time_n,"*eta",lv_n,"_",time_n,"_mean",sep=""),
+    " == 0"
+  )
+  )
+}
+
+
+## thresholds link  LRVs to observed items
+# [1] "item1_1 | thr1_1*t1"
+# [1] "item2_1 | thr2_1*t1"
+# [1] "item3_1 | thr3_1*t1"
+# [1] "thr1_1 + thr2_1 + thr3_1==0"
+
 
 item_n<-3
 for(i in (item_first):(item_n)){
@@ -74,13 +93,24 @@ for(i in (item_first):(item_n)){
   )
 }
 
+# thr1_1==0
+# thr2_1==0
+# thr3_1==0
+item_n<-3
+for(i in (item_first):(item_n)){
+  print(
+    paste("thr",i,"_",time_n,"==0",sep="")
+  )
+}
+
+
 paste0(paste("thr",(item_first):(item_n),"_",time_n,sep="", collapse = " + "),"==0")
 
-## thresholds link  LRVs to observed items
-# [1] "item1_1 | thr1_1*t1"
-# [1] "item2_1 | thr2_1*t1"
-# [1] "item3_1 | thr3_1*t1"
-# [1] "thr1_1 + thr2_1 + thr3_1==0"
+## LRVs (co)variances
+# [1] "item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1"
+# [1] "item2_1 ~~ var2_1*item2_1+ 0*item3_1"
+# [1] "item3_1 ~~ var3_1*item3_1"
+
 
 for(i in (item_first):(item_n)){
   print(
@@ -92,12 +122,6 @@ for(i in (item_first):(item_n)){
     }
   )
 }
-## LRVs (co)variances
-# [1] "item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1"
-# [1] "item2_1 ~~ var2_1*item2_1+ 0*item3_1"
-# [1] "item3_1 ~~ var3_1*item3_1"
-
-
 
 #LRVs var constraint
 for(i in (item_first):(item_n)){
