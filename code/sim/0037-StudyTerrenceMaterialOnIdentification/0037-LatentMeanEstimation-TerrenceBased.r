@@ -82,7 +82,7 @@ get_delta_time<-function(start_time){
 #' @export
 #'
 #' @examples
-irt_param_calc <- function(lambda, nu, tau, mu, psi,alpha){
+irt_param_calc2 <- function(lambda, nu, tau, mu, psi,alpha){
   
   a <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
   d <- (nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)
@@ -91,6 +91,118 @@ irt_param_calc <- function(lambda, nu, tau, mu, psi,alpha){
   
 }
 
+irt_param_calc <- function(lambda, nu, tau, mu, alpha,psi,parameterization){
+  
+  a <- switch(parameterization,
+    ff_dm = {lambda/sqrt(1-lambda^2)*1.7},
+    ff_tc = {lambda*1.7},
+    im_dm = {lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)},
+    im_tc = {lambda*sqrt(psi)*1.7},
+    ie_dm = {lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)},
+    ie_tc = {lambda*sqrt(psi)*1.7}
+  )
+  d <- switch(parameterization,
+    ff_dm = {(nu - tau)/sqrt(1-lambda^2)*1.7},
+    ff_tc = {(nu - tau)*1.7},
+    im_dm = {(nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)},
+    im_tc = {(nu - tau + lambda*alpha)*1.7},
+    ie_dm = {(nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)},
+    ie_tc = {(nu - tau + lambda*alpha)*1.7}
+  )
+  
+  b <- -d/a
+  return(c("a"=a,"b"=b,"d"=d))
+}
+
+aggregate_results <-function(loop_tmp,est.param, parameterization){
+  
+  est.param$a$mean[,parameterization] <-colMeans(loop_tmp$a,na.rm=TRUE)
+  est.param$b$mean[,parameterization] <-colMeans(loop_tmp$b,na.rm=TRUE)
+  est.param$d$mean[,parameterization] <-colMeans(loop_tmp$d,na.rm=TRUE)
+  est.param$lambda$mean[,parameterization] <-colMeans(loop_tmp$lambda,na.rm=TRUE)
+  est.param$tau$mean[,parameterization] <-colMeans(loop_tmp$tau,na.rm=TRUE)
+  est.param$nu$mean[,parameterization] <-colMeans(loop_tmp$nu,na.rm=TRUE)
+  est.param$psi$mean[parameterization] <-mean(loop_tmp$psi,na.rm=TRUE)
+  est.param$alpha$mean[parameterization] <-mean(loop_tmp$alpha,na.rm=TRUE)
+  
+  est.param$a$sd[,parameterization] <-apply(loop_tmp$a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$b$sd[,parameterization] <-apply(loop_tmp$b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$d$sd[,parameterization] <-apply(loop_tmp$d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$lambda$sd[,parameterization] <-apply(loop_tmp$lambda,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$tau$sd[,parameterization] <-apply(loop_tmp$tau,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$nu$sd[,parameterization] <-apply(loop_tmp$nu,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$psi$sd[parameterization]   <- sd(loop_tmp$psi,na.rm = TRUE)
+  est.param$alpha$sd[parameterization] <- sd(loop_tmp$alpha,na.rm = TRUE)
+  
+  est.param$eta$sim$mean[parameterization] <-mean(loop_tmp$eta$sim$mean)
+  est.param$eta$ebm$mean[parameterization] <-mean(loop_tmp$eta$ebm$mean)
+  est.param$eta$ml$mean[parameterization]  <-mean(loop_tmp$eta$ml$mean)
+  
+  est.param$eta$sim$sd[parameterization]   <-mean(loop_tmp$eta$sim$sd)
+  est.param$eta$ebm$sd[parameterization]   <-mean(loop_tmp$eta$ebm$sd)
+  est.param$eta$ml$sd[parameterization]    <-mean(loop_tmp$eta$ml$sd)
+  
+  est.param$fit$tli[parameterization]  <-mean(loop_tmp$fit$tli)
+  est.param$fit$cfi[parameterization]  <-mean(loop_tmp$fit$cfi)
+  est.param$fit$rmsea[parameterization]  <-mean(loop_tmp$fit$rmsea)
+  est.param$fit$time[parameterization]  <-mean(loop_tmp$fit$time)
+  return(est.param)
+}
+
+
+write_to_excel <-function(est.param,y_star_mean=y_star_mean,parType=parType,N=N,loopn=loopn,I=I,SigmaType=SigmaType){
+  filename <- build_filename(y_star_mean,parType,N,loopn,I,SigmaType)
+  
+  write.xlsx(data.frame(est.param$eta), filename, sheetName = "eta", col.names = TRUE, row.names = TRUE, append = TRUE)
+  write.xlsx(data.frame(est.param$fit), filename, sheetName = "fit", col.names = TRUE, row.names = TRUE, append = TRUE)
+  
+  tmp <- rbind(cbind(rep("mean",nrow(est.param$a$mean)), est.param$a$mean), 
+               rep("",ncol(est.param$a$mean)+1),
+               cbind(rep("sd",nrow(est.param$a$sd)), est.param$a$sd),
+               rep("",ncol(est.param$a$mean)+1),
+               cbind(rep("res",nrow(est.param$a$sd)),est.param$a$mean-est.param$a$mean[,"sim"]) )
+  
+  write.xlsx(data.frame(tmp), filename, sheetName = "a", col.names = TRUE, row.names = TRUE, append = TRUE)
+  
+  
+  tmp <- rbind(cbind(rep("mean",nrow(est.param$b$mean)), est.param$b$mean), 
+               rep("",ncol(est.param$b$mean)+1),
+               cbind(rep("sd",nrow(est.param$b$sd)), est.param$b$sd),
+               rep("",ncol(est.param$b$mean)+1),
+               cbind(rep("res",nrow(est.param$b$sd)),est.param$b$mean-est.param$b$mean[,"sim"]) )
+  
+  write.xlsx(data.frame(tmp), filename, sheetName = "b", col.names = TRUE, row.names = TRUE, append = TRUE)
+  
+  
+  tmp <- rbind(cbind(rep("mean",nrow(est.param$d$mean)), est.param$d$mean), 
+               rep("",ncol(est.param$d$mean)+1),
+               cbind(rep("sd",nrow(est.param$d$sd)), est.param$d$sd),
+               rep("",ncol(est.param$d$mean)+1),
+               cbind(rep("res",nrow(est.param$d$sd)),est.param$d$mean-est.param$d$mean[,"sim"]) )
+  
+  write.xlsx(data.frame(tmp), filename, sheetName = "d", col.names = TRUE, row.names = TRUE, append = TRUE)
+}
+
+
+
+get_lavaan_indicator_param <- function(mod.fit,indicator_index,latent_var_index=1){
+  lambda <- lavInspect(mod.fit,what = "est")$lambda[indicator_index]
+  tau <- lavInspect(mod.fit,what = "est")$tau[indicator_index]
+  nu <- lavInspect(mod.fit,what = "est")$nu[indicator_index]
+  mu <- lavInspect(mod.fit,what = "mu")[indicator_index]
+  return(c(lambda=lambda, nu=nu, tau=tau, mu=mu, alpha=alpha,psi=psi))
+}
+  
+
+build_filename<-function(y_star_mean,parType,N,loopn,I,SigmaType){
+  mean_string <- switch(y_star_mean,
+                        "Alpha0p0",
+                        "Alpha0p5",
+                        "Alpha1p0")
+  
+  return(paste0(mean_string,"_parType",parType,"_N",N,"_loopn",loopn,"_I",I,"_SigmaType",SigmaType,".xlsx"))
+  
+}
 
 
 p_calc<- function(a=1,b,c=0,D=1, theta){
@@ -109,15 +221,6 @@ sample_p <- function(upper_limit=6, lower_limit=-6, a,b,c,n=200){
   i <- i_calc(a=a,b=b,c=c,theta=theta_n)
   return <-cbind(theta_n,p,i)   
 }
-
-
-threshold_calc <- function( vectorY){
-  prop <- table(vectorY)/sum(table(vectorY))
-  cprop <- c(0, cumsum(prop))
-  th <- qnorm(cprop)
-  return(th)
-}
-
 
 
 # plot_cci(a=1,b=-2,c=.18)
@@ -155,7 +258,14 @@ plot_cci <- function(a=1,b,c=0,n=200,filename=NULL,item_id="", plot_info=FALSE){
 
 
 thresholdCalc <- function(){}
-set.seed(12) # Resetando a semente
+
+threshold_calc <- function(binary_vector){
+  prop <- table(binary_vector)/sum(table(binary_vector))
+  cprop <- c(0, cumsum(prop))
+  th <- qnorm(cprop)
+  return(th)
+}
+
 
 # Threshold calculation 1
 
@@ -180,8 +290,11 @@ summary(s2)
 # Generate Longitudinal Items from a Bivariate LIR
 data_creation <-function(){}
 
+#carregando modelos
+source("./models.r")
+
 N <- 1000    ## subjects
-loopn <-50   ## number of runs
+loopn <-10   ## number of runs
 
 # N <- 10000 ## subjects
 # loopn <-1000   ## number of runs
@@ -196,21 +309,22 @@ coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
 
 
-#par_type <- 1 #random
-#par_type <- 2 # a=1, b varying
-#par_type <- 3 # a and b varying.
-par_type <- 4  # a=0.7, b varying
-if(par_type==1){
+
+#parType <- 1 #random
+#parType <- 2 # a=1, b varying
+#parType <- 3 # a and b varying.
+parType <- 4  # a=0.7, b varying
+if(parType==1){
   if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
   b = runif(I,-2, 2.0)     # U(-2 , 2)
   if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
-}else if(par_type==2){
+}else if(parType==2){
   a <- rep(1,13)
   b <- seq(-3.0,3.0,by=0.5)
-}else if(par_type==3){
+}else if(parType==3){
   a <- c(rep(seq(0.75,1.5,by=0.25),3),0.75)
   b <- seq(-3,3,by=0.5)
-}else if(par_type==4){
+}else if(parType==4){
   a <- rep(0.7,13)
   b <- seq(-3.0,3.0,by=0.5)
 }
@@ -254,6 +368,7 @@ Sigma
 # indicator_effects, 	theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
 # indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
 
+working1 <- function(){}
 
 experiments <- c("sim", "mirt", "ff_dm_yt","ff_dm_ym","ff_tc_yt","ff_tc_ym","im_dm_yt","im_dm_ym","im_tc_yt","im_tc_ym","ie_dm_yt","ie_dm_ym","ie_tc_yt","ie_tc_ym")
   
@@ -261,28 +376,14 @@ experiments <- c("sim", "mirt", "ff_dm_yt","ff_dm_ym","ff_tc_yt","ff_tc_ym","im_
 placeholder <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
 colnames(placeholder) <- experiments
 
+placeholder_vector <- rep(NA,length(experiments))
+names(placeholder_vector) <- experiments
+
+
 loop_placeholder <- matrix(data=NA, nrow = loopn, ncol = I)
 colnames(loop_placeholder) <- paste("item",1:I,sep="")
 
-
-# coef_a_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-# colnames(coef_a_mean) <- experiments
-# coef_a_mean[,"sim"]<-a
-# coef_a_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-# colnames(coef_a_sd) <- experiments
-# 
-# 
-# coef_b_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-# colnames(coef_b_mean) <- experiments
-# coef_b_mean[,"sim"]<-b
-# coef_b_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-# colnames(coef_b_sd) <- experiments
-# 
-# coef_d_mean <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-# colnames(coef_d_mean) <- experiments
-# coef_d_mean[,"sim"]<-d
-# coef_d_sd <-  matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
-# colnames(coef_d_sd) <- experiments
+loop_placeholder_vector <- rep(NA,loopn)
 
 
 est.param <-list(
@@ -292,12 +393,12 @@ est.param <-list(
   lambda = list(mean = placeholder, sd =placeholder),
   tau = list(mean = placeholder, sd =placeholder),
   nu = list(mean = placeholder, sd =placeholder),
-  psi = list(mean = placeholder,  sd= placeholder),
-  alpha = list(mean = placeholder,  sd= placeholder),
-  eta = list(sim = list(mean = mean(Eta[,y_star_mean]), var = var(Eta[,y_star_mean])),
-             ebm = list(mean = NA, var = NA),
-             ml  = list(mean = NA, var = NA)),
-  fit = list(tli = NA,cfi = NA,rmsea = NA, time=NA),
+  psi = list(mean = placeholder_vector,  sd= placeholder_vector),
+  alpha = list(mean = placeholder_vector,  sd= placeholder_vector),
+  eta = list(sim = list(mean = placeholder_vector, sd = placeholder_vector),
+             ebm = list(mean = placeholder_vector, sd = placeholder_vector),
+             ml  = list(mean = placeholder_vector, sd = placeholder_vector)),
+  fit = list(tli = placeholder_vector,cfi = placeholder_vector,rmsea = placeholder_vector, time=placeholder_vector),
   param = list(N = N, loopn = loopn, item_n = I)
 )
 
@@ -309,19 +410,21 @@ est.param$b$mean[,"sim"]<-b
 est.param$d$mean[,"sim"]<-d
 
 
-loop_tmp <-list(
+loop_tmp.init <-list(
   a   = loop_placeholder,
   b   = loop_placeholder,
   d   = loop_placeholder,
   lambda = loop_placeholder,
   tau = loop_placeholder,
   nu = loop_placeholder,
-  eta = list(ebm = loop_placeholder,
-             ml  = loop_placeholder),
-  fit = list(tli = loop_placeholder,
-             cfi = loop_placeholder,
-             rmsea = loop_placeholder,
-             time = loop_placeholder)
+  psi = loop_placeholder_vector,
+  alpha = loop_placeholder_vector,
+  eta = list(ebm = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector),
+             ml = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector)),
+  fit = list(tli = loop_placeholder_vector,
+             cfi = loop_placeholder_vector,
+             rmsea = loop_placeholder_vector,
+             time = loop_placeholder_vector)
 )
 
 
@@ -362,22 +465,7 @@ th
 mirt.estimations<- function(){}
 
 
-loop_tmp <-list(
-  a   = loop_placeholder,
-  b   = loop_placeholder,
-  d   = loop_placeholder,
-  lambda = loop_placeholder,
-  tau = loop_placeholder,
-  nu = loop_placeholder,
-  eta = list(ebm = loop_placeholder,
-             ml  = loop_placeholder),
-  fit = list(tli = loop_placeholder,
-             cfi = loop_placeholder,
-             rmsea = loop_placeholder,
-             time = loop_placeholder)
-)
-
-
+loop_tmp <- loop_tmp.init
 
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
@@ -507,95 +595,6 @@ est.param$b$mean
 
 mod.fixed_factor.delta_marginal.ystar_thre_free <- function(){}
 
-mod.fixed_factor.delta_marginal.ystar_thre_free <- '
-
-eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
-#latent var means and var
-eta1_1 ~ eta1_1_mean*1
-eta1_1 ~~ eta1_1_var*eta1_1
-
-## Latent response variable (LRV) intercepts
-item1_1 ~ int1_1*1
-item2_1 ~ int2_1*1
-item3_1 ~ int3_1*1
-item4_1 ~ int4_1*1
-item5_1 ~ int5_1*1
-item6_1 ~ int6_1*1
-item7_1 ~ int7_1*1
-item8_1 ~ int8_1*1
-item9_1 ~ int9_1*1
-item10_1 ~ int10_1*1
-item11_1 ~ int11_1*1
-item12_1 ~ int12_1*1
-item13_1 ~ int13_1*1
-
-int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1==0
-#Latent response variable (LRV) mean constraint
-
-int1_1 + l1_1*eta1_1_mean == 0
-int2_1 + l2_1*eta1_1_mean == 0
-int3_1 + l3_1*eta1_1_mean == 0
-int4_1 + l4_1*eta1_1_mean == 0
-int5_1 + l5_1*eta1_1_mean == 0
-int6_1 + l6_1*eta1_1_mean == 0
-int7_1 + l7_1*eta1_1_mean == 0
-int8_1 + l8_1*eta1_1_mean == 0
-int9_1 + l9_1*eta1_1_mean == 0
-int10_1 + l10_1*eta1_1_mean == 0
-int11_1 + l11_1*eta1_1_mean == 0
-int12_1 + l12_1*eta1_1_mean == 0
-int13_1 + l13_1*eta1_1_mean == 0
-
-## thresholds link  LRVs to observed items
-item1_1 | thr1_1*t1
-item2_1 | thr2_1*t1
-item3_1 | thr3_1*t1
-item4_1 | thr4_1*t1
-item5_1 | thr5_1*t1
-item6_1 | thr6_1*t1
-item7_1 | thr7_1*t1
-item8_1 | thr8_1*t1
-item9_1 | thr9_1*t1
-item10_1 | thr10_1*t1
-item11_1 | thr11_1*t1
-item12_1 | thr12_1*t1
-item13_1 | thr13_1*t1
-
-#thr1_1 + thr2_1 + thr3_1 + thr4_1 + thr5_1 + thr6_1 + thr7_1 + thr8_1 + thr9_1 + thr10_1 + thr11_1 + thr12_1 + thr13_1==0
-
-## LRVs (co)variances
-item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-item12_1 ~~ var12_1*item12_1+ 0*item13_1
-item13_1 ~~ var13_1*item13_1
-
-
-## LRVs variances constraints
-eta1_1_var*l1_1^2 + var1_1 == 1
-eta1_1_var*l2_1^2 + var2_1 == 1
-eta1_1_var*l3_1^2 + var3_1 == 1
-eta1_1_var*l4_1^2 + var4_1 == 1
-eta1_1_var*l5_1^2 + var5_1 == 1
-eta1_1_var*l6_1^2 + var6_1 == 1
-eta1_1_var*l7_1^2 + var7_1 == 1
-eta1_1_var*l8_1^2 + var8_1 == 1
-eta1_1_var*l9_1^2 + var9_1 == 1
-eta1_1_var*l10_1^2 + var10_1 == 1
-eta1_1_var*l11_1^2 + var11_1 == 1
-eta1_1_var*l12_1^2 + var12_1 == 1
-eta1_1_var*l13_1^2 + var13_1 == 1
-
-'
-
 
 sem.model <- mod.fixed_factor.delta_marginal.ystar_thre_free
 remove_var(mod.fit)
@@ -617,8 +616,8 @@ mod.fit <- lavaan(model = sem.model,
                           parameterization = "delta")
 print(get_delta_time(start_time))
 
-scores.regr <- lavPredict(mod.fit, method = "regression")
-scores.bart <- lavPredict(mod.fit, method = "Bartlett")
+scores.ebm <- lavPredict(mod.fit, method = "EBM")
+scores.ml <- lavPredict(mod.fit, method = "ML")
 
 summary(mod.fit)
 summary(mod.fit,fit.measures=TRUE)
@@ -636,37 +635,8 @@ vcov(mod.fit)
 lavInspect(mod.fit,what = "mu")
 lavInspect(mod.fit,what = "vy")
 
-
-
-
-loop_tmp <-list(
-  a   = loop_placeholder,
-  b   = loop_placeholder,
-  d   = loop_placeholder,
-  lambda = loop_placeholder,
-  tau = loop_placeholder,
-  nu = loop_placeholder,
-  eta = list(ebm = loop_placeholder,
-             ml  = loop_placeholder),
-  fit = list(tli = loop_placeholder,
-             cfi = loop_placeholder,
-             rmsea = loop_placeholder)
-)
-
-loop_tmp2 <-list(
-  a   = loop_placeholder,
-  b   = loop_placeholder,
-  d   = loop_placeholder,
-  lambda = loop_placeholder,
-  tau = loop_placeholder,
-  nu = loop_placeholder,
-  eta = list(ebm = loop_placeholder,
-             ml  = loop_placeholder),
-  fit = list(tli = loop_placeholder,
-             cfi = loop_placeholder,
-             rmsea = loop_placeholder)
-)
-
+loop_tmp <-loop_tmp.init
+loop_tmp2 <- loop_tmp.init
 
 for(i in 1:loopn){
   Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
@@ -674,6 +644,7 @@ for(i in 1:loopn){
   colnames(dat)<- itemnames
   sem.model <- mod.fixed_factor.delta_marginal.ystar_thre_free
   remove_var(mod.fit)
+  start_time <- get_time()
   mod.fit <- lavaan(model = sem.model, 
                             data = dat, 
                             std.lv = TRUE,
@@ -688,14 +659,28 @@ for(i in 1:loopn){
                             ordered = itemnames,
                             parameterization = "delta")
   
+  scores.ebm <- lavPredict(mod.fit, method = "EBM")
+  scores.ml <- lavPredict(mod.fit, method = "ML")
   
+  time <- get_delta_time(start_time)
+
+  loop_tmp$eta$ebm$mean[i] <-mean(scores.ebm)
+  loop_tmp$eta$ebm$sd[i] <-sd(scores.ebm)
+  loop_tmp$eta$ml$mean[i] <-mean(scores.ml)
+  loop_tmp$eta$ml$sd[i] <-sd(scores.ml)
+  loop_tmp$fit$time[i] <-time
+  loop_tmp$fit$tli[i] <-fitMeasures(mod.fit)['tli']
+  loop_tmp$fit$cli[i] <-fitMeasures(mod.fit)["cfi"]
+  loop_tmp$fit$rmsea[i] <-fitMeasures(mod.fit)["rmsea"]
+  
+  
+  psi <- lavInspect(mod.fit,what = "est")$psi[1,1]
+  alpha <- lavInspect(mod.fit,what = "est")$alpha[1,1]
   for(j in (1:I)){
     lambda <- lavInspect(mod.fit,what = "est")$lambda[j]
     tau <- lavInspect(mod.fit,what = "est")$tau[j]
     nu <- lavInspect(mod.fit,what = "est")$nu[j]
     mu <- lavInspect(mod.fit,what = "mu")[j]
-    psi <- lavInspect(mod.fit,what = "est")$psi[1,1]
-    alpha <- lavInspect(mod.fit,what = "est")$alpha[1,1]
     
     
     loop_tmp2$a[i,j] <- lambda/sqrt(1-lambda^2)*1.7
@@ -713,148 +698,84 @@ for(i in 1:loopn){
     loop_tmp$lambda[i,j] <- lambda
     loop_tmp$tau[i,j] <- tau
     loop_tmp$nu[i,j] <- nu
+    loop_tmp$alpha <- alpha
+    loop_tmp$psi <- psi
     
-    }
+  } #for(j in (1:I))
+} #for(i in 1:loopn)
+
+
+
+working <- function(){}
+
+loop_tmp <- loop_tmp.init
+for(i in 1:loopn){
+  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
+  colnames(dat)<- itemnames
+  sem.model <- mod.fixed_factor.delta_marginal.ystar_thre_free
+  remove_var(mod.fit)
+  start_time <- get_time()
+  mod.fit <- lavaan(model = sem.model, 
+                    data = dat, 
+                    std.lv = TRUE,
+                    int.ov.free = TRUE,
+                    int.lv.free = FALSE,
+                    meanstructure =TRUE,
+                    auto.fix.first = FALSE,
+                    auto.var = TRUE,
+                    auto.th = TRUE,
+                    auto.delta = TRUE,
+                    auto.cov.y = TRUE,
+                    ordered = itemnames,
+                    parameterization = "delta")
   
-}
+  scores.ebm <- lavPredict(mod.fit, method = "EBM")
+  scores.ml <- lavPredict(mod.fit, method = "ML")
+  
+  time <- get_delta_time(start_time)
+  
+  loop_tmp$eta$sim$mean[i] <-mean(Eta[,y_star_mean])
+  loop_tmp$eta$sim$sd[i]   <-sd(Eta[,y_star_mean])
+  loop_tmp$eta$ebm$mean[i] <-mean(scores.ebm)
+  loop_tmp$eta$ebm$sd[i] <-sd(scores.ebm)
+  loop_tmp$eta$ml$mean[i] <-mean(scores.ml)
+  loop_tmp$eta$ml$sd[i] <-sd(scores.ml)
+  loop_tmp$fit$time[i] <-time
+  loop_tmp$fit$tli[i] <-fitMeasures(mod.fit)["tli"]
+  loop_tmp$fit$cfi[i] <-fitMeasures(mod.fit)["cfi"]
+  loop_tmp$fit$rmsea[i] <-fitMeasures(mod.fit)["rmsea"]
+  loop_tmp$alpha[i] <- lavInspect(mod.fit,what = "est")$alpha[latent_var_index,latent_var_index]
+  loop_tmp$psi[i] <-lavInspect(mod.fit,what = "est")$psi[latent_var_index,latent_var_index]
+  
+  for(j in (1:I)){
+    lavaan_param_vector <- get_lavaan_param(mod.fit=mod.fit,indicator_index = j)
+    
+    tmp<-irt_param_calc(lambda=lavaan_param_vector["lambda"],
+                        nu=lavaan_param_vector["nu"],
+                        tau=lavaan_param_vector["tau"],
+                        alpha=loop_tmp$alpha[i],
+                        psi = loop_tmp$psi[i],
+                        parameterization = "ff_dm")
+    loop_tmp$a[i,j] <- tmp[1]
+    loop_tmp$d[i,j] <- tmp[3]
+    loop_tmp$b[i,j] <- tmp[2]
+    loop_tmp$lambda[i,j] <- lavaan_param_vector["lambda"]
+    loop_tmp$tau[i,j] <- lavaan_param_vector["tau"]
+    loop_tmp$nu[i,j] <- lavaan_param_vector["nu"]
+    
+  } #for(j in (1:I))
+} #for(i in 1:loopn)
 
+est.param <- aggregate_results(loop_tmp = loop_tmp,est.param=est.param,parameterization = "ff_dm_yt")
+write_to_excel(est.param)
 
-
-est.param$a$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$a,na.rm=TRUE)
-est.param$b$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$b,na.rm=TRUE)
-est.param$d$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$d,na.rm=TRUE)
-est.param$lambda$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$lambda,na.rm=TRUE)
-est.param$tau$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$tau,na.rm=TRUE)
-est.param$nu$mean[,"ff_dm_yt"] <-colMeans(loop_tmp$nu,na.rm=TRUE)
-
-est.param$a$sd[,"ff_dm_yt"] <-apply(loop_tmp$a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-est.param$b$sd[,"ff_dm_yt"] <-apply(loop_tmp$b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-est.param$d$sd[,"ff_dm_yt"] <-apply(loop_tmp$d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-est.param$lambda$sd[,"ff_dm_yt"] <-apply(loop_tmp$lambda,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-est.param$tau$sd[,"ff_dm_yt"] <-apply(loop_tmp$tau,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-est.param$nu$sd[,"ff_dm_yt"] <-apply(loop_tmp$nu,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-
-
-est.param2$a$mean[,"ff_dm_yt"] <-colMeans(loop_tmp2$a,na.rm=TRUE)
-est.param2$b$mean[,"ff_dm_yt"] <-colMeans(loop_tmp2$b,na.rm=TRUE)
-est.param2$d$mean[,"ff_dm_yt"] <-colMeans(loop_tmp2$d,na.rm=TRUE)
-
-est.param2$a$sd[,"ff_dm_yt"] <-apply(loop_tmp2$a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-est.param2$b$sd[,"ff_dm_yt"] <-apply(loop_tmp2$b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-est.param2$d$sd[,"ff_dm_yt"] <-apply(loop_tmp2$d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-
-
-
-
-coef_a_mean[,"ff_dm_yt"]<-colMeans(coef_a,na.rm=TRUE)
-coef_b_mean[,"ff_dm_yt"]<-colMeans(coef_b,na.rm=TRUE)
-coef_d_mean[,"ff_dm_yt"]<-colMeans(coef_d,na.rm=TRUE)
-
-coef_a_sd[,"ff_dm_yt"]<- apply(coef_a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_b_sd[,"ff_dm_yt"]<- apply(coef_b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-coef_d_sd[,"ff_dm_yt"]<- apply(coef_d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-
-coef_a_mean
-coef_b_mean
-coef_d_mean
-
-write.table(coef_a_mean, 'coef_a_mean_ff_dm.txt')
-write.table(coef_b_mean, 'coef_b_mean_ff_dm.txt')
-write.table(coef_d_mean, 'coef_d_mean_ff_dm.txt')
-
-write.table(coef_a_sd, 'coef_a_sd_ff_dm.txt')
-write.table(coef_b_sd, 'coef_b_sd_ff_dm.txt')
-write.table(coef_d_sd, 'coef_d_sd_ff_dm.txt')
-
+est.param$a$mean
+est.param$b$mean
 
 
 mod.fixed_factor.delta_marginal.ystar_mean_free<- function(){}
 
-mod.fixed_factor.delta_marginal.ystar_mean_free <- '
-
-eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
-#latent var means and var
-eta1_1 ~ eta1_1_mean*1
-eta1_1 ~~ eta1_1_var*eta1_1
-
-## Latent response variable (LRV) intercepts
-item1_1 ~ int1_1*1
-item2_1 ~ int2_1*1
-item3_1 ~ int3_1*1
-item4_1 ~ int4_1*1
-item5_1 ~ int5_1*1
-item6_1 ~ int6_1*1
-item7_1 ~ int7_1*1
-item8_1 ~ int8_1*1
-item9_1 ~ int9_1*1
-item10_1 ~ int10_1*1
-item11_1 ~ int11_1*1
-item12_1 ~ int12_1*1
-item13_1 ~ int13_1*1
-
-int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1==0
-
-## thresholds link  LRVs to observed items
-item1_1 | thr1_1*t1
-item2_1 | thr2_1*t1
-item3_1 | thr3_1*t1
-item4_1 | thr4_1*t1
-item5_1 | thr5_1*t1
-item6_1 | thr6_1*t1
-item7_1 | thr7_1*t1
-item8_1 | thr8_1*t1
-item9_1 | thr9_1*t1
-item10_1 | thr10_1*t1
-item11_1 | thr11_1*t1
-item12_1 | thr12_1*t1
-item13_1 | thr13_1*t1
-
-thr1_1==0
-thr2_1==0
-thr3_1==0
-thr4_1==0
-thr5_1==0
-thr6_1==0
-thr7_1==0
-thr8_1==0
-thr9_1==0
-thr10_1==0
-thr11_1==0
-thr12_1==0
-thr13_1==0
-
-## LRVs (co)variances
-item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-item12_1 ~~ var12_1*item12_1+ 0*item13_1
-item13_1 ~~ var13_1*item13_1
-
-
-## LRVs variances constraints
-eta1_1_var*l1_1^2 + var1_1 == 1
-eta1_1_var*l2_1^2 + var2_1 == 1
-eta1_1_var*l3_1^2 + var3_1 == 1
-eta1_1_var*l4_1^2 + var4_1 == 1
-eta1_1_var*l5_1^2 + var5_1 == 1
-eta1_1_var*l6_1^2 + var6_1 == 1
-eta1_1_var*l7_1^2 + var7_1 == 1
-eta1_1_var*l8_1^2 + var8_1 == 1
-eta1_1_var*l9_1^2 + var9_1 == 1
-eta1_1_var*l10_1^2 + var10_1 == 1
-eta1_1_var*l11_1^2 + var11_1 == 1
-eta1_1_var*l12_1^2 + var12_1 == 1
-eta1_1_var*l13_1^2 + var13_1 == 1
-
-'
 
 
 sem.model <- mod.fixed_factor.delta_marginal.ystar_mean_free
@@ -958,88 +879,6 @@ write.table(coef_d_sd, 'coef_d_sd_ff_dm.txt')
 
 mod.fixed_factor.theta_conditional.ystar_thre_free<- function(){}
 
-mod.fixed_factor.theta_conditional.ystar_thre_free <- '
-  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
-  #latent var means and var
-  eta1_1 ~ eta1_1_mean*1
-  eta1_1 ~~ eta1_1_var*eta1_1
-  
-  ## Latent response variable (LRV) intercepts
-  item1_1 ~ int1_1*1
-  item2_1 ~ int2_1*1
-  item3_1 ~ int3_1*1
-  item4_1 ~ int4_1*1
-  item5_1 ~ int5_1*1
-  item6_1 ~ int6_1*1
-  item7_1 ~ int7_1*1
-  item8_1 ~ int8_1*1
-  item9_1 ~ int9_1*1
-  item10_1 ~ int10_1*1
-  item11_1 ~ int11_1*1
-  item12_1 ~ int12_1*1
-  item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-    
-  #Latent response variable (LRV) mean constraint
-    
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
-    
-    ## thresholds link  LRVs to observed items
-  item1_1 | thr1_1*t1
-  item2_1 | thr2_1*t1
-  item3_1 | thr3_1*t1
-  item4_1 | thr4_1*t1
-  item5_1 | thr5_1*t1
-  item6_1 | thr6_1*t1
-  item7_1 | thr7_1*t1
-  item8_1 | thr8_1*t1
-  item9_1 | thr9_1*t1
-  item10_1 | thr10_1*t1
-  item11_1 | thr11_1*t1
-  item12_1 | thr12_1*t1
-  item13_1 | thr13_1*t1
-  
-  ## LRVs (co)variances
-  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-  item12_1 ~~ var12_1*item12_1+ 0*item13_1
-  item13_1 ~~ var13_1*item13_1
-  
-  var1_1 ==1
-  var2_1 ==1
-  var3_1 ==1
-  var4_1 ==1
-  var5_1 ==1
-  var6_1 ==1
-  var7_1 ==1
-  var8_1 ==1
-  var9_1 ==1
-  var10_1 ==1
-  var11_1 ==1
-  var12_1 ==1
-  var13_1 ==1
-'
 
 sem.model <- mod.fixed_factor.theta_conditional.ystar_thre_free
 remove_var(mod.fit)
@@ -1126,93 +965,6 @@ write.table(coef_d_sd, 'coef_d_sd_ff_tc.txt')
 
 mod.indicator_effects.delta_marginal.ystar_thre_free<- function(){}
 
-mod.indicator_effects.delta_marginal.ystar_thre_free <- '
-
-  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
-  13==l1_1+l2_1+l3_1+l4_1+l5_1+l6_1+l7_1+l8_1+l9_1+l10_1+l11_1+l12_1+l13_1
-
-#latent var means and var
-  eta1_1 ~ eta1_1_mean*1
-  eta1_1 ~~ eta1_1_var*eta1_1
-
-## Latent response variable (LRV) intercepts
-  item1_1 ~ int1_1*1
-  item2_1 ~ int2_1*1
-  item3_1 ~ int3_1*1
-  item4_1 ~ int4_1*1
-  item5_1 ~ int5_1*1
-  item6_1 ~ int6_1*1
-  item7_1 ~ int7_1*1
-  item8_1 ~ int8_1*1
-  item9_1 ~ int9_1*1
-  item10_1 ~ int10_1*1
-  item11_1 ~ int11_1*1
-  item12_1 ~ int12_1*1
-  item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-
-#Latent response variable (LRV) mean constraint
-
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
-
-## thresholds link  LRVs to observed items
-  item1_1 | thr1_1*t1
-  item2_1 | thr2_1*t1
-  item3_1 | thr3_1*t1
-  item4_1 | thr4_1*t1
-  item5_1 | thr5_1*t1
-  item6_1 | thr6_1*t1
-  item7_1 | thr7_1*t1
-  item8_1 | thr8_1*t1
-  item9_1 | thr9_1*t1
-  item10_1 | thr10_1*t1
-  item11_1 | thr11_1*t1
-  item12_1 | thr12_1*t1
-  item13_1 | thr13_1*t1
-
-## LRVs (co)variances
-  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-  item12_1 ~~ var12_1*item12_1+ 0*item13_1
-  item13_1 ~~ var13_1*item13_1
-
-
-## LRVs variances constraints
-  eta1_1_var*l1_1^2 + var1_1 == 1
-  eta1_1_var*l2_1^2 + var2_1 == 1
-  eta1_1_var*l3_1^2 + var3_1 == 1
-  eta1_1_var*l4_1^2 + var4_1 == 1
-  eta1_1_var*l5_1^2 + var5_1 == 1
-  eta1_1_var*l6_1^2 + var6_1 == 1
-  eta1_1_var*l7_1^2 + var7_1 == 1
-  eta1_1_var*l8_1^2 + var8_1 == 1
-  eta1_1_var*l9_1^2 + var9_1 == 1
-  eta1_1_var*l10_1^2 + var10_1 == 1
-  eta1_1_var*l11_1^2 + var11_1 == 1
-  eta1_1_var*l12_1^2 + var12_1 == 1
-  eta1_1_var*l13_1^2 + var13_1 == 1
-'
 
 sem.model <- mod.indicator_effects.delta_marginal.ystar_thre_free
 remove_var(mod.fit)
@@ -1312,92 +1064,6 @@ write.table(coef_d_sd, 'coef_d_sd_ie_dm.txt')
 
 mod.indicator_effects.theta_conditional.ystar_thre_free<- function(){}
 
-mod.indicator_effects.theta_conditional.ystar_thre_free <- '
-
-
-  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
-  13==l1_1+l2_1+l3_1+l4_1+l5_1+l6_1+l7_1+l8_1+l9_1+l10_1+l11_1+l12_1+l13_1
-
-#latent var means and var
-  eta1_1 ~ eta1_1_mean*1
-  eta1_1 ~~ eta1_1_var*eta1_1
-
-## Latent response variable (LRV) intercepts
-  item1_1 ~ int1_1*1
-  item2_1 ~ int2_1*1
-  item3_1 ~ int3_1*1
-  item4_1 ~ int4_1*1
-  item5_1 ~ int5_1*1
-  item6_1 ~ int6_1*1
-  item7_1 ~ int7_1*1
-  item8_1 ~ int8_1*1
-  item9_1 ~ int9_1*1
-  item10_1 ~ int10_1*1
-  item11_1 ~ int11_1*1
-  item12_1 ~ int12_1*1
-  item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-
-#Latent response variable (LRV) mean constraint
-
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
-
-## thresholds link  LRVs to observed items
-  item1_1 | thr1_1*t1
-  item2_1 | thr2_1*t1
-  item3_1 | thr3_1*t1
-  item4_1 | thr4_1*t1
-  item5_1 | thr5_1*t1
-  item6_1 | thr6_1*t1
-  item7_1 | thr7_1*t1
-  item8_1 | thr8_1*t1
-  item9_1 | thr9_1*t1
-  item10_1 | thr10_1*t1
-  item11_1 | thr11_1*t1
-  item12_1 | thr12_1*t1
-  item13_1 | thr13_1*t1
-
-## LRVs (co)variances
-  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-  item12_1 ~~ var12_1*item12_1+ 0*item13_1
-  item13_1 ~~ var13_1*item13_1
-
-  var1_1 ==1
-  var2_1 ==1
-  var3_1 ==1
-  var4_1 ==1
-  var5_1 ==1
-  var6_1 ==1
-  var7_1 ==1
-  var8_1 ==1
-  var9_1 ==1
-  var10_1 ==1
-  var11_1 ==1
-  var12_1 ==1
-  var13_1 ==1
-'
 
 sem.model <- mod.indicator_effects.theta_conditional.ystar_thre_free
 remove_var(mod.fit)
@@ -1493,91 +1159,6 @@ write.table(coef_d_sd, 'coef_d_sd_ie_tc.txt')
 
 mod.indicator_marker.delta_marginal.ystar_thre_free<- function(){}
 
-mod.indicator_marker.delta_marginal.ystar_thre_free <- '
-
-  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
-  l4_1==1
-
-  #latent var means and var
-  eta1_1 ~ eta1_1_mean*1
-  eta1_1 ~~ eta1_1_var*eta1_1
-  
-  ## Latent response variable (LRV) intercepts
-  item1_1 ~ int1_1*1
-  item2_1 ~ int2_1*1
-  item3_1 ~ int3_1*1
-  item4_1 ~ int4_1*1
-  item5_1 ~ int5_1*1
-  item6_1 ~ int6_1*1
-  item7_1 ~ int7_1*1
-  item8_1 ~ int8_1*1
-  item9_1 ~ int9_1*1
-  item10_1 ~ int10_1*1
-  item11_1 ~ int11_1*1
-  item12_1 ~ int12_1*1
-  item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-    
-  #Latent response variable (LRV) mean constraint
-    
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
-    
-    ## thresholds link  LRVs to observed items
-  item1_1 | thr1_1*t1
-  item2_1 | thr2_1*t1
-  item3_1 | thr3_1*t1
-  item4_1 | thr4_1*t1
-  item5_1 | thr5_1*t1
-  item6_1 | thr6_1*t1
-  item7_1 | thr7_1*t1
-  item8_1 | thr8_1*t1
-  item9_1 | thr9_1*t1
-  item10_1 | thr10_1*t1
-  item11_1 | thr11_1*t1
-  item12_1 | thr12_1*t1
-  item13_1 | thr13_1*t1
-  
-  ## LRVs (co)variances
-  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-  item12_1 ~~ var12_1*item12_1+ 0*item13_1
-  item13_1 ~~ var13_1*item13_1
-  
-  eta1_1_var*l1_1^2 + var1_1 == 1
-  eta1_1_var*l2_1^2 + var2_1 == 1
-  eta1_1_var*l3_1^2 + var3_1 == 1
-  eta1_1_var*l4_1^2 + var4_1 == 1
-  eta1_1_var*l5_1^2 + var5_1 == 1
-  eta1_1_var*l6_1^2 + var6_1 == 1
-  eta1_1_var*l7_1^2 + var7_1 == 1
-  eta1_1_var*l8_1^2 + var8_1 == 1
-  eta1_1_var*l9_1^2 + var9_1 == 1
-  eta1_1_var*l10_1^2 + var10_1 == 1
-  eta1_1_var*l11_1^2 + var11_1 == 1
-  eta1_1_var*l12_1^2 + var12_1 == 1
-  eta1_1_var*l13_1^2 + var13_1 == 1
-'
 
 sem.model <- mod.indicator_marker.delta_marginal.ystar_thre_free
 remove_var(mod.fit)
@@ -1670,95 +1251,7 @@ write.table(coef_a_sd, 'coef_a_sd_im_dm.txt')
 write.table(coef_b_sd, 'coef_b_sd_im_dm.txt')
 write.table(coef_d_sd, 'coef_d_sd_im_dm.txt')
 
-
-
 mod.indicator_marker.theta_conditional.ystar_thre_free<- function(){}
-
-mod.indicator_marker.theta_conditional.ystar_thre_free <- '
-
-  eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
-  l4_1==1
-
-  #latent var means and var
-  eta1_1 ~ eta1_1_mean*1
-  eta1_1 ~~ eta1_1_var*eta1_1
-  
-  ## Latent response variable (LRV) intercepts
-  item1_1 ~ int1_1*1
-  item2_1 ~ int2_1*1
-  item3_1 ~ int3_1*1
-  item4_1 ~ int4_1*1
-  item5_1 ~ int5_1*1
-  item6_1 ~ int6_1*1
-  item7_1 ~ int7_1*1
-  item8_1 ~ int8_1*1
-  item9_1 ~ int9_1*1
-  item10_1 ~ int10_1*1
-  item11_1 ~ int11_1*1
-  item12_1 ~ int12_1*1
-  item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-    
-  #Latent response variable (LRV) mean constraint
-    
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
-    
-    ## thresholds link  LRVs to observed items
-  item1_1 | thr1_1*t1
-  item2_1 | thr2_1*t1
-  item3_1 | thr3_1*t1
-  item4_1 | thr4_1*t1
-  item5_1 | thr5_1*t1
-  item6_1 | thr6_1*t1
-  item7_1 | thr7_1*t1
-  item8_1 | thr8_1*t1
-  item9_1 | thr9_1*t1
-  item10_1 | thr10_1*t1
-  item11_1 | thr11_1*t1
-  item12_1 | thr12_1*t1
-  item13_1 | thr13_1*t1
-  
-  ## LRVs (co)variances
-  item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item2_1 ~~ var2_1*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item3_1 ~~ var3_1*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item4_1 ~~ var4_1*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item5_1 ~~ var5_1*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item6_1 ~~ var6_1*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item7_1 ~~ var7_1*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item8_1 ~~ var8_1*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item9_1 ~~ var9_1*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item10_1 ~~ var10_1*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
-  item11_1 ~~ var11_1*item11_1+ 0*item12_1+ 0*item13_1
-  item12_1 ~~ var12_1*item12_1+ 0*item13_1
-  item13_1 ~~ var13_1*item13_1
-  
-  var1_1==1
-  var2_1==1
-  var3_1==1
-  var4_1==1
-  var5_1==1
-  var6_1==1
-  var7_1==1
-  var8_1==1
-  var9_1==1
-  var10_1==1
-  var11_1 ==1
-  var12_1 ==1
-  var13_1 ==1
-'
 
 sem.model <- mod.indicator_marker.theta_conditional.ystar_thre_free
 remove_var(mod.fit)
