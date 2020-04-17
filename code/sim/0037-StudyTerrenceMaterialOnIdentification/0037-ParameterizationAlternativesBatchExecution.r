@@ -656,7 +656,9 @@ for(sim in 1:12){
   } #for(i in 1:loopn)
   
   est.param <- aggregate_results(loop_tmp = loop_tmp,est.param=est.param, parameterization = param_index)
-}#for(sim in 1:4){
+  est.param$a$mean
+  est.param$b$mean
+}#for(sim in 1:12){
 
 est.param$a$mean
 est.param$b$mean
