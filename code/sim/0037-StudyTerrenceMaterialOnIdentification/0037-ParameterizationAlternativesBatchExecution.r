@@ -129,8 +129,8 @@ aggregate_results <-function(loop_tmp,est.param, parameterization){
   est.param$lambda$sd[,parameterization] <-apply(loop_tmp$lambda,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
   est.param$tau$sd[,parameterization] <-apply(loop_tmp$tau,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
   est.param$nu$sd[,parameterization] <-apply(loop_tmp$nu,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-  est.param$psi$sd[parameterization]   <- sd(loop_tmp$psi,na.rm = TRUE,na.rm=TRUE)
-  est.param$alpha$sd[parameterization] <- sd(loop_tmp$alpha,na.rm = TRUE,na.rm=TRUE)
+  est.param$psi$sd[parameterization]   <- sd(loop_tmp$psi,na.rm = TRUE)
+  est.param$alpha$sd[parameterization] <- sd(loop_tmp$alpha,na.rm = TRUE)
   
   est.param$eta$sim$mean[parameterization] <-mean(loop_tmp$eta$sim$mean,na.rm=TRUE)
   est.param$eta$ebm$mean[parameterization] <-mean(loop_tmp$eta$ebm$mean,na.rm=TRUE)
@@ -276,7 +276,7 @@ source("./models.r")
 
 set.seed(12) # Resetando a semente
 N <- 1000    ## subjects
-loopn <-100   ## number of runs
+loopn <-4   ## number of runs
 #N <- 10000 ## subjects
 #loopn <-500   ## number of runs
 
@@ -598,7 +598,7 @@ for(sim in 1:12){
   loop_tmp <- loop_tmp.init
   for(i in 1:loopn){
     #print every 10 iterations, if last tfi is bad. Check code.
-    if(i%%10==0) {print(paste0("sim=",sim," param=",param_index," loopn=",i," last tfi = ",loop_tmp$fit$tli[i-1]))} 
+    if(i%%10==0) {print(paste0("sim=",sim," param=",param_index," loopn=",i," last tfi = ",loop_tmp$fit$tli[i-1]," time = ",loop_tmp$fit$time[i-1]))} 
     Eta <- mvrnorm(n=N, mu=mu, Sigma )
     dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
     colnames(dat)<- itemnames
