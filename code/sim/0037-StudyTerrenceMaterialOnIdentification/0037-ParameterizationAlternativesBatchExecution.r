@@ -276,7 +276,7 @@ source("./models.r")
 
 set.seed(12) # Resetando a semente
 N <- 1000    ## subjects
-loopn <-4   ## number of runs
+loopn <-100   ## number of runs
 #N <- 10000 ## subjects
 #loopn <-500   ## number of runs
 
@@ -656,8 +656,7 @@ for(sim in 1:12){
   } #for(i in 1:loopn)
   
   est.param <- aggregate_results(loop_tmp = loop_tmp,est.param=est.param, parameterization = param_index)
-  est.param$a$mean
-  est.param$b$mean
+  print(est.param$b$mean)
 }#for(sim in 1:12){
 
 est.param$a$mean
