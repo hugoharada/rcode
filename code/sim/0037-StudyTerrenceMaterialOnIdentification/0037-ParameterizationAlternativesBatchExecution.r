@@ -597,7 +597,8 @@ for(sim in 1:12){
   
   loop_tmp <- loop_tmp.init
   for(i in 1:loopn){
-    if(i%%10==0) {print(paste0("sim=",sim," param=",param_index," loopn=",i))} #print every 10 iterations
+    #print every 10 iterations, if last tfi is bad. Check code.
+    if(i%%10==0) {print(paste0("sim=",sim," param=",param_index," loopn=",i," last tfi = ",loop_tmp$fit$tli[i-1]))} 
     Eta <- mvrnorm(n=N, mu=mu, Sigma )
     dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
     colnames(dat)<- itemnames
