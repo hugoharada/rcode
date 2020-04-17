@@ -129,21 +129,21 @@ aggregate_results <-function(loop_tmp,est.param, parameterization){
   est.param$lambda$sd[,parameterization] <-apply(loop_tmp$lambda,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
   est.param$tau$sd[,parameterization] <-apply(loop_tmp$tau,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
   est.param$nu$sd[,parameterization] <-apply(loop_tmp$nu,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
-  est.param$psi$sd[parameterization]   <- sd(loop_tmp$psi,na.rm = TRUE)
-  est.param$alpha$sd[parameterization] <- sd(loop_tmp$alpha,na.rm = TRUE)
+  est.param$psi$sd[parameterization]   <- sd(loop_tmp$psi,na.rm = TRUE,na.rm=TRUE)
+  est.param$alpha$sd[parameterization] <- sd(loop_tmp$alpha,na.rm = TRUE,na.rm=TRUE)
   
-  est.param$eta$sim$mean[parameterization] <-mean(loop_tmp$eta$sim$mean)
-  est.param$eta$ebm$mean[parameterization] <-mean(loop_tmp$eta$ebm$mean)
-  est.param$eta$ml$mean[parameterization]  <-mean(loop_tmp$eta$ml$mean)
+  est.param$eta$sim$mean[parameterization] <-mean(loop_tmp$eta$sim$mean,na.rm=TRUE)
+  est.param$eta$ebm$mean[parameterization] <-mean(loop_tmp$eta$ebm$mean,na.rm=TRUE)
+  est.param$eta$ml$mean[parameterization]  <-mean(loop_tmp$eta$ml$mean,na.rm=TRUE)
   
-  est.param$eta$sim$sd[parameterization]   <-mean(loop_tmp$eta$sim$sd)
-  est.param$eta$ebm$sd[parameterization]   <-mean(loop_tmp$eta$ebm$sd)
-  est.param$eta$ml$sd[parameterization]    <-mean(loop_tmp$eta$ml$sd)
+  est.param$eta$sim$sd[parameterization]   <-mean(loop_tmp$eta$sim$sd,na.rm=TRUE)
+  est.param$eta$ebm$sd[parameterization]   <-mean(loop_tmp$eta$ebm$sd,na.rm=TRUE)
+  est.param$eta$ml$sd[parameterization]    <-mean(loop_tmp$eta$ml$sd,na.rm=TRUE)
   
-  est.param$fit$tli[parameterization]  <-mean(loop_tmp$fit$tli)
-  est.param$fit$cfi[parameterization]  <-mean(loop_tmp$fit$cfi)
-  est.param$fit$rmsea[parameterization]  <-mean(loop_tmp$fit$rmsea)
-  est.param$fit$time[parameterization]  <-mean(loop_tmp$fit$time)
+  est.param$fit$tli[parameterization]  <-mean(loop_tmp$fit$tli,na.rm=TRUE)
+  est.param$fit$cfi[parameterization]  <-mean(loop_tmp$fit$cfi,na.rm=TRUE)
+  est.param$fit$rmsea[parameterization]  <-mean(loop_tmp$fit$rmsea,na.rm=TRUE)
+  est.param$fit$time[parameterization]  <-mean(loop_tmp$fit$time,na.rm=TRUE)
   return(est.param)
 }
 
@@ -268,8 +268,6 @@ plot_cci <- function(a=1,b,c=0,n=200,filename=NULL,item_id="", plot_info=FALSE){
   return(pfinal)
 }
 
-
-
 # Generate Longitudinal Items from a Bivariate LIR
 data_creation <-function(){}
 
@@ -277,10 +275,10 @@ data_creation <-function(){}
 source("./models.r")
 
 set.seed(12) # Resetando a semente
-#N <- 1000    ## subjects
-#loopn <-5   ## number of runs
-N <- 10000 ## subjects
-loopn <-500   ## number of runs
+N <- 1000    ## subjects
+loopn <-5   ## number of runs
+#N <- 10000 ## subjects
+#loopn <-500   ## number of runs
 
 latent_var_index <- 1
 
@@ -289,7 +287,7 @@ PL=2 # Logistic Model (1,2,3 parameters)
 SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
 rho<-0.7
 y_star_mean <- 1 #'0p0'=1,'0p5'=2, '1p0'=3 
-
+mu<-c(0,0.5,1)
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
 
@@ -379,6 +377,7 @@ est.param <-list(
   psi = list(mean = placeholder_vector,  sd= placeholder_vector),
   alpha = list(mean = placeholder_vector,  sd= placeholder_vector),
   eta = list(sim = list(mean = placeholder_vector, sd = placeholder_vector),
+             eap = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector),
              ebm = list(mean = placeholder_vector, sd = placeholder_vector),
              ml  = list(mean = placeholder_vector, sd = placeholder_vector)),
   fit = list(tli = placeholder_vector,cfi = placeholder_vector,rmsea = placeholder_vector, time=placeholder_vector),
@@ -389,6 +388,8 @@ est.param$a$mean[,"sim"]<-a
 est.param$b$mean[,"sim"]<-b
 est.param$d$mean[,"sim"]<-d
 
+est.param$eta$sim$mean["sim"] <- mu[y_star_mean]
+est.param$eta$sim$sd["sim"] <- sqrt(Sigma[y_star_mean,y_star_mean])
 
 loop_tmp.init <-list(
   a   = loop_placeholder,
@@ -399,7 +400,9 @@ loop_tmp.init <-list(
   nu = loop_placeholder,
   psi = loop_placeholder_vector,
   alpha = loop_placeholder_vector,
-  eta = list(ebm = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector),
+  eta = list(sim = list(mean = placeholder_vector, sd = placeholder_vector),
+             eap = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector),
+             ebm = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector),
              ml = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector)),
   fit = list(tli = loop_placeholder_vector,
              cfi = loop_placeholder_vector,
@@ -409,7 +412,7 @@ loop_tmp.init <-list(
 
 
 
-Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+Eta <- mvrnorm(n=N, mu=mu, Sigma )
 
 head(Eta)
 cor(Eta)
@@ -433,17 +436,31 @@ mirt.estimations<- function(){}
 loop_tmp <- loop_tmp.init
 
 for(i in 1:loopn){
-  Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+  Eta <- mvrnorm(n=N, mu=mu, Sigma )
   dat.0p0 =simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
   dat <- dat.0p0
   colnames(dat) <- paste("item",1:I,sep="")
+  start_time <- get_time()
   mod<-mirt(data=dat,model = 1,itemtype = "2PL")
-  M2(mod)
-  itemfit(mod)
-  coef(mod, simplify=TRUE)
-  loop_tmp$a[i,] <- coef(mod, simplify=TRUE)$item[,"a1"]
-  loop_tmp$d[i,] <- coef(mod, simplify=TRUE)$item[,"d"]
+  fit<-M2(mod)
+  #itemfit(mod)
+  scores <- fscores(mod)
+  coef_holder <- coef(mod, simplify=TRUE)
+  time <- get_delta_time(start_time)
+  
+  loop_tmp$a[i,] <- coef_holder$item[,"a1"]
+  loop_tmp$d[i,] <- coef_holder$item[,"d"]
   loop_tmp$b[i,] <- -loop_tmp$d[i,]/loop_tmp$a[i,]
+  
+  loop_tmp$fit$time[i] <-time
+  loop_tmp$fit$tli[i] <-fit$TLI
+  loop_tmp$fit$cfi[i] <-fit$CFI
+  loop_tmp$fit$rmsea[i] <-fit$RMSEA
+  
+  loop_tmp$eta$sim$mean[i] <-mean(Eta[,y_star_mean])
+  loop_tmp$eta$sim$sd[i]   <-sd(Eta[,y_star_mean])
+  loop_tmp$eta$eap$mean[i] <-mean(scores)
+  loop_tmp$eta$eap$sd[i] <-sd(scores)
 }
 
 est.param$a$mean[,"mirt"] <-colMeans(loop_tmp$a,na.rm=TRUE)
@@ -453,6 +470,17 @@ est.param$d$mean[,"mirt"] <-colMeans(loop_tmp$d,na.rm=TRUE)
 est.param$a$sd[,"mirt"] <-apply(loop_tmp$a,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 est.param$b$sd[,"mirt"] <-apply(loop_tmp$b,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
 est.param$d$sd[,"mirt"] <-apply(loop_tmp$d,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+
+est.param$eta$sim$mean["mirt"] <-mean(loop_tmp$eta$sim$mean,na.rm=TRUE)
+est.param$eta$sim$sd["mirt"]   <-mean(loop_tmp$eta$sim$sd,na.rm=TRUE)
+est.param$eta$eap$mean["mirt"]   <-mean(loop_tmp$eta$eap$mean,na.rm=TRUE)
+est.param$eta$eap$sd["mirt"]    <-mean(loop_tmp$eta$eap$sd,na.rm=TRUE)
+
+est.param$fit$tli["mirt"]  <-mean(loop_tmp$fit$tli,na.rm=TRUE)
+est.param$fit$cfi["mirt"]  <-mean(loop_tmp$fit$cfi,na.rm=TRUE)
+est.param$fit$rmsea["mirt"]  <-mean(loop_tmp$fit$rmsea,na.rm=TRUE)
+est.param$fit$time["mirt"]  <-mean(loop_tmp$fit$time,na.rm=TRUE)
+
 
 est.param$a$mean
 est.param$b$mean
@@ -569,7 +597,7 @@ for(sim in 1:12){
   
   loop_tmp <- loop_tmp.init
   for(i in 1:loopn){
-    Eta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+    Eta <- mvrnorm(n=N, mu=mu, Sigma )
     dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
     colnames(dat)<- itemnames
     remove_var(mod.fit)
