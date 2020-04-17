@@ -276,7 +276,7 @@ source("./models.r")
 
 set.seed(12) # Resetando a semente
 N <- 1000    ## subjects
-loopn <-5   ## number of runs
+loopn <-100   ## number of runs
 #N <- 10000 ## subjects
 #loopn <-500   ## number of runs
 
@@ -597,6 +597,7 @@ for(sim in 1:12){
   
   loop_tmp <- loop_tmp.init
   for(i in 1:loopn){
+    if(i%%10==0) {print(paste0("sim=",sim," param=",param_index," loopn=",i))} #print every 10 iterations
     Eta <- mvrnorm(n=N, mu=mu, Sigma )
     dat <- simdata(a=a,d=d,N=N,itemtype = '2PL', Theta = matrix(Eta[,y_star_mean],ncol=1,nrow = length(Eta[,y_star_mean])))
     colnames(dat)<- itemnames
