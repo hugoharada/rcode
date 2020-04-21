@@ -275,8 +275,8 @@ data_creation <-function(){}
 source("./models.r")
 
 set.seed(12) # Resetando a semente
-N <- 1000    ## subjects
-loopn <-100   ## number of runs
+N <- 1500    ## subjects
+loopn <-200   ## number of runs
 #N <- 10000 ## subjects
 #loopn <-500   ## number of runs
 
