@@ -120,6 +120,10 @@ aggregate_results <-function(loop_tmp,est.param, parameterization){
   est.param$lambda$mean[,parameterization] <-colMeans(loop_tmp$lambda,na.rm=TRUE)
   est.param$tau$mean[,parameterization] <-colMeans(loop_tmp$tau,na.rm=TRUE)
   est.param$nu$mean[,parameterization] <-colMeans(loop_tmp$nu,na.rm=TRUE)
+  est.param$mu$mean[,parameterization] <-colMeans(loop_tmp$mu,na.rm=TRUE)
+  est.param$vy$mean[,parameterization] <-colMeans(loop_tmp$vy,na.rm=TRUE)
+  est.param$theta$mean[,parameterization] <-colMeans(loop_tmp$theta,na.rm=TRUE)
+  
   est.param$psi$mean[parameterization] <-mean(loop_tmp$psi,na.rm=TRUE)
   est.param$alpha$mean[parameterization] <-mean(loop_tmp$alpha,na.rm=TRUE)
   
@@ -129,6 +133,10 @@ aggregate_results <-function(loop_tmp,est.param, parameterization){
   est.param$lambda$sd[,parameterization] <-apply(loop_tmp$lambda,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
   est.param$tau$sd[,parameterization] <-apply(loop_tmp$tau,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
   est.param$nu$sd[,parameterization] <-apply(loop_tmp$nu,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$mu$sd[,parameterization] <-apply(loop_tmp$mu,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$vy$sd[,parameterization] <-apply(loop_tmp$vy,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  est.param$theta$sd[,parameterization] <-apply(loop_tmp$theta,MARGIN = 2, function(x){sd(x,na.rm = TRUE)})
+  
   est.param$psi$sd[parameterization]   <- sd(loop_tmp$psi,na.rm = TRUE)
   est.param$alpha$sd[parameterization] <- sd(loop_tmp$alpha,na.rm = TRUE)
   
@@ -148,7 +156,53 @@ aggregate_results <-function(loop_tmp,est.param, parameterization){
 }
 
 
+write_to_mean_sd <-function(param, param_text, filename){
+
+  if(!is.vector(param$mean)){ 
+    tmp <- rbind(cbind(rep("mean",nrow(param$mean)), param$mean), 
+                 rep("",ncol(param$mean)+1),
+                 cbind(rep("sd",nrow(param$sd)), param$sd),
+                 rep("",ncol(param$mean)+1),
+                 cbind(rep("res",nrow(param$sd)),param$mean-param$mean[,"sim"]) )
+  }else{
+    tmp <- rbind(c("mean", param$mean), 
+                 rep("",length(param$mean)+1),
+                 c("sd", param$sd))
+  }
+  write.xlsx(data.frame(tmp), filename, sheetName = param_text, col.names = TRUE, row.names = TRUE, append = TRUE)
+}
+
+
 write_to_excel <-function(est.param,y_star_mean,parType,N,loopn,I,SigmaType,iteration=42){
+  filename <- build_filename(y_star_mean=y_star_mean,
+                             parType=parType,
+                             N=N,
+                             loopn=loopn,
+                             I=I,
+                             SigmaType=SigmaType,
+                             iteration=iteration)
+  
+  write.xlsx(data.frame(est.param$eta), filename, sheetName = "eta", col.names = TRUE, row.names = TRUE, append = TRUE)
+  write.xlsx(data.frame(est.param$fit), filename, sheetName = "fit", col.names = TRUE, row.names = TRUE, append = TRUE)
+
+  write_to_mean_sd(param = est.param$a,param_text="a",filename = filename)
+  write_to_mean_sd(param = est.param$b,param_text="b",filename = filename)
+  write_to_mean_sd(param = est.param$d,param_text="d",filename = filename)
+
+  write_to_mean_sd(param = est.param$lambda,param_text="lambda",filename = filename)
+  write_to_mean_sd(param = est.param$tau,param_text="tau",filename = filename)
+  write_to_mean_sd(param = est.param$nu,param_text="nu",filename = filename)
+
+  write_to_mean_sd(param = est.param$mu,param_text="mu",filename = filename)
+  write_to_mean_sd(param = est.param$vy,param_text="vy",filename = filename)
+  write_to_mean_sd(param = est.param$theta,param_text="theta",filename = filename)
+  write_to_mean_sd(param = est.param$psi,param_text="psi",filename = filename)
+  write_to_mean_sd(param = est.param$alpha,param_text="alpha",filename = filename)
+
+}
+
+
+write_to_excel_old <-function(est.param,y_star_mean,parType,N,loopn,I,SigmaType,iteration=42){
   filename <- build_filename(y_star_mean=y_star_mean,
                              parType=parType,
                              N=N,
@@ -194,7 +248,12 @@ get_lavaan_indicator_param <- function(mod.fit,indicator_index){
   tau <- lavInspect(mod.fit,what = "est")$tau[indicator_index]
   nu <- lavInspect(mod.fit,what = "est")$nu[indicator_index]
   mu <- lavInspect(mod.fit,what = "mu")[indicator_index]
-  return(c(lambda=lambda, nu=nu, tau=tau, mu=mu))
+  vy <- lavInspect(mod.fit,what = "vy")[indicator_index]
+  theta <- lavInspect(mod.fit,what = "est")$theta[indicator_index,indicator_index]
+  
+  tmp <-c(lambda, nu, tau, mu,vy,theta)
+  names(tmp)<- c("lambda","nu","tau","mu","vy","theta")
+  return(tmp)
 }
   
 
@@ -277,8 +336,8 @@ data_creation <-function(){}
 source("./models.r")
 
 set.seed(12) # Resetando a semente
-N <- 1500    ## subjects
-loopn <-200   ## number of runs
+N <- 1000    ## subjects
+loopn <-3   ## number of runs
 #N <- 10000 ## subjects
 #loopn <-500   ## number of runs
 
@@ -351,9 +410,21 @@ Sigma
 # indicator_effects, 	theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
 # indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
 
+# fixed_factor,		    delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym_t0p5" threshold=0.5
+# fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym_t0p5" threshold=0.5
+# indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym_t0p5" threshold=0.5
+# indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym_t0p5" threshold=0.5
+# indicator_effects, 	delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym_t0p5" threshold=0.5
+# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
+
 working1 <- function(){}
 
-experiments <- c("sim", "mirt", "ff_dm_yt","ff_dm_ym","ff_tc_yt","ff_tc_ym","im_dm_yt","im_dm_ym","im_tc_yt","im_tc_ym","ie_dm_yt","ie_dm_ym","ie_tc_yt","ie_tc_ym")
+experiments <- c("sim", "mirt", "ff_dm_yt","ff_dm_ym","ff_tc_yt","ff_tc_ym",
+                 "im_dm_yt","im_dm_ym","im_tc_yt","im_tc_ym",
+                 "ie_dm_yt","ie_dm_ym","ie_tc_yt","ie_tc_ym",
+                 "ff_dm_ym_t0p5","ff_tc_ym_t0p5",
+                 "im_dm_ym_t0p5","im_tc_ym_t0p5",
+                 "ie_dm_ym_t0p5","ie_tc_ym_t0p5")
 names(experiments) <- c("sim","mirt",1:(length(experiments)-2))  
 
 placeholder <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
@@ -376,6 +447,9 @@ est.param <-list(
   lambda = list(mean = placeholder, sd =placeholder),
   tau = list(mean = placeholder, sd =placeholder),
   nu = list(mean = placeholder, sd =placeholder),
+  theta = list(mean = placeholder, sd =placeholder),
+  mu = list(mean = placeholder, sd =placeholder),
+  vy = list(mean = placeholder, sd =placeholder),
   psi = list(mean = placeholder_vector,  sd= placeholder_vector),
   alpha = list(mean = placeholder_vector,  sd= placeholder_vector),
   eta = list(sim = list(mean = placeholder_vector, sd = placeholder_vector),
@@ -400,6 +474,9 @@ loop_tmp.init <-list(
   lambda = loop_placeholder,
   tau = loop_placeholder,
   nu = loop_placeholder,
+  theta = loop_placeholder,
+  mu = loop_placeholder,
+  vy = loop_placeholder,
   psi = loop_placeholder_vector,
   alpha = loop_placeholder_vector,
   eta = list(sim = list(mean = loop_placeholder_vector, sd = loop_placeholder_vector),
@@ -503,12 +580,15 @@ est.param$b$mean
 # indicator_effects, 	delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
 # indicator_effects, 	delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
 # indicator_effects, 	theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
-# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
+# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym" threshold=0.0
+# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
+
 working <- function(){}
 
 itemnames <- paste("item",1:I,"_",1,sep="")
 
-for(sim in 12:12){
+for(sim in 1:18){
+#for(sim in 12:13){
 #for(sim in 1:12){
 
   switch (sim,
@@ -595,9 +675,52 @@ for(sim in 12:12){
       std_lv <- FALSE
       delta_theta <- "theta"
       sem.model <- mod.indicator_effects.theta_conditional.ystar_mean_free
+    },
+    {#13
+      param_index <-"ff_dm_ym_t0p5"
+      calc_sel <- "ff_dm"
+      std_lv <- TRUE
+      delta_theta <- "delta"
+      sem.model <- mod.fixed_factor.delta_marginal.ystar_mean_free.threqu0p5
+    },
+    {#14
+      param_index <-"ff_tc_ym_t0p5"
+      calc_sel <- "ff_tc"
+      std_lv <- TRUE
+      delta_theta <- "theta"
+      sem.model <- mod.fixed_factor.theta_conditional.ystar_mean_free.threqu0p5
+    },
+    {#15
+      param_index <-"im_dm_ym_t0p5"
+      calc_sel <- "im_dm"
+      std_lv <- FALSE
+      delta_theta <- "delta"
+      sem.model <- mod.indicator_marker.delta_marginal.ystar_mean_free.threqu0p5
+    },
+    {#16
+      param_index <-"im_tc_ym_t0p5"
+      calc_sel <- "im_tc"
+      std_lv <- FALSE
+      delta_theta <- "theta"
+      sem.model <- mod.indicator_marker.theta_conditional.ystar_mean_free.threqu0p5
+    },
+    {#17
+      param_index <-"ie_dm_ym_t0p5"
+      calc_sel <- "ie_dm"
+      std_lv <- FALSE
+      delta_theta <- "delta"
+      sem.model <- mod.indicator_effects.delta_marginal.ystar_mean_free.threqu0p5
+    },
+    {#18
+      param_index <-"ie_tc_ym_t0p5"
+      calc_sel <- "ie_tc"
+      std_lv <- FALSE
+      delta_theta <- "theta"
+      sem.model <- mod.indicator_marker.theta_conditional.ystar_mean_free.threqu0p5
     }
+    
   )
-  
+
   loop_tmp <- loop_tmp.init
   for(i in 1:loopn){
     #print every 10 iterations, if last tfi is bad. Check code.
@@ -654,6 +777,9 @@ for(sim in 12:12){
       loop_tmp$lambda[i,j] <- lavaan_param_vector["lambda"]
       loop_tmp$tau[i,j] <- lavaan_param_vector["tau"]
       loop_tmp$nu[i,j] <- lavaan_param_vector["nu"]
+      loop_tmp$mu[i,j] <- lavaan_param_vector["mu"]
+      loop_tmp$vy[i,j] <- lavaan_param_vector["vy"]
+      loop_tmp$theta[i,j] <- lavaan_param_vector["theta"]
       
     } #for(j in (1:I))
   } #for(i in 1:loopn)
