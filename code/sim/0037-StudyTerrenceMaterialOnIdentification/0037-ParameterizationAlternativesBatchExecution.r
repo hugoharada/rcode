@@ -148,13 +148,14 @@ aggregate_results <-function(loop_tmp,est.param, parameterization){
 }
 
 
-write_to_excel <-function(est.param,y_star_mean,parType,N,loopn,I,SigmaType){
+write_to_excel <-function(est.param,y_star_mean,parType,N,loopn,I,SigmaType,iteration=42){
   filename <- build_filename(y_star_mean=y_star_mean,
                              parType=parType,
                              N=N,
                              loopn=loopn,
                              I=I,
-                             SigmaType=SigmaType)
+                             SigmaType=SigmaType,
+                             iteration=iteration)
   
   write.xlsx(data.frame(est.param$eta), filename, sheetName = "eta", col.names = TRUE, row.names = TRUE, append = TRUE)
   write.xlsx(data.frame(est.param$fit), filename, sheetName = "fit", col.names = TRUE, row.names = TRUE, append = TRUE)
@@ -197,13 +198,14 @@ get_lavaan_indicator_param <- function(mod.fit,indicator_index){
 }
   
 
-build_filename<-function(y_star_mean,parType,N,loopn,I,SigmaType){
+build_filename<-function(y_star_mean,parType,N,loopn,I,SigmaType,iteration=42){
   mean_string <- switch(y_star_mean,
                         "Alpha0p0",
                         "Alpha0p5",
                         "Alpha1p0")
+  if(iteration!=42){partial_results <- paste0("_partial",iteration)}else{partial_results<-"_complete"}
   
-  return(paste0(mean_string,"_parType",parType,"_N",N,"_loopn",loopn,"_I",I,"_SigmaType",SigmaType,".xlsx"))
+  return(paste0(mean_string,"_parType",parType,"_N",N,"_loopn",loopn,"_I",I,"_SigmaType",SigmaType,partial_results,".xlsx"))
   
 }
 
@@ -286,7 +288,7 @@ I= 13  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
 SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
 rho<-0.7
-y_star_mean <- 1 #'0p0'=1,'0p5'=2, '1p0'=3 
+y_star_mean <- 3 #'0p0'=1,'0p5'=2, '1p0'=3 
 mu<-c(0,0.5,1)
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
@@ -352,7 +354,7 @@ Sigma
 working1 <- function(){}
 
 experiments <- c("sim", "mirt", "ff_dm_yt","ff_dm_ym","ff_tc_yt","ff_tc_ym","im_dm_yt","im_dm_ym","im_tc_yt","im_tc_ym","ie_dm_yt","ie_dm_ym","ie_tc_yt","ie_tc_ym")
-  
+names(experiments) <- c("sim","mirt",1:(length(experiments)-2))  
 
 placeholder <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
 colnames(placeholder) <- experiments
@@ -506,7 +508,8 @@ working <- function(){}
 
 itemnames <- paste("item",1:I,"_",1,sep="")
 
-for(sim in 1:12){
+for(sim in 12:12){
+#for(sim in 1:12){
 
   switch (sim,
     {#1
@@ -657,6 +660,8 @@ for(sim in 1:12){
   
   est.param <- aggregate_results(loop_tmp = loop_tmp,est.param=est.param, parameterization = param_index)
   print(est.param$b$mean)
+  write_to_excel(est.param=est.param,y_star_mean=y_star_mean,parType=parType,N=N,loopn=loopn,I=I,SigmaType=SigmaType,iteration = sim)
+  
 }#for(sim in 1:12){
 
 est.param$a$mean
