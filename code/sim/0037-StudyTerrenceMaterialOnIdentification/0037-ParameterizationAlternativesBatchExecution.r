@@ -336,8 +336,8 @@ data_creation <-function(){}
 source("./models.r")
 
 set.seed(12) # Resetando a semente
-N <- 1000    ## subjects
-loopn <-3   ## number of runs
+N <- 1500    ## subjects
+loopn <-50   ## number of runs
 #N <- 10000 ## subjects
 #loopn <-500   ## number of runs
 
@@ -395,27 +395,27 @@ if(SigmaType==0){
 }
 Sigma
 
-# fixed_factor,		    delta_marginal 		  ystar_thre_free  	<-	"ff_dm_yt"
-# fixed_factor,		    delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym"
-# fixed_factor, 		  theta_conditional	  ystar_thre_free 	<- 	"ff_tc_yt"
-# fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym"
+# 1  fixed_factor,		  delta_marginal 		  ystar_thre_free  	<-	"ff_dm_yt"
+# 2  fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym"
+# 3  fixed_factor, 		  theta_conditional	  ystar_thre_free 	<- 	"ff_tc_yt"
+# 4  fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym"
 
-# indicator_marker, 	delta_marginal 		  ystar_thre_free 	<- 	"im_dm_yt"
-# indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym"
-# indicator_marker, 	theta_conditional 	ystar_thre_free 	<-  "im_tc_yt"
-# indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym"
+# 5  indicator_marker, 	delta_marginal 		  ystar_thre_free 	<- 	"im_dm_yt"
+# 6  indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym"
+# 7  indicator_marker, 	theta_conditional 	ystar_thre_free 	<-  "im_tc_yt"
+# 8  indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym"
 
-# indicator_effects, 	delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
-# indicator_effects, 	delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
-# indicator_effects, 	theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
-# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
+# 9  indicator_effects, delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
+# 10 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
+# 11 indicator_effects, theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
+# 12 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
 
-# fixed_factor,		    delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym_t0p5" threshold=0.5
-# fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym_t0p5" threshold=0.5
-# indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym_t0p5" threshold=0.5
-# indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym_t0p5" threshold=0.5
-# indicator_effects, 	delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym_t0p5" threshold=0.5
-# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
+# 13 fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym_t0p5" threshold=0.5
+# 14 fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym_t0p5" threshold=0.5
+# 15 indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym_t0p5" threshold=0.5
+# 16 indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym_t0p5" threshold=0.5
+# 17 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym_t0p5" threshold=0.5
+# 18 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
 
 working1 <- function(){}
 
@@ -567,29 +567,34 @@ est.param$b$mean
 
 
 
-# fixed_factor,		    delta_marginal 		  ystar_thre_free  	<-	"ff_dm_yt"
-# fixed_factor,		    delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym"
-# fixed_factor, 		  theta_conditional	  ystar_thre_free 	<- 	"ff_tc_yt"
-# fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym"
+# 1  fixed_factor,		  delta_marginal 		  ystar_thre_free  	<-	"ff_dm_yt"
+# 2  fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym"
+# 3  fixed_factor, 		  theta_conditional	  ystar_thre_free 	<- 	"ff_tc_yt"
+# 4  fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym"
 
-# indicator_marker, 	delta_marginal 		  ystar_thre_free 	<- 	"im_dm_yt"
-# indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym"
-# indicator_marker, 	theta_conditional 	ystar_thre_free 	<-  "im_tc_yt"
-# indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym"
+# 5  indicator_marker, 	delta_marginal 		  ystar_thre_free 	<- 	"im_dm_yt"
+# 6  indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym"
+# 7  indicator_marker, 	theta_conditional 	ystar_thre_free 	<-  "im_tc_yt"
+# 8  indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym"
 
-# indicator_effects, 	delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
-# indicator_effects, 	delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
-# indicator_effects, 	theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
-# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym" threshold=0.0
-# indicator_effects, 	theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
+# 9  indicator_effects, delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
+# 10 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
+# 11 indicator_effects, theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
+# 12 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
+
+# 13 fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym_t0p5" threshold=0.5
+# 14 fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym_t0p5" threshold=0.5
+# 15 indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym_t0p5" threshold=0.5
+# 16 indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym_t0p5" threshold=0.5
+# 17 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym_t0p5" threshold=0.5
+# 18 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
 
 working <- function(){}
 
 itemnames <- paste("item",1:I,"_",1,sep="")
 
-for(sim in 1:18){
-#for(sim in 12:13){
-#for(sim in 1:12){
+#for(sim in 1:18){
+for(sim in c(1:4,13:14)){
 
   switch (sim,
     {#1
@@ -722,6 +727,7 @@ for(sim in 1:18){
   )
 
   loop_tmp <- loop_tmp.init
+  #i<-1
   for(i in 1:loopn){
     #print every 10 iterations, if last tfi is bad. Check code.
     if(i%%10==0) {print(paste0("sim=",sim," param=",param_index," loopn=",i," last tfi = ",loop_tmp$fit$tli[i-1]," time = ",loop_tmp$fit$time[i-1]))} 
