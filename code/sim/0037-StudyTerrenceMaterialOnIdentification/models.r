@@ -1811,8 +1811,8 @@ mod.indicator_effects.delta_marginal.ystar_mean_free.threqu0p5 <- '
   eta1_1_var*l13_1^2 + var13_1 == 1
 '
 
-mod.indicator_effects.theta_conditional.ystar_mean_free <- function(){}
-mod.indicator_effects.theta_conditional.ystar_mean_free <- '
+mod.indicator_effects.theta_conditional.ystar_mean_free.threqu0p5 <- function(){}
+mod.indicator_effects.theta_conditional.ystar_mean_free.threqu0p5 <- '
 
 
   eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*item6_1+l7_1*item7_1+l8_1*item8_1+l9_1*item9_1+l10_1*item10_1+l11_1*item11_1+l12_1*item12_1+l13_1*item13_1
