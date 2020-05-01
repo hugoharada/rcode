@@ -80,7 +80,7 @@ get_delta_time<-function(start_time){
 #' @export
 #'
 #' @examples
-irt_param_calc2 <- function(lambda, nu, tau, mu, psi,alpha){
+irt_param_calc2 <- function(lambda, nu, tau, psi,alpha){
   
   a <- lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)
   d <- (nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)
@@ -89,7 +89,7 @@ irt_param_calc2 <- function(lambda, nu, tau, mu, psi,alpha){
   
 }
 
-irt_param_calc <- function(lambda, nu, tau, mu, alpha,psi,parameterization){
+irt_param_calc <- function(lambda, nu, tau, alpha,psi,parameterization){
   
   a <- switch(parameterization,
     ff_dm = {lambda*1.7/sqrt(1-lambda^2)},
@@ -471,7 +471,7 @@ working <- function(){}
 
 itemnames <- paste("item",1:I,"_",1,sep="")
 
-sim <- 13
+sim <- 12
     
 switch (sim,
   {#1
