@@ -1922,7 +1922,8 @@ mod.indicator_marker.theta_conditional.ystar_mean_free.threqu0p5 <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+  int4_1==0
   
 
     ## thresholds link  LRVs to observed items
@@ -2009,7 +2010,8 @@ mod.indicator_marker.delta_marginal.ystar_mean_free.threqu0p5 <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+  int4_1==0
     
 
     ## thresholds link  LRVs to observed items
