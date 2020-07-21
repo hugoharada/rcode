@@ -24,15 +24,40 @@ scoring<-function(data_matrix, key_vector ){
 }
 
 calc_stats <-function(scored_data){
-  scores <- rowSums(scored)
+  scores <- rowSums(scored_data)
   return(list(
-    nPerson = nrow(scored),
-    nItem = ncol(scored),
+    scores = scores,
+    nPerson = nrow(scored_data),
+    nItem = ncol(scored_data),
     scaleMean = mean(scores),
     scaleSD = sd(scores),
-    itemMean = colSums(scored)/nrow(scored)
+    itemMean = colSums(scored_data)/nrow(scored_data)
   ))
 }
+
+create_ctt_score_struct <- function(data_matrix, key_vector){
+  scored_data = scoring(data_matrix, key_vector)
+  score = rowSums(scored_data)
+  return(
+    list(
+      scored = scored_data,
+      score = score,
+      reliability = list(
+        nPerson = nrow(scored_data),
+        nItem = ncol(scored_data),
+        scaleMean = mean(score),
+        scaleSD = sd(score),
+        itemMean = colSums(scored_data)/nrow(scored_data)
+      )
+    )
+    
+  )
+}
+
+list(
+  a = 1,
+  b = list (c =3,d =6)
+)
 
 
 scoring_vector(key_vector=key, answer_vector=answer[3,])
