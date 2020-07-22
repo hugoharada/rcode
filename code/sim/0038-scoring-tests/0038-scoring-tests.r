@@ -128,16 +128,16 @@ bis_calc_vector <- function(scored_vector, scores_vector, ifDeleted=TRUE){
   sd_bias <- sd(scores_vector_tmp)*sqrt((n-1)/n) # using biased sd
   return((m1-m)/sd_bias*(n1/n)/dnorm(n1/n)) #biserial
 }
-bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
-if(!require(CTT)) install.packages("CTT"); library(CTT)
-x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
-x$reliability$bis[3] #closebut not exact... 
+# bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
+# if(!require(CTT)) install.packages("CTT"); library(CTT)
+# x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+# x$reliability$bis[3] #closebut not exact... 
 
 bis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
   
   return(apply(scored_matrix,MARGIN = 2,FUN=bis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
 }
-bis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
+# bis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
 
 
 
