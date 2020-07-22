@@ -68,6 +68,80 @@ scored<-scoring(data_matrix = answer, key_vector = key)
 scores <- rowSums(scored)
 calc_stats(scored)
 
+
+#pbis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
+#if(!require(CTT)) install.packages("CTT"); library(CTT)
+#x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+#x$reliability$pBis
+#pbis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = FALSE)
+#if(!require(PerFit)) install.packages("PerFit"); library(PerFit)
+#PerFit::r.pbis(t(scored))
+pbis_calc_vector <- function(scored_vector, scores_vector, ifDeleted=TRUE){
+
+  true_vector_1 <- (scored_vector == 1)
+  true_vector_0 <- (scored_vector == 0)
+  n1 <- sum(true_vector_1)
+  n0 <- sum(true_vector_0)
+  if(ifDeleted){
+    scores_vector_tmp = scores_vector-scored_vector
+  }else{
+    scores_vector_tmp = scores_vector
+  }
+  m1 <- mean(scores_vector_tmp[true_vector_1])
+  m0 <- mean(scores_vector_tmp[true_vector_0])
+  m <- mean(scores_vector_tmp)
+  n <- n1+n0
+  sd_bias <- sd(scores_vector_tmp)*sqrt((n-1)/n) # using biased sd
+  return((m1-m)/sd_bias*sqrt(n1/n0))
+}
+
+
+
+# pbis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
+# if(!require(CTT)) install.packages("CTT"); library(CTT)
+# x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+# x$reliability$pBis
+# pbis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = FALSE)
+# if(!require(PerFit)) install.packages("PerFit"); library(PerFit)
+# PerFit::r.pbis(t(scored))
+pbis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
+  
+  return(apply(scored_matrix,MARGIN = 2,FUN=pbis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
+}
+
+
+#bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
+bis_calc_vector <- function(scored_vector, scores_vector, ifDeleted=TRUE){
+  
+  true_vector_1 <- (scored_vector == 1)
+  true_vector_0 <- (scored_vector == 0)
+  n1 <- sum(true_vector_1)
+  n0 <- sum(true_vector_0)
+  if(ifDeleted){
+    scores_vector_tmp = scores_vector-scored_vector
+  }else{
+    scores_vector_tmp = scores_vector
+  }
+  m1 <- mean(scores_vector_tmp[true_vector_1])
+  m <- mean(scores_vector_tmp)
+  n <- n1+n0
+  sd_bias <- sd(scores_vector_tmp)*sqrt((n-1)/n) # using biased sd
+  return((m1-m)/sd_bias*(n1/n)/dnorm(n1/n)) #biserial
+}
+bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
+if(!require(CTT)) install.packages("CTT"); library(CTT)
+x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+x$reliability$bis[3] #closebut not exact... 
+
+bis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
+  
+  return(apply(scored_matrix,MARGIN = 2,FUN=bis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
+}
+bis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
+
+
+
+#leaving here as it shows equivalent formulas for pbis when ifDeleted = FALSE
 n1 <- sum(scored[,3]==1)
 n0 <- sum(scored[,3]==0)
 m1 <- mean(scores[scored[,3]==1])
@@ -79,14 +153,14 @@ sd_unbias <- sd(scores)
 (m1-m)/sd_bias*sqrt(n1/n0)       #point biserial - using biased sd
 (m1-m0)/sd_bias*sqrt(n1*n0/n^2) #point biserial  - using biased sd
 (m1-m0)/sd_unbias*sqrt(n1*n0/n/(n-1)) #point biserial - using unbiased sd
-
 (m1-m)/sd*sqrt(n1/n/dnorm(n1/n)) #biserial
 
 
+
+#leaving here as it shows equivalent formulas for pbis when ifDeleted = TRUE
 n1 <- sum(scored[,3]==1)
 n0 <- sum(scored[,3]==0)
 scores_tmp <- scores-scored[,3]
-
 m1 <- mean(scores_tmp[scored[,3]==1])
 m0 <- mean(scores_tmp[scored[,3]==0])
 m <- mean(scores_tmp)
@@ -96,15 +170,5 @@ sd_unbias <- sd(scores_tmp)
 (m1-m)/sd_bias*sqrt(n1/n0)       #point biserial - using biased sd
 (m1-m0)/sd_bias*sqrt(n1*n0/n^2) #point biserial  - using biased sd
 (m1-m0)/sd_unbias*sqrt(n1*n0/n/(n-1)) #point biserial - using unbiased sd
+(m1-m)/sd_bias*(n1/n)/dnorm(n1/n) #biserial
 
-(m1-m)/sd*sqrt(n1/n/dnorm(n1/n)) #biserial
-
-
-
-
-if(!require(PerFit)) install.packages("PerFit"); library(PerFit)
-PerFit::r.pbis(t(scored))
-if(!require(CTT)) install.packages("CTT"); library(CTT)
-
-x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
-str(x)
