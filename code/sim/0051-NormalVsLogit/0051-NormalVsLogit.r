@@ -26,7 +26,7 @@ head(data)
 str(data)
 data$x <- as.numeric(as.character(data$x))
 data$p <- as.numeric(as.character(data$p))
-ggplot(data, aes(x=x,y=p,colours=dist))+geom_line()+geom_vline(xintercept =  1)
+ggplot(data,aes(x=x,y=p,group=dist))+geom_line(aes(linetype=dist))+geom_vline(xintercept =  1)
 
 xnorm <- runif(N,-3, 5)
 pxnorm <-pnorm(xnorm,mean = 1, sd=1)
@@ -41,6 +41,6 @@ head(data)
 str(data)
 data$x <- as.numeric(as.character(data$x))
 data$p <- as.numeric(as.character(data$p))
-ggplot(data, aes(x=x,y=p,colours=dist))+geom_line()+geom_vline(xintercept =  1)
+ggplot(data,aes(x=x,y=p,group=dist))+geom_line(aes(linetype=dist))+geom_vline(xintercept =  1)
 
 
