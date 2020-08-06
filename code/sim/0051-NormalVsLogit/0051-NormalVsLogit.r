@@ -13,7 +13,7 @@ head(lavPredict(fit))
 head(lavPredict(fit, type = "ov"))
 
 N<-1000
-xnorm <- rnorm(N,mean = 1, sd=1)
+xnorm <- runif(N,-3, 5)
 pxnorm <-pnorm(xnorm,mean = 1, sd=1)
 pxlogis <- plogis(xnorm,location = 1, scale=1)
 
@@ -28,9 +28,9 @@ data$x <- as.numeric(as.character(data$x))
 data$p <- as.numeric(as.character(data$p))
 ggplot(data, aes(x=x,y=p,colours=dist))+geom_line()+geom_vline(xintercept =  1)
 
-xnorm <- rnorm(N,mean = 1, sd=1)
-pxnorm <-pnorm(xnorm,mean = 1, sd=1.702)
-pxlogis <- plogis(xnorm,location = 1, scale=1)
+xnorm <- runif(N,-3, 5)
+pxnorm <-pnorm(xnorm,mean = 1, sd=1)
+pxlogis <- plogis(xnorm,location = 1, scale=1/1.702)
 
 data <- data.frame(rbind(
   cbind(xnorm,pxnorm,rep("normal",N)),
@@ -41,6 +41,6 @@ head(data)
 str(data)
 data$x <- as.numeric(as.character(data$x))
 data$p <- as.numeric(as.character(data$p))
-ggplot(data, aes(x=x,y=p,colours=dist))+geom_line()
+ggplot(data, aes(x=x,y=p,colours=dist))+geom_line()+geom_vline(xintercept =  1)
 
 
