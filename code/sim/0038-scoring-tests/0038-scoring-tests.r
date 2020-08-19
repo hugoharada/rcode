@@ -152,7 +152,6 @@ bis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
 # bis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
 
 
-
 calc_stats <-function(scored_data,na.rm=TRUE){
   score <- rowSums(scored_data,na.rm=na.rm)
   n_applied_items <- apply(scored_data, MARGIN = 2, FUN = function(x){sum((x==0)|(x==1),na.rm=na.rm)})
@@ -176,7 +175,8 @@ create_ctt_score_struct <- function(data_matrix,
                                     OMITTED_CHAR= '_',
                                     INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
                                     OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
-                                    na.rm=TRUE
+                                    na.rm=TRUE,
+                                    ifDeleted=TRUE
 ){
   scored_data = scoring(data_matrix = data_matrix, 
                         key_vector=key_vector,
@@ -196,7 +196,8 @@ create_ctt_score_struct <- function(data_matrix,
         nItem = ncol(scored_data),
         scaleMean = mean(score,na.rm=na.rm),
         scaleSD = sd(score,na.rm=na.rm),
-        itemMean = colSums(scored_data,na.rm=na.rm)/n_applied_items
+        itemMean = colSums(scored_data,na.rm=na.rm)/n_applied_items,
+        pbis = pbis_calc(scored_matrix=scored_data, scores_vector = score,ifDeleted = ifDeleted)
       )
     )
     
@@ -358,30 +359,41 @@ library(ggplot2)
 data1 <-cbind(data,group)
 colnames(data1) <-c(1:15, "group")
 
-data2 <- data.frame(data1) %>% 
-  tidyr::gather("item","label",1:15) %>% 
-  dplyr::group_by(item,group,label) %>% 
-  dplyr::summarise(n=n())
-
-data2 <- data.frame(data1) %>% 
-  tidyr::gather("item","label",c(1:15)) %>% 
-  dplyr::group_by(item,group,label) %>% 
+data_distractor_analyses_gn <- data.frame(data1) %>% 
+  tidyr::gather("Item","Distratores",c(1:15)) %>% 
+  dplyr::group_by(Item,group,Distratores) %>% 
   dplyr::summarise(n=n()) %>%
-  dplyr::group_by(item,group,) %>%
-  mutate(Percentage=n/sum(n)*100)
+  dplyr::group_by(Item,group,) %>%
+  mutate(Percentagem=n/sum(n)*100)
+
+data_distractor_analyses_g1 <- data.frame(data1) %>% 
+  tidyr::gather("Item","Distratores",1:15) %>% 
+  dplyr::group_by(Item,Distratores) %>% 
+  dplyr::summarise(NumRespostas=n()) %>%
+  dplyr::group_by(Item) %>%
+  mutate(Percentagem=NumRespostas/sum(NumRespostas)*100) %>%
+  mutate(PercentagemChar=sprintf("%.2f%%",Percentagem))
+  
+
 
 item_index <-2
 
-item_data <- data2 %>% filter(item == paste0('X',item_index))
+item_data <- data_distractor_analyses_gn %>% filter(Item == paste0('X',item_index))
 
-ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentage,group=label))+
-  geom_line(aes(colour=label))+
-  geom_point(aes(shape=label,colour=label),size=3)+
-  scale_y_continuous(name="P", breaks=seq(0,100,10)) +
+ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentagem,group=Distratores))+
+  geom_line(aes(colour=Distratores))+
+  geom_point(aes(shape=Distratores,colour=Distratores),size=3)+
+  scale_y_continuous(name="Percentagem", breaks=seq(0,100,10)) +
   scale_x_discrete(name = "Grupos", breaks = c(1:nGroups), labels=c(paste("g",1:nGroups,sep="")))
 
+item_data <- data_distractor_analyses_g1 %>% filter(Item == paste0('X',item_index))
 
-
+ggplot(data =data.frame(item_data),aes(x= Distratores, y=NumRespostas, label=PercentagemChar)) +
+  geom_bar(stat = "identity", width = 0.5)+
+  scale_x_discrete(name = "Distratores", breaks = pull( item_data,'Distratores'), labels = pull( item_data,'Distratores'))+
+  #scale_x_discrete(limits=item_data[,'Distratores'])+
+  geom_text(color ="white",position = position_stack(vjust = 0.5),size=3)+ theme_bw(base_size = 12)+
+  xlab("Distratores")+ylab("Número de respondentes")
 
 
 create_ctt_score_struct(data_matrix = answer, key_vector = key, valid_vector =  rep(TRUE,length(key)))
