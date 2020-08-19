@@ -10,8 +10,6 @@ OMITTED_CHAR <- '_'
 INVALID_SCORE <- NA # NA, 0 OR 1. DEFAULT IS NA.
 OMITTED_SCORE <- 0 # O OR NA. DEFAULT IS 0.
 
-
-
 answer <- rbind(c("A","B","C","D","E","A","B","C","D","E"), #1 no mistake 1
                 c("A","B","D","D","E","A","B","C","D","E"), #2 one mistake 
                 c("A","C","C","D","E","A","C","C","E","E"), #3 three mistakes
@@ -37,6 +35,10 @@ ifelse(valid_09_10,
               ifelse(answer[2,]==OMITTED_CHAR,OMITTED_SCORE,
                      ifelse(key==answer[2,],1,0))),
        INVALID_SCORE) #line vs line ok
+
+
+
+
 
 scoring_vector<-function(answer_vector,
                              key_vector,
@@ -77,6 +79,130 @@ scoring<-function(data_matrix,
   ))
   return(scored)
 }
+
+
+#pbis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
+#if(!require(CTT)) install.packages("CTT"); library(CTT)
+#x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+#x$reliability$pBis
+#pbis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = FALSE)
+#if(!require(PerFit)) install.packages("PerFit"); library(PerFit)
+#PerFit::r.pbis(t(scored))
+pbis_calc_vector <- function(scored_vector, scores_vector, na.rm = TRUE, ifDeleted=TRUE){
+  
+  true_vector_1 <- (scored_vector == 1)
+  true_vector_0 <- (scored_vector == 0)
+  n1 <- sum(true_vector_1,na.rm = na.rm)
+  n0 <- sum(true_vector_0,na.rm = na.rm)
+  if(ifDeleted){
+    scores_vector_tmp = scores_vector-scored_vector
+  }else{
+    scores_vector_tmp = scores_vector
+  }
+  m1 <- mean(scores_vector_tmp[true_vector_1],na.rm = na.rm)
+  m0 <- mean(scores_vector_tmp[true_vector_0],na.rm = na.rm)
+  m <- mean(scores_vector_tmp,na.rm = na.rm)
+  n <- n1+n0
+  sd_bias <- sd(scores_vector_tmp,na.rm = na.rm)*sqrt((n-1)/n) # using biased sd
+  return((m1-m)/sd_bias*sqrt(n1/n0))
+}
+
+
+
+# pbis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
+# if(!require(CTT)) install.packages("CTT"); library(CTT)
+# x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+# x$reliability$pBis
+# pbis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = FALSE)
+# if(!require(PerFit)) install.packages("PerFit"); library(PerFit)
+# PerFit::r.pbis(t(scored))
+pbis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
+  
+  return(apply(scored_matrix,MARGIN = 2,FUN=pbis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
+}
+
+
+#bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
+bis_calc_vector <- function(scored_vector, scores_vector, ifDeleted=TRUE){
+  
+  true_vector_1 <- (scored_vector == 1)
+  true_vector_0 <- (scored_vector == 0)
+  n1 <- sum(true_vector_1)
+  n0 <- sum(true_vector_0)
+  if(ifDeleted){
+    scores_vector_tmp = scores_vector-scored_vector
+  }else{
+    scores_vector_tmp = scores_vector
+  }
+  m1 <- mean(scores_vector_tmp[true_vector_1])
+  m <- mean(scores_vector_tmp)
+  n <- n1+n0
+  sd_bias <- sd(scores_vector_tmp)*sqrt((n-1)/n) # using biased sd
+  return((m1-m)/sd_bias*(n1/n)/dnorm(n1/n)) #biserial
+}
+# bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
+# if(!require(CTT)) install.packages("CTT"); library(CTT)
+# x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+# x$reliability$bis[3] #closebut not exact... 
+
+bis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
+  
+  return(apply(scored_matrix,MARGIN = 2,FUN=bis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
+}
+# bis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
+
+
+
+calc_stats <-function(scored_data,na.rm=TRUE){
+  score <- rowSums(scored_data,na.rm=na.rm)
+  n_applied_items <- apply(scored_data, MARGIN = 2, FUN = function(x){sum((x==0)|(x==1),na.rm=na.rm)})
+  return(list(
+    scores = score,
+    nPerson = nrow(scored_data),
+    nItem = ncol(scored_data),
+    scaleMean = mean(score,na.rm=na.rm),
+    scaleSD = sd(score,na.rm=na.rm),
+    itemMean = colSums(scored_data,na.rm=na.rm)/n_applied_items
+  ))
+}
+
+calc_stats(scored)
+
+
+create_ctt_score_struct <- function(data_matrix, 
+                                    key_vector,
+                                    valid_vector,
+                                    NOT_APPLIED_CHAR= '9',
+                                    OMITTED_CHAR= '_',
+                                    INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
+                                    OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
+                                    na.rm=TRUE
+){
+  scored_data = scoring(data_matrix = data_matrix, 
+                        key_vector=key_vector,
+                        valid_vector=valid_vector,
+                        NOT_APPLIED_CHAR= NOT_APPLIED_CHAR,
+                        OMITTED_CHAR= OMITTED_CHAR,
+                        INVALID_SCORE = INVALID_SCORE, 
+                        OMITTED_SCORE = OMITTED_SCORE)
+  score = rowSums(scored_data,na.rm = na.rm)
+  n_applied_items <- apply(scored_data, MARGIN = 2, FUN = function(x){sum((x==0)|(x==1),na.rm=na.rm)})
+  return(
+    list(
+      scored = scored_data,
+      score = score,
+      reliability = list(
+        nPerson = nrow(scored_data),
+        nItem = ncol(scored_data),
+        scaleMean = mean(score,na.rm=na.rm),
+        scaleSD = sd(score,na.rm=na.rm),
+        itemMean = colSums(scored_data,na.rm=na.rm)/n_applied_items
+      )
+    )
+    
+  )
+}
+
 
 scored <- scoring(data_matrix = answer, 
         key_vector = key,
@@ -144,6 +270,9 @@ scoring_vector(answer_vector = answer[5,],
                    OMITTED_SCORE = 0 # O OR NA. DEFAULT IS 0.
 )[3] #NA expected
 
+
+
+
 working<-function( ){}
 
 #omitted tests
@@ -201,134 +330,78 @@ scoring1<-function(data_matrix, key_vector ){
   return(scored)
 }
 
-calc_stats <-function(scored_data,na.rm=TRUE){
-  score <- rowSums(scored_data,na.rm=na.rm)
-  n_applied_items <- apply(scored_data, MARGIN = 2, FUN = function(x){sum((x==0)|(x==1),na.rm=na.rm)})
-  return(list(
-    scores = score,
-    nPerson = nrow(scored_data),
-    nItem = ncol(scored_data),
-    scaleMean = mean(score,na.rm=na.rm),
-    scaleSD = sd(score,na.rm=na.rm),
-    n_applied_items,
-    itemMean = colSums(scored_data,na.rm=na.rm)/n_applied_items
-  ))
-}
-
-calc_stats(scored)
-
-
-create_ctt_score_struct <- function(data_matrix, 
-                                    key_vector,
-                                    valid_vector,
-                                    NOT_APPLIED_CHAR= '9',
-                                    OMITTED_CHAR= '_',
-                                    INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
-                                    OMITTED_SCORE = 0 # O OR NA. DEFAULT IS 0.
-                                    ){
-  scored_data = scoring(data_matrix = data_matrix, 
-                        key_vector=key_vector,
-                        valid_vector=valid_vector,
-                        NOT_APPLIED_CHAR= NOT_APPLIED_CHAR,
-                        OMITTED_CHAR= OMITTED_CHAR,
-                        INVALID_SCORE = INVALID_SCORE, 
-                        OMITTED_SCORE = OMITTED_SCORE)
-  score = rowSums(scored_data)
-  return(
-    list(
-      scored = scored_data,
-      score = score,
-      reliability = list(
-        nPerson = nrow(scored_data),
-        nItem = ncol(scored_data),
-        scaleMean = mean(score),
-        scaleSD = sd(score),
-        itemMean = colSums(scored_data)/nrow(scored_data)
-      )
-    )
-    
-  )
-}
 
 scoring_vector(key_vector=key, answer_vector=answer[3,],valid_vector = valid_10_10)
 
 t(apply(X=answer, MARGIN = 1,FUN=scoring_vector, key_vector = key))
 
-scored<-scoring(data_matrix = answer, key_vector = key)
-scores <- rowSums(scored)
+scored <-scoring(data_matrix = answer, key_vector = key, valid_vector = valid_10_10)
+scores <- rowSums(scored,na.rm = TRUE)
 
 calc_stats(scored)
-
-
-#pbis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
-#if(!require(CTT)) install.packages("CTT"); library(CTT)
-#x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
-#x$reliability$pBis
-#pbis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = FALSE)
-#if(!require(PerFit)) install.packages("PerFit"); library(PerFit)
-#PerFit::r.pbis(t(scored))
-pbis_calc_vector <- function(scored_vector, scores_vector, na.rm = TRUE, ifDeleted=TRUE){
-
-  true_vector_1 <- (scored_vector == 1)
-  true_vector_0 <- (scored_vector == 0)
-  n1 <- sum(true_vector_1,na.rm = na.rm)
-  n0 <- sum(true_vector_0,na.rm = na.rm)
-  if(ifDeleted){
-    scores_vector_tmp = scores_vector-scored_vector
-  }else{
-    scores_vector_tmp = scores_vector
-  }
-  m1 <- mean(scores_vector_tmp[true_vector_1],na.rm = na.rm)
-  m0 <- mean(scores_vector_tmp[true_vector_0],na.rm = na.rm)
-  m <- mean(scores_vector_tmp,na.rm = na.rm)
-  n <- n1+n0
-  sd_bias <- sd(scores_vector_tmp,na.rm = na.rm)*sqrt((n-1)/n) # using biased sd
-  return((m1-m)/sd_bias*sqrt(n1/n0))
-}
+create_ctt_score_struct(data_matrix = answer, key_vector = key, valid_vector = valid_10_10)
 
 
 
-# pbis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
-# if(!require(CTT)) install.packages("CTT"); library(CTT)
-# x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
-# x$reliability$pBis
-# pbis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = FALSE)
-# if(!require(PerFit)) install.packages("PerFit"); library(PerFit)
-# PerFit::r.pbis(t(scored))
-pbis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
-  
-  return(apply(scored_matrix,MARGIN = 2,FUN=pbis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
-}
+set.seed(10)
+answer <- matrix(data = sample(c('A','B','C','D','E',"_"),size=15*1000, replace = TRUE,prob =c(rep(0.98/5,5),0.02)),
+                 nrow = 1000, ncol =15, byrow = TRUE)
+key <- data[1,]
+
+scored <-scoring(data_matrix = answer, key_vector = key, valid_vector = rep(TRUE,length(key)))
+scores <- rowSums(scored,na.rm = TRUE)
+group <- ntile(n=3,scores)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+data1 <-cbind(data,group)
+colnames(data1) <-c(1:15, "group")
+
+data2 <- data.frame(data1) %>% 
+  tidyr::gather("item","label",1:15) %>% 
+  dplyr::group_by(item,group,label) %>% 
+  dplyr::summarise(n=n())
+
+data2 <- data.frame(data1) %>% 
+  tidyr::gather("item","label",c(1:15)) %>% 
+  dplyr::group_by(item,group,label) %>% 
+  dplyr::summarise(n=n()) %>%
+  dplyr::group_by(item,group,) %>%
+  mutate(Percentage=n/sum(n)*100)
+
+item_index <-2
+
+item_data <- data2 %>% filter(item == paste0('X',item_index))
+
+ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentage,group=label))+
+  geom_line(aes(colour=label))+
+  geom_point(aes(shape=label,colour=label),size=3)+
+  scale_y_continuous(name="P", breaks=seq(0,100,10)) +
+  scale_x_discrete(name = "Grupos", breaks = c(1:nGroups), labels=c(paste("g",1:nGroups,sep="")))
 
 
-#bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
-bis_calc_vector <- function(scored_vector, scores_vector, ifDeleted=TRUE){
-  
-  true_vector_1 <- (scored_vector == 1)
-  true_vector_0 <- (scored_vector == 0)
-  n1 <- sum(true_vector_1)
-  n0 <- sum(true_vector_0)
-  if(ifDeleted){
-    scores_vector_tmp = scores_vector-scored_vector
-  }else{
-    scores_vector_tmp = scores_vector
-  }
-  m1 <- mean(scores_vector_tmp[true_vector_1])
-  m <- mean(scores_vector_tmp)
-  n <- n1+n0
-  sd_bias <- sd(scores_vector_tmp)*sqrt((n-1)/n) # using biased sd
-  return((m1-m)/sd_bias*(n1/n)/dnorm(n1/n)) #biserial
-}
-# bis_calc_vector(scored_vector =scored[,3], scores,ifDeleted = TRUE)
-# if(!require(CTT)) install.packages("CTT"); library(CTT)
-# x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
-# x$reliability$bis[3] #closebut not exact... 
 
-bis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
-  
-  return(apply(scored_matrix,MARGIN = 2,FUN=bis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
-}
-# bis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
+
+
+create_ctt_score_struct(data_matrix = answer, key_vector = key, valid_vector =  rep(TRUE,length(key)))
+
+
+head(data)
+table(data[,1])
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
