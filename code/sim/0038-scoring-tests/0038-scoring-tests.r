@@ -153,14 +153,14 @@ bis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
 
 
 calc_stats <-function(scored_data,na.rm=TRUE){
-  score <- rowSums(scored_data,na.rm=na.rm)
+  scores <- rowSums(scored_data,na.rm=na.rm)
   n_applied_items <- apply(scored_data, MARGIN = 2, FUN = function(x){sum((x==0)|(x==1),na.rm=na.rm)})
   return(list(
-    scores = score,
+    scores = scores,
     nPerson = nrow(scored_data),
     nItem = ncol(scored_data),
-    scaleMean = mean(score,na.rm=na.rm),
-    scaleSD = sd(score,na.rm=na.rm),
+    scaleMean = mean(scores,na.rm=na.rm),
+    scaleSD = sd(scores,na.rm=na.rm),
     itemMean = colSums(scored_data,na.rm=na.rm)/n_applied_items
   ))
 }
@@ -185,19 +185,20 @@ create_ctt_score_struct <- function(data_matrix,
                         OMITTED_CHAR= OMITTED_CHAR,
                         INVALID_SCORE = INVALID_SCORE, 
                         OMITTED_SCORE = OMITTED_SCORE)
-  score = rowSums(scored_data,na.rm = na.rm)
+  scores = rowSums(scored_data,na.rm = na.rm)
   n_applied_items <- apply(scored_data, MARGIN = 2, FUN = function(x){sum((x==0)|(x==1),na.rm=na.rm)})
   return(
     list(
       scored = scored_data,
-      score = score,
+      scores = scores,
+      key = key_vector,
       reliability = list(
         nPerson = nrow(scored_data),
         nItem = ncol(scored_data),
-        scaleMean = mean(score,na.rm=na.rm),
-        scaleSD = sd(score,na.rm=na.rm),
+        scaleMean = mean(scores,na.rm=na.rm),
+        scaleSD = sd(scores,na.rm=na.rm),
         itemMean = colSums(scored_data,na.rm=na.rm)/n_applied_items,
-        pbis = pbis_calc(scored_matrix=scored_data, scores_vector = score,ifDeleted = ifDeleted)
+        pbis = pbis_calc(scored_matrix=scored_data, scores_vector = scores,ifDeleted = ifDeleted)
       )
     )
     
@@ -340,14 +341,16 @@ scored <-scoring(data_matrix = answer, key_vector = key, valid_vector = valid_10
 scores <- rowSums(scored,na.rm = TRUE)
 
 calc_stats(scored)
-create_ctt_score_struct(data_matrix = answer, key_vector = key, valid_vector = valid_10_10)
+create_ctt_score_struct(data_matrix = answer, 
+                        key_vector = key, 
+                        valid_vector = valid_10_10)
 
 
 
 set.seed(10)
 answer <- matrix(data = sample(c('A','B','C','D','E',"_"),size=15*1000, replace = TRUE,prob =c(rep(0.98/5,5),0.02)),
                  nrow = 1000, ncol =15, byrow = TRUE)
-key <- data[1,]
+key <- answer[1,]
 
 scored <-scoring(data_matrix = answer, key_vector = key, valid_vector = rep(TRUE,length(key)))
 scores <- rowSums(scored,na.rm = TRUE)
@@ -355,6 +358,8 @@ group <- ntile(n=3,scores)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+
+
 
 data1 <-cbind(data,group)
 colnames(data1) <-c(1:15, "group")
@@ -375,25 +380,200 @@ data_distractor_analyses_g1 <- data.frame(data1) %>%
   mutate(PercentagemChar=sprintf("%.2f%%",Percentagem))
   
 
+#' Title
+#'
+#' @param data_matrix - Matrix containing user responses. 
+#' @param key_vector  - Key vector. 
+#' @param n_groups    - Number of groups into which the respondents are divided. 
+#'                      n_groups should be 1 if there are few respondents (N < 90).
+#'                      When n_groups=1, a bar chart is generated.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+distractor_analysis_data_gen <- function(data_matrix, 
+                                     key_vector,
+                                     valid_vector,
+                                     NOT_APPLIED_CHAR= '9',
+                                     OMITTED_CHAR= '_',
+                                     INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
+                                     OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
+                                     na.rm=TRUE,
+                                     ifDeleted=TRUE,
+                                     n_groups){
+
+  
+  tmp <- create_ctt_score_struct(data_matrix, 
+                                        key_vector,
+                                        valid_vector,
+                                        NOT_APPLIED_CHAR= '9',
+                                        OMITTED_CHAR= '_',
+                                        INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
+                                        OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
+                                        na.rm=TRUE,
+                                        ifDeleted=TRUE)
+      
+  
+  group <- dplyr::ntile(n=n_groups,scores)
+  
+  data <- cbind(data_matrix,group)
+  colnames(data)<- c(1:ncol(data_matrix),"group")
+  
+  if(n_groups == 1 ){
+    data_distractor_analyses <- data.frame(data) %>% 
+      tidyr::gather("Item","Distratores",c(1:ncol(data_matrix)) )  %>% 
+      dplyr::group_by(Item,Distratores) %>% 
+      dplyr::summarise(NumRespostas=n()) %>%
+      dplyr::group_by(Item) %>%
+      mutate(Percentagem=NumRespostas/sum(NumRespostas)*100) %>%
+      mutate(PercentagemChar=sprintf("%.2f%%",Percentagem))
+  }else{
+    data_distractor_analyses <- data.frame(data) %>% 
+      tidyr::gather("Item","Distratores",c(1:ncol(data_matrix))) %>% 
+      dplyr::group_by(Item,group,Distratores) %>% 
+      dplyr::summarise(n=n()) %>%
+      dplyr::group_by(Item,group,) %>%
+      mutate(Percentagem=n/sum(n)*100)
+    
+  }
+  
+  return(
+    list(ctt_stats = tmp,
+         distractor_analysis=data_distractor_analyses,
+         n_groups =n_groups)
+  )
+} # distractor_analysis_data_gen
+
+
+plot_item_distractor_analysis <- function(distractor_analysis_data_struct,
+                                          item_index){
+  item_data <- distractor_analysis_data_struct$distractor_analysis %>% 
+    filter(Item == paste0('X',item_index))
+  
+  p <- distractor_analysis_data_struct$ctt_stats$reliability$itemMean[item_index]
+  pbis <- distractor_analysis_data_struct$ctt_stats$reliability$pbis[item_index]
+  key <- distractor_analysis_data_struct$ctt_stats$key
+  n <- distractor_analysis_data_struct$ctt_stats$reliability$nPerson
+  
+  title <- paste0("Item ", item_index,": ")
+  if(!is.null(p)){ title <- paste0(title,"p = ",p,". ")}
+  if(!is.null(pbis)){ title <- paste0(title,"pbis = ",pbis,".")}
+  if(!is.null(key)){ title <- paste0(title,"\nGabarito = ",key,". ")}
+  if(!is.null(n)){ title <- paste0(title,"N = ",n,". ")}
+  
+  if(distractor_analysis_data_struct$n_groups ==1 ){
+    ggplot2::ggplot(data =data.frame(item_data),aes(x= Distratores, y=NumRespostas, label=PercentagemChar)) +
+      geom_bar(stat = "identity", width = 0.5)+
+      scale_x_discrete(name = "Distratores", breaks = pull( item_data,'Distratores'), labels = pull( item_data,'Distratores'))+
+      #scale_x_discrete(limits=item_data[,'Distratores'])+
+      geom_text(color ="white",position = position_stack(vjust = 0.5),size=3)+ theme_bw(base_size = 12)+
+      labs(title=title, x = "Distratores", y="Número de respondentes")
+  }else{
+    ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentagem,group=Distratores))+
+      geom_line(aes(colour=Distratores))+
+      geom_point(aes(shape=Distratores,colour=Distratores),size=3)+
+      scale_y_continuous(name="Percentagem", breaks=seq(0,100,10)) +
+      scale_x_discrete(name = "Grupos", breaks = c(1:distractor_analysis_data_struct$n_groups), 
+                       labels=c(paste("g",1:distractor_analysis_data_struct$n_groups,sep="")))+
+      labs(title=title)
+  }
+}#plot_item_distractor_analysis
+
+
+
+distractor_analysis_data_struct1$distractor_analysis %>% 
+  filter(Item == paste0('X',item_index))
+
+distractor_analysis_data_struct1 <- distractor_analysis_data_gen(data_matrix = answer, 
+                             key_vector = key,
+                             valid_vector = rep(TRUE,length(key)),
+                             NOT_APPLIED_CHAR= '9',
+                             OMITTED_CHAR= '_',
+                             INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
+                             OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
+                             na.rm=TRUE,
+                             ifDeleted=TRUE,
+                             n_groups=3)
+  
+plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct1,
+                              item_index=2)
+
+
+
 
 item_index <-2
 
+item_data <- data_distractor_analyses %>% 
+  filter(Item == paste0('X',item_index))
+
+p <- tmp$reliability$itemMean[item_index]
+pbis <- tmp$reliability$pbis[item_index]
+key <- tmp$key
+n <- tmp$reliability$nPerson
+
+title <- paste0("Item ", item_index,": ")
+if(!is.null(p)){ title <- paste0(title,"p = ",p,". ")}
+if(!is.null(pbis)){ title <- paste0(title,"pbis = ",pbis,".")}
+if(!is.null(key)){ title <- paste0(title,"\nGabarito = ",key,". ")}
+if(!is.null(n)){ title <- paste0(title,"N = ",n,". ")}
+
+if(n_groups ==1 ){
+  ggplot2::ggplot(data =data.frame(item_data),aes(x= Distratores, y=NumRespostas, label=PercentagemChar)) +
+    geom_bar(stat = "identity", width = 0.5)+
+    scale_x_discrete(name = "Distratores", breaks = pull( item_data,'Distratores'), labels = pull( item_data,'Distratores'))+
+    #scale_x_discrete(limits=item_data[,'Distratores'])+
+    geom_text(color ="white",position = position_stack(vjust = 0.5),size=3)+ theme_bw(base_size = 12)+
+    labs(title=title, x = "Distratores", y="Número de respondentes")
+}else{
+  ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentagem,group=Distratores))+
+    geom_line(aes(colour=Distratores))+
+    geom_point(aes(shape=Distratores,colour=Distratores),size=3)+
+    scale_y_continuous(name="Percentagem", breaks=seq(0,100,10)) +
+    scale_x_discrete(name = "Grupos", breaks = c(1:nGroups), labels=c(paste("g",1:nGroups,sep="")))+
+    labs(title=title)
+}
+
+
+
+
+
 item_data <- data_distractor_analyses_gn %>% filter(Item == paste0('X',item_index))
+
+p <- "32%"
+pbis <- "0.32"
+key <- "A"
+n <- sum(item_data[,n])
+
+title <- paste0("Item ", item_index,": ")
+if(!is.null(p)){ title <- paste0(title,"p = ",p,". ")}
+if(!is.null(pbis)){ title <- paste0(title,"pbis = ",pbis,".")}
+if(!is.null(key)){ title <- paste0(title,"\nGabarito = ",key,". ")}
+if(!is.null(n)){ title <- paste0(title,"N = ",n,". ")}
 
 ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentagem,group=Distratores))+
   geom_line(aes(colour=Distratores))+
   geom_point(aes(shape=Distratores,colour=Distratores),size=3)+
   scale_y_continuous(name="Percentagem", breaks=seq(0,100,10)) +
-  scale_x_discrete(name = "Grupos", breaks = c(1:nGroups), labels=c(paste("g",1:nGroups,sep="")))
+  scale_x_discrete(name = "Grupos", breaks = c(1:nGroups), labels=c(paste("g",1:nGroups,sep="")))+
+  labs(title=title)
 
 item_data <- data_distractor_analyses_g1 %>% filter(Item == paste0('X',item_index))
+
+
+title <- paste0("Item ", item_index,".")
+if(!is.null(p)){ title <- paste0(title,"p = ",p,". ")}
+if(!is.null(pbis)){ title <- paste0(title,"pbis = ",pbis,".")}
+if(!is.null(key)){ title <- paste0(title,"\nGabarito = ",key,". ")}
+if(!is.null(n)){ title <- paste0(title,"N = ",n,". ")}
+
 
 ggplot(data =data.frame(item_data),aes(x= Distratores, y=NumRespostas, label=PercentagemChar)) +
   geom_bar(stat = "identity", width = 0.5)+
   scale_x_discrete(name = "Distratores", breaks = pull( item_data,'Distratores'), labels = pull( item_data,'Distratores'))+
   #scale_x_discrete(limits=item_data[,'Distratores'])+
   geom_text(color ="white",position = position_stack(vjust = 0.5),size=3)+ theme_bw(base_size = 12)+
-  xlab("Distratores")+ylab("Número de respondentes")
+  labs(title=title, x = "Distratores", y="Número de respondentes")
 
 
 create_ctt_score_struct(data_matrix = answer, key_vector = key, valid_vector =  rep(TRUE,length(key)))
