@@ -1,4 +1,6 @@
 
+rm(list=ls())
+
 key <- c("A","B","C","D","E","A","B","C","D","E")
 
 valid_10_10 <- rep(TRUE,10)
@@ -150,7 +152,6 @@ bis_calc <- function(scored_matrix, scores_vector, ifDeleted=TRUE){
   return(apply(scored_matrix,MARGIN = 2,FUN=bis_calc_vector,scores_vector=scores_vector,ifDeleted=ifDeleted))
 }
 # bis_calc(scored_matrix=scored, scores_vector = scores,ifDeleted = TRUE)
-
 
 calc_stats <-function(scored_data,na.rm=TRUE){
   scores <- rowSums(scored_data,na.rm=na.rm)
@@ -432,9 +433,9 @@ distractor_analysis_data_gen <- function(data_matrix,
     data_distractor_analyses <- data.frame(data) %>% 
       tidyr::gather("Item","Distratores",c(1:ncol(data_matrix))) %>% 
       dplyr::group_by(Item,group,Distratores) %>% 
-      dplyr::summarise(n=n()) %>%
+      dplyr::summarise(NumRespostas=n()) %>%
       dplyr::group_by(Item,group,) %>%
-      mutate(Percentagem=n/sum(n)*100)
+      mutate(Percentagem=NumRespostas/sum(NumRespostas)*100)
     
   }
   
@@ -446,31 +447,53 @@ distractor_analysis_data_gen <- function(data_matrix,
 } # distractor_analysis_data_gen
 
 
+# single group data struct rearrange
+
+distractor_analysis_data_struct_n_1 <- function(distractor_analysis_data_struct){
+  if(distractor_analysis_data_struct$n_groups !=1){
+    tmp <- distractor_analysis_data_struct$distractor_analysis %>% 
+      dplyr::group_by(Item,Distratores) %>% 
+      dplyr::summarise(NumRespostas=sum(NumRespostas)) %>%
+      dplyr::group_by(Item) %>%
+      mutate(Percentagem=NumRespostas/sum(NumRespostas)*100) %>%
+      mutate(PercentagemChar=sprintf("%.2f%%",Percentagem))
+    distractor_analysis_data_struct$distractor_analysis <- tmp
+    distractor_analysis_data_struct$n_groups <- 1
+  }
+  return(distractor_analysis_data_struct)
+}
+
+
 plot_item_distractor_analysis <- function(distractor_analysis_data_struct,
-                                          item_index){
+                                          item_index,
+                                          title_enable = TRUE){
   item_data <- distractor_analysis_data_struct$distractor_analysis %>% 
     filter(Item == paste0('X',item_index))
   
-  p <- distractor_analysis_data_struct$ctt_stats$reliability$itemMean[item_index]
-  pbis <- distractor_analysis_data_struct$ctt_stats$reliability$pbis[item_index]
-  key <- distractor_analysis_data_struct$ctt_stats$key
-  n <- distractor_analysis_data_struct$ctt_stats$reliability$nPerson
-  
-  title <- paste0("Item ", item_index,": ")
-  if(!is.null(p)){ title <- paste0(title,"p = ",p,". ")}
-  if(!is.null(pbis)){ title <- paste0(title,"pbis = ",pbis,".")}
-  if(!is.null(key)){ title <- paste0(title,"\nGabarito = ",key,". ")}
-  if(!is.null(n)){ title <- paste0(title,"N = ",n,". ")}
+  if(title_enable==TRUE){
+    p <- distractor_analysis_data_struct$ctt_stats$reliability$itemMean[item_index]
+    pbis <- distractor_analysis_data_struct$ctt_stats$reliability$pbis[item_index]
+    key <- distractor_analysis_data_struct$ctt_stats$key
+    n <- distractor_analysis_data_struct$ctt_stats$reliability$nPerson
+    
+    title <- paste0("Item ", item_index,": ")
+    if(!is.null(p)){ title <- paste0(title,sprintf("pbis = %0.2f%%. ",p*100))}
+    if(!is.null(pbis)){ title <- paste0(title,sprintf("pbis = %0.2f. ",pbis))}
+    if(!is.null(key)){ title <- paste0(title,"\nGabarito = ",key,". ")}
+    if(!is.null(n)){ title <- paste0(title,"N = ",n,". ")}
+  }else{
+    title <- ""
+  }
   
   if(distractor_analysis_data_struct$n_groups ==1 ){
-    ggplot2::ggplot(data =data.frame(item_data),aes(x= Distratores, y=NumRespostas, label=PercentagemChar)) +
+    p<-ggplot2::ggplot(data =data.frame(item_data),aes(x= Distratores, y=NumRespostas, label=PercentagemChar)) +
       geom_bar(stat = "identity", width = 0.5)+
       scale_x_discrete(name = "Distratores", breaks = pull( item_data,'Distratores'), labels = pull( item_data,'Distratores'))+
       #scale_x_discrete(limits=item_data[,'Distratores'])+
       geom_text(color ="white",position = position_stack(vjust = 0.5),size=3)+ theme_bw(base_size = 12)+
       labs(title=title, x = "Distratores", y="Número de respondentes")
   }else{
-    ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentagem,group=Distratores))+
+    p<-ggplot2::ggplot(data =data.frame(item_data),aes(x=group,y=Percentagem,group=Distratores))+
       geom_line(aes(colour=Distratores))+
       geom_point(aes(shape=Distratores,colour=Distratores),size=3)+
       scale_y_continuous(name="Percentagem", breaks=seq(0,100,10)) +
@@ -478,12 +501,12 @@ plot_item_distractor_analysis <- function(distractor_analysis_data_struct,
                        labels=c(paste("g",1:distractor_analysis_data_struct$n_groups,sep="")))+
       labs(title=title)
   }
+  print(p)
+  return(p)
 }#plot_item_distractor_analysis
 
 
 
-distractor_analysis_data_struct1$distractor_analysis %>% 
-  filter(Item == paste0('X',item_index))
 
 distractor_analysis_data_struct1 <- distractor_analysis_data_gen(data_matrix = answer, 
                              key_vector = key,
@@ -494,12 +517,59 @@ distractor_analysis_data_struct1 <- distractor_analysis_data_gen(data_matrix = a
                              OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
                              na.rm=TRUE,
                              ifDeleted=TRUE,
-                             n_groups=3)
+                             n_groups=1)
+
+
+distractor_analysis_data_struct2 <- distractor_analysis_data_gen(data_matrix = answer, 
+                                                                 key_vector = key,
+                                                                 valid_vector = rep(TRUE,length(key)),
+                                                                 NOT_APPLIED_CHAR= '9',
+                                                                 OMITTED_CHAR= '_',
+                                                                 INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
+                                                                 OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
+                                                                 na.rm=TRUE,
+                                                                 ifDeleted=TRUE,
+                                                                 n_groups=3)
+
   
 plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct1,
-                              item_index=2)
+                              item_index=1)
+plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct2,
+                              item_index=1)
+plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct_n_1(distractor_analysis_data_struct2),
+                              item_index=1)
+plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct_n_1(distractor_analysis_data_struct1),
+                              item_index=1)
 
 
+plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct1,
+                              item_index=1)
+plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct1,
+                              item_index=6)
+
+plot_item_distractor_analysis_compound <- function(distractor_analysis_data_struct,item_index){
+  
+  if(distractor_analysis_data_struct$n_groups == 1) {stop("Cannot generate compound graph when ngroups == 1")}
+  
+  title <- paste0("Item ", item_index,"")
+  ptitle <- cowplot::ggdraw() + cowplot::draw_label(title, fontface='bold')
+  
+  p1 <- plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct,
+                                      item_index = item_index)
+  
+  p2 <- plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct_n_1(distractor_analysis_data_struct),
+                                      item_index = item_index,
+                                      title_enable=FALSE)
+  pfinal <- plot_grid(ptitle, p1,p2,nrow=3,rel_heights=c(0.1, 1,1))
+  print(pfinal)
+  return(pfinal)
+  
+}
+
+plot_item_distractor_analysis_compound(distractor_analysis_data_struct= distractor_analysis_data_struct2,
+                              item_index=1)
+plot_item_distractor_analysis_compound(distractor_analysis_data_struct= distractor_analysis_data_struct_n_1(distractor_analysis_data_struct2),
+                              item_index=1)
 
 
 item_index <-2
