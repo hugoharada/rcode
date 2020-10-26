@@ -177,8 +177,7 @@ create_ctt_score_struct <- function(data_matrix,
                                     INVALID_SCORE = NA, # NA, 0 OR 1. DEFAULT IS NA.
                                     OMITTED_SCORE = 0, # O OR NA. DEFAULT IS 0.
                                     na.rm=TRUE,
-                                    ifDeleted=TRUE
-){
+                                    ifDeleted=TRUE){
   scored_data = scoring(data_matrix = data_matrix, 
                         key_vector=key_vector,
                         valid_vector=valid_vector,
@@ -187,6 +186,8 @@ create_ctt_score_struct <- function(data_matrix,
                         INVALID_SCORE = INVALID_SCORE, 
                         OMITTED_SCORE = OMITTED_SCORE)
   scores = rowSums(scored_data,na.rm = na.rm)
+  alpha <- (CTT::score(items=data_matrix,key=key,rel=TRUE))$reliability$alpha
+    
   n_applied_items <- apply(scored_data, MARGIN = 2, FUN = function(x){sum((x==0)|(x==1),na.rm=na.rm)})
   return(
     list(
@@ -194,6 +195,7 @@ create_ctt_score_struct <- function(data_matrix,
       scores = scores,
       key = key_vector,
       reliability = list(
+        alpha = alpha,
         nPerson = nrow(scored_data),
         nItem = ncol(scored_data),
         scaleMean = mean(scores,na.rm=na.rm),
@@ -205,6 +207,9 @@ create_ctt_score_struct <- function(data_matrix,
     
   )
 }
+
+
+                  
 
 
 scored <- scoring(data_matrix = answer, 
@@ -416,7 +421,7 @@ distractor_analysis_data_gen <- function(data_matrix,
                                         ifDeleted=TRUE)
       
   
-  group <- dplyr::ntile(n=n_groups,scores)
+  group <- dplyr::ntile(n=n_groups,tmp$scores)
   
   data <- cbind(data_matrix,group)
   colnames(data)<- c(1:ncol(data_matrix),"group")
@@ -464,6 +469,7 @@ distractor_analysis_data_struct_n_1 <- function(distractor_analysis_data_struct)
 }
 
 
+
 plot_item_distractor_analysis <- function(distractor_analysis_data_struct,
                                           item_index,
                                           title_enable = TRUE){
@@ -473,12 +479,12 @@ plot_item_distractor_analysis <- function(distractor_analysis_data_struct,
   if(title_enable==TRUE){
     p <- distractor_analysis_data_struct$ctt_stats$reliability$itemMean[item_index]
     pbis <- distractor_analysis_data_struct$ctt_stats$reliability$pbis[item_index]
-    key <- distractor_analysis_data_struct$ctt_stats$key
+    key <- distractor_analysis_data_struct$ctt_stats$key[item_index]
     n <- distractor_analysis_data_struct$ctt_stats$reliability$nPerson
     
-    title <- paste0("Item ", item_index,": ")
-    if(!is.null(p)){ title <- paste0(title,sprintf("pbis = %0.2f%%. ",p*100))}
-    if(!is.null(pbis)){ title <- paste0(title,sprintf("pbis = %0.2f. ",pbis))}
+    title <- paste0("Item ", item_index,":  ")
+    if(!is.null(p)){ title <- paste0(title,sprintf("pbis = %0.2f%%  ",p*100))}
+    if(!is.null(pbis)){ title <- paste0(title,sprintf("pbis = %0.2f ",pbis))}
     if(!is.null(key)){ title <- paste0(title,"\nGabarito = ",key,". ")}
     if(!is.null(n)){ title <- paste0(title,"N = ",n,". ")}
   }else{
@@ -505,6 +511,25 @@ plot_item_distractor_analysis <- function(distractor_analysis_data_struct,
   return(p)
 }#plot_item_distractor_analysis
 
+
+plot_item_distractor_analysis_compound <- function(distractor_analysis_data_struct,item_index){
+  
+  if(distractor_analysis_data_struct$n_groups == 1) {stop("Cannot generate compound graph when ngroups == 1")}
+  
+  title <- paste0("Item ", item_index,"")
+  ptitle <- cowplot::ggdraw() + cowplot::draw_label(title, fontface='bold')
+  
+  p1 <- plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct,
+                                      item_index = item_index)
+  
+  p2 <- plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct_n_1(distractor_analysis_data_struct),
+                                      item_index = item_index,
+                                      title_enable=FALSE)
+  pfinal <- plot_grid(ptitle, p1,p2,nrow=3,rel_heights=c(0.1, 1,1))
+  print(pfinal)
+  return(pfinal)
+  
+}
 
 
 
@@ -547,24 +572,6 @@ plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analys
 plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct1,
                               item_index=6)
 
-plot_item_distractor_analysis_compound <- function(distractor_analysis_data_struct,item_index){
-  
-  if(distractor_analysis_data_struct$n_groups == 1) {stop("Cannot generate compound graph when ngroups == 1")}
-  
-  title <- paste0("Item ", item_index,"")
-  ptitle <- cowplot::ggdraw() + cowplot::draw_label(title, fontface='bold')
-  
-  p1 <- plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct,
-                                      item_index = item_index)
-  
-  p2 <- plot_item_distractor_analysis(distractor_analysis_data_struct= distractor_analysis_data_struct_n_1(distractor_analysis_data_struct),
-                                      item_index = item_index,
-                                      title_enable=FALSE)
-  pfinal <- plot_grid(ptitle, p1,p2,nrow=3,rel_heights=c(0.1, 1,1))
-  print(pfinal)
-  return(pfinal)
-  
-}
 
 plot_item_distractor_analysis_compound(distractor_analysis_data_struct= distractor_analysis_data_struct2,
                               item_index=1)
@@ -653,10 +660,29 @@ head(data)
 table(data[,1])
 
 
+if(!require(CTT)) install.packages("CTT"); library(CTT)
 
+answer <- matrix(data = sample(c('A','B','C','D','E',"_"),size=15*1000, replace = TRUE,prob =c(rep(0.98/5,5),0.02)),
+                 nrow = 1000, ncol =15, byrow = TRUE)
+key <- answer[1,]
+valid_vector <-rep(TRUE, length(key))
+calc_alpha_ctt_package <- function(data_matrix, 
+                                   key_vector,
+                                   valid_vector){
+  
+  x<-CTT::score(items=answer,key=key,rel=TRUE,output.scored=TRUE)
+  return(x$reliability$alpha)
+  
+}
 
+calc_alpha_ctt_package(data_matrix = answer,
+                       key_vector=key,
+                       valid_vector = valid_vector)
 
+x<-CTT::score(items=answer,key=key,rel=TRUE)
+x$reliability$alpha
 
+(CTT::score(items=answer,key=key,rel=TRUE))$reliability#alpha
 
 
 
