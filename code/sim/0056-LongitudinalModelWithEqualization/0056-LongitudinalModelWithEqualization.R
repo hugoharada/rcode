@@ -30,7 +30,8 @@ rho<-0.7
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
 
-if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
+#if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
+if (PL==1) {a = rep(1,I)} else {a = runif(I,0.65, 1.34)}    # U(0.5 , 2.5)
 b = runif(I,-2, 2.0)     # U(-2 , 2)
 if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
   
@@ -338,6 +339,8 @@ lavaan.model.fit <- lavaan(lavaan.model.t1.free,
                            ordered = colnames(U1),
                            parameterization = "theta")
 
+
+lavaan.model.t1.free.fit <- lavaan.model.fit
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
 eta1.free<-predict(lavaan.model.fit)
@@ -345,17 +348,25 @@ mean(eta1.free)
 sd(eta1.free)
 
 
+
 mod.fitted <- lavaan.model.fit
 
 
 t1.sem.param<-get_lmb_tau_alpha_psi(mod.fitted)
 t1.tri.param<-get_a_d_b(t1.sem.param)
+
 plot(cbind(b[1:30],t1.tri.param$b[1:30]))
 lines(c(-4,4),c(-4,4), col = "blue")
 
 eta1.free<-predict(lavaan.model.fit)
 mean(eta1.free)
 sd(eta1.free)
+
+plot(cbind(b[1:30],t1.tri.param$b))
+lines(c(-4,4),c(-4,4), col = "blue")
+
+plot(cbind(a[1:30],t1.tri.param$a))
+lines(c(-4,4),c(-4,4), col = "blue")
 
 
 cat(paste("lambda",1:30,".t1 ==",t1.sem.param$lambda,sep="",collapse = "\n"))
@@ -435,6 +446,8 @@ lavaan.model.fit <- lavaan(lavaan.model.t2.free,
                            ordered = colnames(U2),
                            parameterization = "theta")
 
+lavaan.model.t2.free.fit <- lavaan.model.fit
+
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
 t2.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
@@ -476,12 +489,12 @@ lines(c(-4,4),c(-4,4), col = "blue")
 
 alpha = 0
 var_eta =1
-lambda_sim <- a2_equalized/sqrt(var_eta)/1.702
-tau_sim <- (lambda_sim*alpha -d2_equalized)/1.702
+lambda_est <- a2_equalized/sqrt(var_eta)/1.702
+tau_est <- (lambda_sim*alpha -d2_equalized)/1.702
 
 
-cat(paste("lambda",21:50,".t2 ==",lambda_sim,sep="",collapse = "\n"))
-cat(paste("tlambda",21:50,".t2 ==",tau_sim,sep="",collapse = "\n"))
+cat(paste("lambda",21:50,".t2 ==",lambda_est,sep="",collapse = "\n"))
+cat(paste("tlambda",21:50,".t2 ==",tau_est,sep="",collapse = "\n"))
 
 
 lavaan.model.t12.t12fixed.tag <- function(){}
@@ -763,6 +776,7 @@ lavaan.model.fit <- lavaan(lavaan.model.t12.t12fixed,
                            auto.var = TRUE,
                            ordered = c(colnames(U1),colnames(U2)),
                            parameterization = "theta")
+lavaan.model.t12.t12fixed.fit <- lavaan.model.fit
 
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
@@ -775,8 +789,241 @@ mean(eta12.free[,1])
 sd(eta12.free[,1])
 mean(eta12.free[,2])
 sd(eta12.free[,2])
-cov(eta12.free[,1],eta12.free[,2])
+cov(eta12.free)
 
+lavaan.model.t12.t12fixed.nocov.tag <- function(){}
+
+lavaan.model.t12.t12fixed.nocov <-'
+
+d1 =~ lambda1.t1*Item.1.t1+ lambda2.t1*Item.2.t1+ lambda3.t1*Item.3.t1+ lambda4.t1*Item.4.t1+ lambda5.t1*Item.5.t1+ lambda6.t1*Item.6.t1+ lambda7.t1*Item.7.t1+ lambda8.t1*Item.8.t1+ lambda9.t1*Item.9.t1+ lambda10.t1*Item.10.t1+ lambda11.t1*Item.11.t1+ lambda12.t1*Item.12.t1+ lambda13.t1*Item.13.t1+ lambda14.t1*Item.14.t1+ lambda15.t1*Item.15.t1+ lambda16.t1*Item.16.t1+ lambda17.t1*Item.17.t1+ lambda18.t1*Item.18.t1+ lambda19.t1*Item.19.t1+ lambda20.t1*Item.20.t1+ lambda21.t1*Item.21.t1+ lambda22.t1*Item.22.t1+ lambda23.t1*Item.23.t1+ lambda24.t1*Item.24.t1+ lambda25.t1*Item.25.t1+ lambda26.t1*Item.26.t1+ lambda27.t1*Item.27.t1+ lambda28.t1*Item.28.t1+ lambda29.t1*Item.29.t1+ lambda30.t1*Item.30.t1
+d2 =~ lambda21.t2*Item.21.t2+ lambda22.t2*Item.22.t2+ lambda23.t2*Item.23.t2+ lambda24.t2*Item.24.t2+ lambda25.t2*Item.25.t2+ lambda26.t2*Item.26.t2+ lambda27.t2*Item.27.t2+ lambda28.t2*Item.28.t2+ lambda29.t2*Item.29.t2+ lambda30.t2*Item.30.t2+ lambda31.t2*Item.31.t2+ lambda32.t2*Item.32.t2+ lambda33.t2*Item.33.t2+ lambda34.t2*Item.34.t2+ lambda35.t2*Item.35.t2+ lambda36.t2*Item.36.t2+ lambda37.t2*Item.37.t2+ lambda38.t2*Item.38.t2+ lambda39.t2*Item.39.t2+ lambda40.t2*Item.40.t2+ lambda41.t2*Item.41.t2+ lambda42.t2*Item.42.t2+ lambda43.t2*Item.43.t2+ lambda44.t2*Item.44.t2+ lambda45.t2*Item.45.t2+ lambda46.t2*Item.46.t2+ lambda47.t2*Item.47.t2+ lambda48.t2*Item.48.t2+ lambda49.t2*Item.49.t2+ lambda50.t2*Item.50.t2
+
+d1~~d2
+
+
+Item.1.t1 | tlambda1.t1*t1
+Item.2.t1 | tlambda2.t1*t1
+Item.3.t1 | tlambda3.t1*t1
+Item.4.t1 | tlambda4.t1*t1
+Item.5.t1 | tlambda5.t1*t1
+Item.6.t1 | tlambda6.t1*t1
+Item.7.t1 | tlambda7.t1*t1
+Item.8.t1 | tlambda8.t1*t1
+Item.9.t1 | tlambda9.t1*t1
+Item.10.t1 | tlambda10.t1*t1
+Item.11.t1 | tlambda11.t1*t1
+Item.12.t1 | tlambda12.t1*t1
+Item.13.t1 | tlambda13.t1*t1
+Item.14.t1 | tlambda14.t1*t1
+Item.15.t1 | tlambda15.t1*t1
+Item.16.t1 | tlambda16.t1*t1
+Item.17.t1 | tlambda17.t1*t1
+Item.18.t1 | tlambda18.t1*t1
+Item.19.t1 | tlambda19.t1*t1
+Item.20.t1 | tlambda20.t1*t1
+Item.21.t1 | tlambda21.t1*t1
+Item.22.t1 | tlambda22.t1*t1
+Item.23.t1 | tlambda23.t1*t1
+Item.24.t1 | tlambda24.t1*t1
+Item.25.t1 | tlambda25.t1*t1
+Item.26.t1 | tlambda26.t1*t1
+Item.27.t1 | tlambda27.t1*t1
+Item.28.t1 | tlambda28.t1*t1
+Item.29.t1 | tlambda29.t1*t1
+Item.30.t1 | tlambda30.t1*t1
+
+
+Item.21.t2 | tlambda21.t2*t1
+Item.22.t2 | tlambda22.t2*t1
+Item.23.t2 | tlambda23.t2*t1
+Item.24.t2 | tlambda24.t2*t1
+Item.25.t2 | tlambda25.t2*t1
+Item.26.t2 | tlambda26.t2*t1
+Item.27.t2 | tlambda27.t2*t1
+Item.28.t2 | tlambda28.t2*t1
+Item.29.t2 | tlambda29.t2*t1
+Item.30.t2 | tlambda30.t2*t1
+Item.31.t2 | tlambda31.t2*t1
+Item.32.t2 | tlambda32.t2*t1
+Item.33.t2 | tlambda33.t2*t1
+Item.34.t2 | tlambda34.t2*t1
+Item.35.t2 | tlambda35.t2*t1
+Item.36.t2 | tlambda36.t2*t1
+Item.37.t2 | tlambda37.t2*t1
+Item.38.t2 | tlambda38.t2*t1
+Item.39.t2 | tlambda39.t2*t1
+Item.40.t2 | tlambda40.t2*t1
+Item.41.t2 | tlambda41.t2*t1
+Item.42.t2 | tlambda42.t2*t1
+Item.43.t2 | tlambda43.t2*t1
+Item.44.t2 | tlambda44.t2*t1
+Item.45.t2 | tlambda45.t2*t1
+Item.46.t2 | tlambda46.t2*t1
+Item.47.t2 | tlambda47.t2*t1
+Item.48.t2 | tlambda48.t2*t1
+Item.49.t2 | tlambda49.t2*t1
+Item.50.t2 | tlambda50.t2*t1
+
+
+
+
+
+lambda1.t1 ==0.726371655117903
+lambda2.t1 ==0.822808811591549
+lambda3.t1 ==1.08304504781398
+lambda4.t1 ==1.58820037269627
+lambda5.t1 ==0.652574605506499
+lambda6.t1 ==1.39740726424945
+lambda7.t1 ==1.51160738087182
+lambda8.t1 ==1.23840723760775
+lambda9.t1 ==1.15320254443496
+lambda10.t1 ==0.450649951316108
+lambda11.t1 ==0.671195787900798
+lambda12.t1 ==0.596315148347679
+lambda13.t1 ==1.25483766885902
+lambda14.t1 ==0.86535485050754
+lambda15.t1 ==1.2799244228771
+lambda16.t1 ==1.02720264922705
+lambda17.t1 ==1.29048370810758
+lambda18.t1 ==1.48774477200108
+lambda19.t1 ==0.878366211073239
+lambda20.t1 ==1.23429804529063
+lambda21.t1 ==1.51345011147542
+lambda22.t1 ==0.643134270220657
+lambda23.t1 ==1.22144173571852
+lambda24.t1 ==0.495112980463626
+lambda25.t1 ==0.672711022194983
+lambda26.t1 ==0.820184410676499
+lambda27.t1 ==0.381742887400009
+lambda28.t1 ==0.853327635480844
+lambda29.t1 ==1.35872216510816
+lambda30.t1 ==0.830174645863274
+
+tlambda1.t1 ==-0.395546136939333
+tlambda2.t1 ==0.959079672806876
+tlambda3.t1 ==-0.588513642733792
+tlambda4.t1 ==-0.925742433597419
+tlambda5.t1 ==-0.0705454998911635
+tlambda6.t1 ==1.96953696699368
+tlambda7.t1 ==1.94015257701499
+tlambda8.t1 ==-0.487561273101274
+tlambda9.t1 ==1.11840823581658
+tlambda10.t1 ==0.688737505421704
+tlambda11.t1 ==-0.158414540595477
+tlambda12.t1 ==0.452957536204564
+tlambda13.t1 ==-0.418516267690346
+tlambda14.t1 ==-0.541699731395222
+tlambda15.t1 ==1.17103228010068
+tlambda16.t1 ==-1.01984753714729
+tlambda17.t1 ==0.961703175031416
+tlambda18.t1 ==-1.99922676647371
+tlambda19.t1 ==-0.785310801880931
+tlambda20.t1 ==-1.59388797523404
+tlambda21.t1 ==-1.37430488410851
+tlambda22.t1 ==-0.984242105837807
+tlambda23.t1 ==0.613178665334313
+tlambda24.t1 ==0.659961558506827
+tlambda25.t1 ==0.669675718400049
+tlambda26.t1 ==0.887485195339564
+tlambda27.t1 ==-0.0718487313154983
+tlambda28.t1 ==-0.275037889439151
+tlambda29.t1 ==1.53103139706903
+tlambda30.t1 ==0.304775897761329
+
+
+
+lambda21.t2 ==1.24865675112519
+lambda22.t2 ==0.515599014600513
+lambda23.t2 ==1.05145488196072
+lambda24.t2 ==0.453964212371336
+lambda25.t2 ==0.665997170349377
+lambda26.t2 ==0.770344052021204
+lambda27.t2 ==0.317495465956755
+lambda28.t2 ==0.76607864230443
+lambda29.t2 ==1.29065234352694
+lambda30.t2 ==0.745288706316526
+lambda31.t2 ==0.912844562700094
+lambda32.t2 ==0.991692689326616
+lambda33.t2 ==0.835813142483618
+lambda34.t2 ==0.502224163738531
+lambda35.t2 ==1.24889759071193
+lambda36.t2 ==1.01090652901111
+lambda37.t2 ==1.10708781059155
+lambda38.t2 ==0.440527600332572
+lambda39.t2 ==1.06183488177454
+lambda40.t2 ==0.776734132791193
+lambda41.t2 ==1.12355600081307
+lambda42.t2 ==1.06158785348757
+lambda43.t2 ==1.19948620166494
+lambda44.t2 ==0.956462962617167
+lambda45.t2 ==0.819960290219269
+lambda46.t2 ==1.03585517480234
+lambda47.t2 ==0.322652153248899
+lambda48.t2 ==0.802286752805132
+lambda49.t2 ==1.11803841197997
+lambda50.t2 ==1.11531720122423
+
+tlambda21.t2 ==-1.31480709232932
+tlambda22.t2 ==-0.93320548507609
+tlambda23.t2 ==0.633960376782047
+tlambda24.t2 ==0.711031314271462
+tlambda25.t2 ==0.743707481150658
+tlambda26.t2 ==0.952547417648624
+tlambda27.t2 ==-0.0562038392915776
+tlambda28.t2 ==-0.265436814248522
+tlambda29.t2 ==1.62421692172907
+tlambda30.t2 ==0.335303345049908
+tlambda31.t2 ==0.604055509052579
+tlambda32.t2 ==-0.560640430193666
+tlambda33.t2 ==-0.770683222667336
+tlambda34.t2 ==1.0058309206772
+tlambda35.t2 ==0.728934617019349
+tlambda36.t2 ==-1.16098304177316
+tlambda37.t2 ==-1.62497731719925
+tlambda38.t2 ==-0.022502491767487
+tlambda39.t2 ==1.8936278191813
+tlambda40.t2 ==0.321785020739131
+tlambda41.t2 ==2.20436439319413
+tlambda42.t2 ==0.992264228311611
+tlambda43.t2 ==-0.630859487814159
+tlambda44.t2 ==-0.220636663848532
+tlambda45.t2 ==-1.17162175329766
+tlambda46.t2 ==-2.13143973278746
+tlambda47.t2 ==0.321031549591306
+tlambda48.t2 ==-1.2730213246044
+tlambda49.t2 ==-0.219455302640744
+tlambda50.t2 ==0.678606190168499
+
+'
+
+lavaan.model.fit <- lavaan(lavaan.model.t12.t12fixed.nocov, 
+                           data = cbind(U1,U2), 
+                           int.ov.free = TRUE,
+                           int.lv.free = FALSE,
+                           meanstructure = TRUE,
+                           std.lv =FALSE,
+                           auto.fix.first = FALSE,
+                           auto.var = TRUE,
+                           auto.th = TRUE,
+                           auto.delta = TRUE,
+                           auto.cov.y = TRUE,
+                           auto.var = TRUE,
+                           ordered = c(colnames(U1),colnames(U2)),
+                           parameterization = "theta")
+lavaan.model.t12.t12fixed.nocov.fit <- lavaan.model.fit
+
+summary ( lavaan.model.fit , standardized = TRUE )
+fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
+t12.nocov.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
+t12.nocov.tri.param<-get_a_d_b(t12.sem.param)
+
+
+eta12.nocov.free<-predict(lavaan.model.fit)
+mean(eta12.nocov.free[,1])
+sd(eta12.nocov.free[,1])
+mean(eta12.nocov.free[,2])
+sd(eta12.nocov.free[,2])
+cov(eta12.nocov.free)
 
 
 lavaan.model.t3.free.tag <- function(){}
@@ -835,6 +1082,7 @@ lavaan.model.fit <- lavaan(lavaan.model.t3.free,
                            auto.var = TRUE,
                            ordered = colnames(U3),
                            parameterization = "theta")
+lavaan.model.t3.free.fit <- lavaan.model.fit
 
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
@@ -1295,6 +1543,7 @@ lavaan.model.fit <- lavaan(lavaan.model.t123.t123fixed,
                            ordered = c(colnames(U1),colnames(U2),colnames(U3)),
                            parameterization = "theta")
 
+lavaan.model.t123.t123fixed.fit <- lavaan.model.fit
 
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
@@ -1309,12 +1558,13 @@ mean(eta123.free[,3])
 sd(eta123.free[,1])
 sd(eta123.free[,2])
 sd(eta123.free[,3])
+cov(eta123.free)
 
 
 
-lavaan.model.t123.t23fixed.13nocov.tag <- function(){}
+lavaan.model.t123.t123fixed.nocov.tag <- function(){}
 
-lavaan.model.t123.t23fixed.13nocov.tag <-'
+lavaan.model.t123.t123fixed.nocov <-'
 
 d1 =~ lambda1.t1*Item.1.t1+ lambda2.t1*Item.2.t1+ lambda3.t1*Item.3.t1+ lambda4.t1*Item.4.t1+ lambda5.t1*Item.5.t1+ lambda6.t1*Item.6.t1+ lambda7.t1*Item.7.t1+ lambda8.t1*Item.8.t1+ lambda9.t1*Item.9.t1+ lambda10.t1*Item.10.t1+ lambda11.t1*Item.11.t1+ lambda12.t1*Item.12.t1+ lambda13.t1*Item.13.t1+ lambda14.t1*Item.14.t1+ lambda15.t1*Item.15.t1+ lambda16.t1*Item.16.t1+ lambda17.t1*Item.17.t1+ lambda18.t1*Item.18.t1+ lambda19.t1*Item.19.t1+ lambda20.t1*Item.20.t1+ lambda21.t1*Item.21.t1+ lambda22.t1*Item.22.t1+ lambda23.t1*Item.23.t1+ lambda24.t1*Item.24.t1+ lambda25.t1*Item.25.t1+ lambda26.t1*Item.26.t1+ lambda27.t1*Item.27.t1+ lambda28.t1*Item.28.t1+ lambda29.t1*Item.29.t1+ lambda30.t1*Item.30.t1
 d2 =~ lambda21.t2*Item.21.t2+ lambda22.t2*Item.22.t2+ lambda23.t2*Item.23.t2+ lambda24.t2*Item.24.t2+ lambda25.t2*Item.25.t2+ lambda26.t2*Item.26.t2+ lambda27.t2*Item.27.t2+ lambda28.t2*Item.28.t2+ lambda29.t2*Item.29.t2+ lambda30.t2*Item.30.t2+ lambda31.t2*Item.31.t2+ lambda32.t2*Item.32.t2+ lambda33.t2*Item.33.t2+ lambda34.t2*Item.34.t2+ lambda35.t2*Item.35.t2+ lambda36.t2*Item.36.t2+ lambda37.t2*Item.37.t2+ lambda38.t2*Item.38.t2+ lambda39.t2*Item.39.t2+ lambda40.t2*Item.40.t2+ lambda41.t2*Item.41.t2+ lambda42.t2*Item.42.t2+ lambda43.t2*Item.43.t2+ lambda44.t2*Item.44.t2+ lambda45.t2*Item.45.t2+ lambda46.t2*Item.46.t2+ lambda47.t2*Item.47.t2+ lambda48.t2*Item.48.t2+ lambda49.t2*Item.49.t2+ lambda50.t2*Item.50.t2
@@ -1327,6 +1577,7 @@ lambda41.t3 + lambda42.t3 + lambda43.t3 + lambda44.t3 + lambda45.t3 + lambda46.t
 
 d1~~d2
 d2~~d3
+d1~~d3
 
 Item.1.t1 | tlambda1.t1*t1
 Item.2.t1 | tlambda2.t1*t1
@@ -1421,98 +1672,6 @@ Item.68.t3 | tlambda68.t3*t1
 Item.69.t3 | tlambda69.t3*t1
 Item.70.t3 | tlambda70.t3*t1
 
-Item.1.t1 ~~ Item.1.t1
-Item.2.t1 ~~ Item.2.t1
-Item.3.t1 ~~ Item.3.t1
-Item.4.t1 ~~ Item.4.t1
-Item.5.t1 ~~ Item.5.t1
-Item.6.t1 ~~ Item.6.t1
-Item.7.t1 ~~ Item.7.t1
-Item.8.t1 ~~ Item.8.t1
-Item.9.t1 ~~ Item.9.t1
-Item.10.t1 ~~ Item.10.t1
-Item.11.t1 ~~ Item.11.t1
-Item.12.t1 ~~ Item.12.t1
-Item.13.t1 ~~ Item.13.t1
-Item.14.t1 ~~ Item.14.t1
-Item.15.t1 ~~ Item.15.t1
-Item.16.t1 ~~ Item.16.t1
-Item.17.t1 ~~ Item.17.t1
-Item.18.t1 ~~ Item.18.t1
-Item.19.t1 ~~ Item.19.t1
-Item.20.t1 ~~ Item.20.t1
-Item.21.t1 ~~ Item.21.t1 + Item.21.t2
-Item.22.t1 ~~ Item.22.t1 + Item.22.t2
-Item.23.t1 ~~ Item.23.t1 + Item.23.t2
-Item.24.t1 ~~ Item.24.t1 + Item.24.t2
-Item.25.t1 ~~ Item.25.t1 + Item.25.t2
-Item.26.t1 ~~ Item.26.t1 + Item.26.t2
-Item.27.t1 ~~ Item.27.t1 + Item.27.t2
-Item.28.t1 ~~ Item.28.t1 + Item.28.t2
-Item.29.t1 ~~ Item.29.t1 + Item.29.t2
-Item.30.t1 ~~ Item.30.t1 + Item.30.t2
-
-Item.21.t2 ~~ Item.21.t2
-Item.22.t2 ~~ Item.22.t2
-Item.23.t2 ~~ Item.23.t2
-Item.24.t2 ~~ Item.24.t2
-Item.25.t2 ~~ Item.25.t2
-Item.26.t2 ~~ Item.26.t2
-Item.27.t2 ~~ Item.27.t2
-Item.28.t2 ~~ Item.28.t2
-Item.29.t2 ~~ Item.29.t2
-Item.30.t2 ~~ Item.30.t2
-Item.31.t2 ~~ Item.31.t2
-Item.32.t2 ~~ Item.32.t2
-Item.33.t2 ~~ Item.33.t2
-Item.34.t2 ~~ Item.34.t2
-Item.35.t2 ~~ Item.35.t2
-Item.36.t2 ~~ Item.36.t2
-Item.37.t2 ~~ Item.37.t2
-Item.38.t2 ~~ Item.38.t2
-Item.39.t2 ~~ Item.39.t2
-Item.40.t2 ~~ Item.40.t2
-Item.41.t2 ~~ Item.41.t2 + Item.41.t3
-Item.42.t2 ~~ Item.42.t2 + Item.42.t3
-Item.43.t2 ~~ Item.43.t2 + Item.43.t3
-Item.44.t2 ~~ Item.44.t2 + Item.44.t3
-Item.45.t2 ~~ Item.45.t2 + Item.45.t3
-Item.46.t2 ~~ Item.46.t2 + Item.46.t3
-Item.47.t2 ~~ Item.47.t2 + Item.47.t3
-Item.48.t2 ~~ Item.48.t2 + Item.48.t3
-Item.49.t2 ~~ Item.49.t2 + Item.49.t3
-Item.50.t2 ~~ Item.50.t2 + Item.50.t3
-
-Item.41.t3 ~~ Item.41.t3
-Item.42.t3 ~~ Item.42.t3
-Item.43.t3 ~~ Item.43.t3
-Item.44.t3 ~~ Item.44.t3
-Item.45.t3 ~~ Item.45.t3
-Item.46.t3 ~~ Item.46.t3
-Item.47.t3 ~~ Item.47.t3
-Item.48.t3 ~~ Item.48.t3
-Item.49.t3 ~~ Item.49.t3
-Item.50.t3 ~~ Item.50.t3
-Item.51.t3 ~~ Item.51.t3
-Item.52.t3 ~~ Item.52.t3
-Item.53.t3 ~~ Item.53.t3
-Item.54.t3 ~~ Item.54.t3
-Item.55.t3 ~~ Item.55.t3
-Item.56.t3 ~~ Item.56.t3
-Item.57.t3 ~~ Item.57.t3
-Item.58.t3 ~~ Item.58.t3
-Item.59.t3 ~~ Item.59.t3
-Item.60.t3 ~~ Item.60.t3
-Item.61.t3 ~~ Item.61.t3
-Item.62.t3 ~~ Item.62.t3
-Item.63.t3 ~~ Item.63.t3
-Item.64.t3 ~~ Item.64.t3
-Item.65.t3 ~~ Item.65.t3
-Item.66.t3 ~~ Item.66.t3
-Item.67.t3 ~~ Item.67.t3
-Item.68.t3 ~~ Item.68.t3
-Item.69.t3 ~~ Item.69.t3
-Item.70.t3 ~~ Item.70.t3
 
 
 lambda21.t2 ==1.24865675112519
@@ -1640,10 +1799,7 @@ tlambda69.t3 ==0.790992463976648
 tlambda70.t3 ==0.093319078296131
 '
 
-working <- function(){}
-
-
-lavaan.model.fit <- lavaan(lavaan.model.t123.t23fixed.13nocov.tag, 
+lavaan.model.fit <- lavaan(lavaan.model.t123.t123fixed.nocov, 
                            data = cbind(U1,U2,U3), 
                            int.ov.free = TRUE,
                            int.lv.free = FALSE,
@@ -1658,6 +1814,7 @@ lavaan.model.fit <- lavaan(lavaan.model.t123.t23fixed.13nocov.tag,
                            ordered = c(colnames(U1),colnames(U2),colnames(U3)),
                            parameterization = "theta")
 
+lavaan.model.t123.t123fixed.nocov.fit <- lavaan.model.fit
 
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
@@ -1665,14 +1822,364 @@ fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
 t123.13cov.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
 t123.13cov.tri.param<-get_a_d_b(t123.sem.param)
 
-eta123.13cov.free <-predict(lavaan.model.fit)
-mean(eta123.13cov.free[,1])
-mean(eta123.13cov.free[,2])
-mean(eta123.13cov.free[,3])
-sd(eta123.13cov.free[,1])
-sd(eta123.13cov.free[,2])
-sd(eta123.13cov.free[,3])
+eta123.t123fixed.nocov <-predict(lavaan.model.fit)
+mean(eta123.t123fixed.nocov[,1])
+mean(eta123.t123fixed.nocov[,2])
+mean(eta123.t123fixed.nocov[,3])
+sd(eta123.t123fixed.nocov[,1])
+sd(eta123.t123fixed.nocov[,2])
+sd(eta123.t123fixed.nocov[,3])
 
+lavaan.model.t123.t123fixed.asim.nocov.tag <- function(){}
+
+
+cat(paste("lambda",1:30,".t1 ==",lambda_sim[1:30],sep="",collapse = "\n"))
+cat(paste("tlambda",1:30,".t1 ==",tau_sim[1:30],sep="",collapse = "\n"))
+
+cat(paste("lambda",21:50,".t2 ==",lambda_sim[21:50],sep="",collapse = "\n"))
+cat(paste("tlambda",21:50,".t2 ==",tau_sim[21:50],sep="",collapse = "\n"))
+
+cat(paste("lambda",41:70,".t3 ==",lambda_sim[41:70],sep="",collapse = "\n"))
+cat(paste("tlambda",41:70,".t3 ==",tau_sim[41:70],sep="",collapse = "\n"))
+
+
+
+lavaan.model.t123.t123fixed.asim.nocov <-'
+
+d1 =~ lambda1.t1*Item.1.t1+ lambda2.t1*Item.2.t1+ lambda3.t1*Item.3.t1+ lambda4.t1*Item.4.t1+ lambda5.t1*Item.5.t1+ lambda6.t1*Item.6.t1+ lambda7.t1*Item.7.t1+ lambda8.t1*Item.8.t1+ lambda9.t1*Item.9.t1+ lambda10.t1*Item.10.t1+ lambda11.t1*Item.11.t1+ lambda12.t1*Item.12.t1+ lambda13.t1*Item.13.t1+ lambda14.t1*Item.14.t1+ lambda15.t1*Item.15.t1+ lambda16.t1*Item.16.t1+ lambda17.t1*Item.17.t1+ lambda18.t1*Item.18.t1+ lambda19.t1*Item.19.t1+ lambda20.t1*Item.20.t1+ lambda21.t1*Item.21.t1+ lambda22.t1*Item.22.t1+ lambda23.t1*Item.23.t1+ lambda24.t1*Item.24.t1+ lambda25.t1*Item.25.t1+ lambda26.t1*Item.26.t1+ lambda27.t1*Item.27.t1+ lambda28.t1*Item.28.t1+ lambda29.t1*Item.29.t1+ lambda30.t1*Item.30.t1
+d2 =~ lambda21.t2*Item.21.t2+ lambda22.t2*Item.22.t2+ lambda23.t2*Item.23.t2+ lambda24.t2*Item.24.t2+ lambda25.t2*Item.25.t2+ lambda26.t2*Item.26.t2+ lambda27.t2*Item.27.t2+ lambda28.t2*Item.28.t2+ lambda29.t2*Item.29.t2+ lambda30.t2*Item.30.t2+ lambda31.t2*Item.31.t2+ lambda32.t2*Item.32.t2+ lambda33.t2*Item.33.t2+ lambda34.t2*Item.34.t2+ lambda35.t2*Item.35.t2+ lambda36.t2*Item.36.t2+ lambda37.t2*Item.37.t2+ lambda38.t2*Item.38.t2+ lambda39.t2*Item.39.t2+ lambda40.t2*Item.40.t2+ lambda41.t2*Item.41.t2+ lambda42.t2*Item.42.t2+ lambda43.t2*Item.43.t2+ lambda44.t2*Item.44.t2+ lambda45.t2*Item.45.t2+ lambda46.t2*Item.46.t2+ lambda47.t2*Item.47.t2+ lambda48.t2*Item.48.t2+ lambda49.t2*Item.49.t2+ lambda50.t2*Item.50.t2
+d3 =~ lambda41.t3*Item.41.t3 + lambda42.t3*Item.42.t3 + lambda43.t3*Item.43.t3 + lambda44.t3*Item.44.t3 + lambda45.t3*Item.45.t3 + lambda46.t3*Item.46.t3 + lambda47.t3*Item.47.t3 + lambda48.t3*Item.48.t3 + lambda49.t3*Item.49.t3 + lambda50.t3*Item.50.t3 + lambda51.t3*Item.51.t3 + lambda52.t3*Item.52.t3 + lambda53.t3*Item.53.t3 + lambda54.t3*Item.54.t3 + lambda55.t3*Item.55.t3 + lambda56.t3*Item.56.t3 + lambda57.t3*Item.57.t3 + lambda58.t3*Item.58.t3 + lambda59.t3*Item.59.t3 + lambda60.t3*Item.60.t3 + lambda61.t3*Item.61.t3 + lambda62.t3*Item.62.t3 + lambda63.t3*Item.63.t3 + lambda64.t3*Item.64.t3 + lambda65.t3*Item.65.t3 + lambda66.t3*Item.66.t3 + lambda67.t3*Item.67.t3 + lambda68.t3*Item.68.t3 + lambda69.t3*Item.69.t3 + lambda70.t3*Item.70.t3
+
+lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1+lambda5.t1+lambda6.t1+lambda7.t1+lambda8.t1+lambda9.t1+lambda10.t1+lambda11.t1+lambda12.t1+lambda13.t1+lambda14.t1+lambda15.t1+lambda16.t1+lambda17.t1+lambda18.t1+lambda19.t1+lambda20.t1+lambda21.t1+lambda22.t1+lambda23.t1+lambda24.t1+lambda25.t1+lambda26.t1+lambda27.t1+lambda28.t1+lambda29.t1+lambda30.t1==30
+lambda21.t2+lambda22.t2+lambda23.t2+lambda24.t2+lambda25.t2+lambda26.t2+lambda27.t2+lambda28.t2+lambda29.t2+lambda30.t2+lambda31.t2+lambda32.t2+lambda33.t2+lambda34.t2+lambda35.t2+lambda36.t2+lambda37.t2+lambda38.t2+lambda39.t2+lambda40.t2+lambda41.t2+lambda42.t2+lambda43.t2+lambda44.t2+lambda45.t2+lambda46.t2+lambda47.t2+lambda48.t2+lambda49.t2+lambda50.t2==30
+lambda41.t3 + lambda42.t3 + lambda43.t3 + lambda44.t3 + lambda45.t3 + lambda46.t3 + lambda47.t3 + lambda48.t3 + lambda49.t3 + lambda50.t3 + lambda51.t3 + lambda52.t3 + lambda53.t3 + lambda54.t3 + lambda55.t3 + lambda56.t3 + lambda57.t3 + lambda58.t3 + lambda59.t3 + lambda60.t3 + lambda61.t3 + lambda62.t3 + lambda63.t3 + lambda64.t3 + lambda65.t3 + lambda66.t3 + lambda67.t3 + lambda68.t3 + lambda69.t3 + lambda70.t3==30
+
+
+d1~~d2
+d2~~d3
+d1~~d3
+
+Item.1.t1 | tlambda1.t1*t1
+Item.2.t1 | tlambda2.t1*t1
+Item.3.t1 | tlambda3.t1*t1
+Item.4.t1 | tlambda4.t1*t1
+Item.5.t1 | tlambda5.t1*t1
+Item.6.t1 | tlambda6.t1*t1
+Item.7.t1 | tlambda7.t1*t1
+Item.8.t1 | tlambda8.t1*t1
+Item.9.t1 | tlambda9.t1*t1
+Item.10.t1 | tlambda10.t1*t1
+Item.11.t1 | tlambda11.t1*t1
+Item.12.t1 | tlambda12.t1*t1
+Item.13.t1 | tlambda13.t1*t1
+Item.14.t1 | tlambda14.t1*t1
+Item.15.t1 | tlambda15.t1*t1
+Item.16.t1 | tlambda16.t1*t1
+Item.17.t1 | tlambda17.t1*t1
+Item.18.t1 | tlambda18.t1*t1
+Item.19.t1 | tlambda19.t1*t1
+Item.20.t1 | tlambda20.t1*t1
+Item.21.t1 | tlambda21.t1*t1
+Item.22.t1 | tlambda22.t1*t1
+Item.23.t1 | tlambda23.t1*t1
+Item.24.t1 | tlambda24.t1*t1
+Item.25.t1 | tlambda25.t1*t1
+Item.26.t1 | tlambda26.t1*t1
+Item.27.t1 | tlambda27.t1*t1
+Item.28.t1 | tlambda28.t1*t1
+Item.29.t1 | tlambda29.t1*t1
+Item.30.t1 | tlambda30.t1*t1
+
+Item.21.t2 | tlambda21.t2*t1
+Item.22.t2 | tlambda22.t2*t1
+Item.23.t2 | tlambda23.t2*t1
+Item.24.t2 | tlambda24.t2*t1
+Item.25.t2 | tlambda25.t2*t1
+Item.26.t2 | tlambda26.t2*t1
+Item.27.t2 | tlambda27.t2*t1
+Item.28.t2 | tlambda28.t2*t1
+Item.29.t2 | tlambda29.t2*t1
+Item.30.t2 | tlambda30.t2*t1
+Item.31.t2 | tlambda31.t2*t1
+Item.32.t2 | tlambda32.t2*t1
+Item.33.t2 | tlambda33.t2*t1
+Item.34.t2 | tlambda34.t2*t1
+Item.35.t2 | tlambda35.t2*t1
+Item.36.t2 | tlambda36.t2*t1
+Item.37.t2 | tlambda37.t2*t1
+Item.38.t2 | tlambda38.t2*t1
+Item.39.t2 | tlambda39.t2*t1
+Item.40.t2 | tlambda40.t2*t1
+Item.41.t2 | tlambda41.t2*t1
+Item.42.t2 | tlambda42.t2*t1
+Item.43.t2 | tlambda43.t2*t1
+Item.44.t2 | tlambda44.t2*t1
+Item.45.t2 | tlambda45.t2*t1
+Item.46.t2 | tlambda46.t2*t1
+Item.47.t2 | tlambda47.t2*t1
+Item.48.t2 | tlambda48.t2*t1
+Item.49.t2 | tlambda49.t2*t1
+Item.50.t2 | tlambda50.t2*t1
+
+Item.41.t3 | tlambda41.t3*t1
+Item.42.t3 | tlambda42.t3*t1
+Item.43.t3 | tlambda43.t3*t1
+Item.44.t3 | tlambda44.t3*t1
+Item.45.t3 | tlambda45.t3*t1
+Item.46.t3 | tlambda46.t3*t1
+Item.47.t3 | tlambda47.t3*t1
+Item.48.t3 | tlambda48.t3*t1
+Item.49.t3 | tlambda49.t3*t1
+Item.50.t3 | tlambda50.t3*t1
+Item.51.t3 | tlambda51.t3*t1
+Item.52.t3 | tlambda52.t3*t1
+Item.53.t3 | tlambda53.t3*t1
+Item.54.t3 | tlambda54.t3*t1
+Item.55.t3 | tlambda55.t3*t1
+Item.56.t3 | tlambda56.t3*t1
+Item.57.t3 | tlambda57.t3*t1
+Item.58.t3 | tlambda58.t3*t1
+Item.59.t3 | tlambda59.t3*t1
+Item.60.t3 | tlambda60.t3*t1
+Item.61.t3 | tlambda61.t3*t1
+Item.62.t3 | tlambda62.t3*t1
+Item.63.t3 | tlambda63.t3*t1
+Item.64.t3 | tlambda64.t3*t1
+Item.65.t3 | tlambda65.t3*t1
+Item.66.t3 | tlambda66.t3*t1
+Item.67.t3 | tlambda67.t3*t1
+Item.68.t3 | tlambda68.t3*t1
+Item.69.t3 | tlambda69.t3*t1
+Item.70.t3 | tlambda70.t3*t1
+
+
+lambda1.t1 ==0.605768111800353
+lambda2.t1 ==0.731050410854043
+lambda3.t1 ==0.966925221330078
+lambda4.t1 ==1.36099622796096
+lambda5.t1 ==0.530766076424742
+lambda6.t1 ==1.34945908926874
+lambda7.t1 ==1.40384872926598
+lambda8.t1 ==1.07026767624776
+lambda9.t1 ==1.03303647931713
+lambda10.t1 ==0.36637634602534
+lambda11.t1 ==0.535810311280025
+lambda12.t1 ==0.501241777354871
+lambda13.t1 ==1.10108442615486
+lambda14.t1 ==0.745127753482652
+lambda15.t1 ==1.19840354876446
+lambda16.t1 ==0.878612505388036
+lambda17.t1 ==1.13703702498757
+lambda18.t1 ==1.45934911260926
+lambda19.t1 ==0.740346861849993
+lambda20.t1 ==1.20733868545217
+lambda21.t1 ==1.39213305652868
+lambda22.t1 ==0.543058191871513
+lambda23.t1 ==1.05954614111149
+lambda24.t1 ==0.44131033602975
+lambda25.t1 ==0.607779869245044
+lambda26.t1 ==0.74749012049791
+lambda27.t1 ==0.309506854475788
+lambda28.t1 ==0.743111582925996
+lambda29.t1 ==1.31573542387834
+lambda30.t1 ==0.693712099515488
+
+tlambda1.t1 ==-0.389937930318494
+tlambda2.t1 ==0.992592029861341
+tlambda3.t1 ==-0.592982404714925
+tlambda4.t1 ==-0.904926768708513
+tlambda5.t1 ==-0.0502078274584591
+tlambda6.t1 ==2.11702243640856
+tlambda7.t1 ==2.04591001146434
+tlambda8.t1 ==-0.470962542678942
+tlambda9.t1 ==1.14592959346492
+tlambda10.t1 ==0.675038154936852
+tlambda11.t1 ==-0.14004048721003
+tlambda12.t1 ==0.426084941092017
+tlambda13.t1 ==-0.440458571737896
+tlambda14.t1 ==-0.52053983488637
+tlambda15.t1 ==1.23237660215154
+tlambda16.t1 ==-1.04487321031349
+tlambda17.t1 ==0.96021058683591
+tlambda18.t1 ==-2.20833423736645
+tlambda19.t1 ==-0.753707119979238
+tlambda20.t1 ==-1.7226096866107
+tlambda21.t1 ==-1.44988199276628
+tlambda22.t1 ==-0.958097198298048
+tlambda23.t1 ==0.603043901012482
+tlambda24.t1 ==0.664205970761459
+tlambda25.t1 ==0.678074904751807
+tlambda26.t1 ==0.888941640351674
+tlambda27.t1 ==-0.0553714526997642
+tlambda28.t1 ==-0.267270240482607
+tlambda29.t1 ==1.6360919625726
+tlambda30.t1 ==0.291173972427605
+
+lambda21.t2 ==1.39213305652868
+lambda22.t2 ==0.543058191871513
+lambda23.t2 ==1.05954614111149
+lambda24.t2 ==0.44131033602975
+lambda25.t2 ==0.607779869245044
+lambda26.t2 ==0.74749012049791
+lambda27.t2 ==0.309506854475788
+lambda28.t2 ==0.743111582925996
+lambda29.t2 ==1.31573542387834
+lambda30.t2 ==0.693712099515488
+lambda31.t2 ==0.860258655077597
+lambda32.t2 ==0.998314718478365
+lambda33.t2 ==0.87372656527482
+lambda34.t2 ==0.512594126217444
+lambda35.t2 ==1.26600860000821
+lambda36.t2 ==1.07927936332828
+lambda37.t2 ==1.22707386689368
+lambda38.t2 ==0.420615306566223
+lambda39.t2 ==1.14419617631049
+lambda40.t2 ==0.777055734011195
+lambda41.t2 ==1.25845627980712
+lambda42.t2 ==1.05412478709744
+lambda43.t2 ==1.2137870297173
+lambda44.t2 ==0.943638439061499
+lambda45.t2 ==0.916239224674156
+lambda46.t2 ==1.22133517237304
+lambda47.t2 ==0.321188251861096
+lambda48.t2 ==0.854559418374342
+lambda49.t2 ==1.15430521582867
+lambda50.t2 ==1.10779266331682
+
+tlambda21.t2 ==-1.44988199276628
+tlambda22.t2 ==-0.958097198298048
+tlambda23.t2 ==0.603043901012482
+tlambda24.t2 ==0.664205970761459
+tlambda25.t2 ==0.678074904751807
+tlambda26.t2 ==0.888941640351674
+tlambda27.t2 ==-0.0553714526997642
+tlambda28.t2 ==-0.267270240482607
+tlambda29.t2 ==1.6360919625726
+tlambda30.t2 ==0.291173972427605
+tlambda31.t2 ==0.532410393103875
+tlambda32.t2 ==-0.586221296557703
+tlambda33.t2 ==-0.802919254560999
+tlambda34.t2 ==1.01018782335366
+tlambda35.t2 ==0.676014483289673
+tlambda36.t2 ==-1.23811416492105
+tlambda37.t2 ==-1.8191500240886
+tlambda38.t2 ==-0.0368155588236749
+tlambda39.t2 ==1.94089754741391
+tlambda40.t2 ==0.306971103259464
+tlambda41.t2 ==2.39696000513464
+tlambda42.t2 ==0.977352928962532
+tlambda43.t2 ==-0.695612063284296
+tlambda44.t2 ==-0.25865623873325
+tlambda45.t2 ==-1.28928946757585
+tlambda46.t2 ==-2.37878193313096
+tlambda47.t2 ==0.276949151716891
+tlambda48.t2 ==-1.35641059480417
+tlambda49.t2 ==-0.248017026280806
+tlambda50.t2 ==0.620811639704351
+
+
+lambda41.t3 ==1.25845627980712
+lambda42.t3 ==1.05412478709744
+lambda43.t3 ==1.2137870297173
+lambda44.t3 ==0.943638439061499
+lambda45.t3 ==0.916239224674156
+lambda46.t3 ==1.22133517237304
+lambda47.t3 ==0.321188251861096
+lambda48.t3 ==0.854559418374342
+lambda49.t3 ==1.15430521582867
+lambda50.t3 ==1.10779266331682
+lambda51.t3 ==0.855017182297926
+lambda52.t3 ==1.30576906795805
+lambda53.t3 ==0.808574744094203
+lambda54.t3 ==0.581430407792557
+lambda55.t3 ==0.376826142355992
+lambda56.t3 ==0.410653537218092
+lambda57.t3 ==0.66541916237691
+lambda58.t3 ==0.903213000227068
+lambda59.t3 ==1.07168634126639
+lambda60.t3 ==0.771833357448251
+lambda61.t3 ==1.36648169713211
+lambda62.t3 ==0.63878187163351
+lambda63.t3 ==0.833214719459134
+lambda64.t3 ==0.68436506955056
+lambda65.t3 ==1.05860219397237
+lambda66.t3 ==0.596964489679552
+lambda67.t3 ==0.856104874589451
+lambda68.t3 ==1.19425460710447
+lambda69.t3 ==0.392769582101202
+lambda70.t3 ==1.32235173917388
+
+tlambda41.t3 ==2.39696000513464
+tlambda42.t3 ==0.977352928962532
+tlambda43.t3 ==-0.695612063284296
+tlambda44.t3 ==-0.25865623873325
+tlambda45.t3 ==-1.28928946757585
+tlambda46.t3 ==-2.37878193313096
+tlambda47.t3 ==0.276949151716891
+tlambda48.t3 ==-1.35641059480417
+tlambda49.t3 ==-0.248017026280806
+tlambda50.t3 ==0.620811639704351
+tlambda51.t3 ==1.68212188422228
+tlambda52.t3 ==-0.0230150789429684
+tlambda53.t3 ==-0.050618317311655
+tlambda54.t3 ==-0.759482225621904
+tlambda55.t3 ==0.38409277404265
+tlambda56.t3 ==-0.0757319217347629
+tlambda57.t3 ==0.0297303526434214
+tlambda58.t3 ==-1.05659622264679
+tlambda59.t3 ==-1.16317344898993
+tlambda60.t3 ==0.295494845849919
+tlambda61.t3 ==0.409245954304556
+tlambda62.t3 ==-1.0806544269744
+tlambda63.t3 ==-1.54797770272375
+tlambda64.t3 ==0.390896987794135
+tlambda65.t3 ==1.81493196281325
+tlambda66.t3 ==0.234230771410254
+tlambda67.t3 ==0.208549708946123
+tlambda68.t3 ==0.12433491678701
+tlambda69.t3 ==0.762122593446743
+tlambda70.t3 ==0.0404207082074428
+'
+
+working <- function(){}
+
+
+lavaan.model.t123.t123fixed.asim.nocov.fit <- lavaan(
+                           lavaan.model.t123.t123fixed.asim.nocov, 
+                           data = cbind(U1,U2,U3), 
+                           int.ov.free = TRUE,
+                           int.lv.free = FALSE,
+                           meanstructure = TRUE,
+                           std.lv =FALSE,
+                           auto.fix.first = FALSE,
+                           auto.var = TRUE,
+                           auto.th = TRUE,
+                           auto.delta = TRUE,
+                           auto.cov.y = TRUE,
+                           auto.var = TRUE,
+                           ordered = c(colnames(U1),colnames(U2),colnames(U3)),
+                           parameterization = "theta")
+
+lavaan.model.t123.t123fixed.asim.nocov.fit <- lavaan.model.fit
+
+summary ( lavaan.model.fit , standardized = TRUE )
+fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
+
+t123.t123fixed.asim.nocov.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
+t123.t123fixed.asim.nocov.tri.param<-get_a_d_b(t123.t123fixed.sim.nocov.sem.param)
+
+eta123.t123fixed.asim.nocov.free <-predict(lavaan.model.fit)
+mean(eta123.t123fixed.asim.nocov.free[,1])
+mean(eta123.t123fixed.asim.nocov.free[,2])
+mean(eta123.t123fixed.asim.nocov.free[,3])
+sd(eta123.t123fixed.asim.nocov.free[,1])
+sd(eta123.t123fixed.asim.nocov.free[,2])
+sd(eta123.t123fixed.asim.nocov.free[,3])
+cov(eta123.t123fixed.asim.nocov.free)
+
+
+
+UNTIL_HERE <- function(){}
 
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
