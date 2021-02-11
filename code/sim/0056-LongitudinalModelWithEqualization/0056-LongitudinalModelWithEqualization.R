@@ -14,7 +14,7 @@ if(!require(ggrepel)) install.packages("ggrepel"); library(ggrepel)
 
 
 ###Generate person parameters
-
+parameter_set <- function (){}
 set.seed(1) # Resetando a semente
 
 N <- 10000 ## subjects
@@ -26,12 +26,9 @@ PL=2 # Logistic Model (1,2,3 parameters)
 SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covari?ncia AR1, 2 =  Covari?ncia de bandas
 rho<-0.7
 
-
-coefs <- matrix(ncol=6,nrow=I)
-colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
-
 #if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
-if (PL==1) {a = rep(1,I)} else {a = runif(I,0.65, 1.34)}    # U(0.5 , 2.5)
+if (PL==1) {a = rep(1,I)} else {a = runif(I,0.65, 1.34)}    # moderate
+#if (PL==1) {a = rep(1,I)} else {a = runif(I,1.35, 1.69)}    # high
 b = runif(I,-2, 2.0)     # U(-2 , 2)
 if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
   
@@ -77,6 +74,10 @@ profic = fscores(mod) #estimativas das proficiências individuais
 mean(profic)
 sd(profic)
 
+plot(cbind(a[1:30],par$items[,"a"]))
+lines(c(-4,4),c(-4,4), col = "blue")
+
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # momento 2
@@ -101,6 +102,10 @@ profic = fscores(mod) #estimativas das proficiências individuais
 mean(profic)
 sd(profic)
 
+plot(cbind(a[21:50],par$items[,"a"]))
+lines(c(-4,4),c(-4,4), col = "blue")
+plot(cbind(b[21:50],par$items[,"b"]))
+lines(c(-4,4),c(-4,4), col = "blue")
 
 
 
@@ -141,6 +146,7 @@ rm(P,X,eta)
 
 
  mod <-mirt(data=U3,itemtype = "2PL",model=1)
+ summary(mod)
  par<-coef(mod,simplify=TRUE,IRTpars = TRUE)
  tmp1 <- cbind(a[41:70],par$items[,"a"],a[41:70]-par$items[,"a"])
  mean(tmp1[,3])
@@ -150,6 +156,10 @@ rm(P,X,eta)
 mean(profic)
 sd(profic)
 
+plot(cbind(a[41:70],par$items[,"a"]))
+lines(c(-4,4),c(-4,4), col = "blue")
+plot(cbind(b[41:70],par$items[,"b"]))
+lines(c(-4,4),c(-4,4), col = "blue")
 
 
 head(U1)
@@ -228,28 +238,77 @@ cat(paste("Item.",21:40,".t2 ~~ Item.",21:40,".t2" ,sep="",collapse = "\n"))
 cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t2"," + Item.",41:50,".t3" ,sep="",collapse = "\n"))
 cat(paste("Item.",41:70,".t3 ~~ Item.",41:70,".t3" ,sep="",collapse = "\n"))
 
-
 cat(paste("Item.",21:30,".t1 ~~ Item.",21:30,".t2" ,sep="",collapse = "\n"))
 cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t3" ,sep="",collapse = "\n"))
 
 
-I= 50  # Number of Items
+I= 70  # Number of Items
 Ig = 30 #Items per group
 Ic = 10 # Common Items
 
-itemnames <- c( paste0("Item.",(1:Ig),".t1"),paste0("Item.",((Ig-Ic+1):(2*Ig-Ic)),".t2"))
-#itemnames <- c( paste0("Item.",(1:Ig),".t1"),paste0("Item.",((Ig-Ic+1):(2*Ig-Ic)),".t2"),  paste0("Item.",((Ig+Ic+1):(2*Ig+Ic)),".t3"))
-p1<-""
-p2<-""
-for(i in 1:(Ig*2)){
-  p1<-paste0(itemnames[i]," ~~ 1*",itemnames[i])
-  for(j in (i+1):(Ig*3)){
-    p1 <- paste(p1,paste0("0*",itemnames[j]),sep=" + ",collapse = "\n")
-  }
-  p2 <- paste(p2,p1,sep="",collapse = "\n")
-  print(p1)
+get_item_index <- function(time,Ig,Ic){
+  return( c( group_index_start = ((time-1)*Ig-(time-1)*Ic+1),  # grupo_index_start
+             first_common_index_end = ((time-1)*Ig-(time-1)*Ic+Ic), # first_common_index_end
+             second_common_index_start = (time*Ig-(time-1)*Ic-Ic+1),   # second_common_index_start
+             group_index_end = (time*Ig-(time-1)*Ic))        # group_index_end
+          )
 }
-p2
+
+str(get_item_index(1,Ig,Ic))
+get_item_index(1,Ig,Ic)
+
+item_names <- matrix(NA,nrow = 3, ncol=Ig)
+item_indexes <- matrix(NA,nrow = 3, ncol=4)
+for(i in 1:3){
+  item_indexes[i,] <-get_item_index(i,Ig,Ic)
+  item_names[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+}
+
+
+mod <- ""
+for(i in 1:3){
+  tmp <- paste0("eta",i,"=~", 
+                paste("l",item_indexes[i,1]:item_indexes[i,4],".t",i,"*",item_names[i,],sep = "",collapse="+"))
+  mod <- c(mod,tmp,"\n")
+}
+
+#common factor covariances
+for(i in 1:2){
+  tmp<-paste0("eta",i,"~~",
+              paste("eta",(i+1):3,
+                    sep="",collapse = "+"))
+  mod <- c(mod,tmp,"\n")
+}
+
+#offset restrictions
+for(i in 1:3){
+  tmp <- paste0(length(item_names[i,]),"=~", paste("l",item_indexes[i,1]:item_indexes[i,4],".t",i,sep = "",collapse="+"))
+  mod <- c(mod,tmp,"\n")
+}
+#thresholds
+for(i in 1:3){
+  tmp <- paste(item_names[i,]," | t",item_indexes[i,1]:item_indexes[i,4],".t",i,"*t1",sep="",collapse = "\n")
+  mod <- c(mod,tmp,"\n")
+}
+
+working <- function(){}
+#covariance matrix
+i<-1
+paste("Item.",item_indexes[i,1]:(item_indexes[i,3]-1),".t1 ~~ Item.",item_indexes[i,1]:item_indexes[i,4],".t1" ,sep="",collapse = "\n")
+
+# cat(paste("Item.",21:30,".t1 ~~ Item.",21:30,".t1"," + Item.",21:30,".t2" ,sep="",collapse = "\n"))
+# 
+# 
+# cat(paste("Item.",21:40,".t2 ~~ Item.",21:40,".t2" ,sep="",collapse = "\n"))
+# cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t2"," + Item.",41:50,".t3" ,sep="",collapse = "\n"))
+# cat(paste("Item.",41:70,".t3 ~~ Item.",41:70,".t3" ,sep="",collapse = "\n"))
+
+
+
+cat(mod)
+
+
+
 
 
 
@@ -347,13 +406,12 @@ eta1.free<-predict(lavaan.model.fit)
 mean(eta1.free)
 sd(eta1.free)
 
-
-
-mod.fitted <- lavaan.model.fit
-
-
-t1.sem.param<-get_lmb_tau_alpha_psi(mod.fitted)
+t1.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
 t1.tri.param<-get_a_d_b(t1.sem.param)
+
+plot(cbind(a[1:30],t1.tri.param$a[1:30]),xlim = c(0.5 , 2.5),ylim = c(0.5 , 2.5),asp=1)
+lines(c(-4,4),c(-4,4), col = "blue")
+
 
 plot(cbind(b[1:30],t1.tri.param$b[1:30]))
 lines(c(-4,4),c(-4,4), col = "blue")
@@ -362,11 +420,6 @@ eta1.free<-predict(lavaan.model.fit)
 mean(eta1.free)
 sd(eta1.free)
 
-plot(cbind(b[1:30],t1.tri.param$b))
-lines(c(-4,4),c(-4,4), col = "blue")
-
-plot(cbind(a[1:30],t1.tri.param$a))
-lines(c(-4,4),c(-4,4), col = "blue")
 
 
 cat(paste("lambda",1:30,".t1 ==",t1.sem.param$lambda,sep="",collapse = "\n"))
@@ -452,6 +505,10 @@ summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
 t2.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
 t2.tri.param<-get_a_d_b(t2.sem.param)
+
+plot(cbind(a[21:50],t2.tri.param$a[1:30])) 
+lines(c(-4,4),c(-4,4), col = "blue")
+
 plot(cbind(b[21:50],t2.tri.param$b[1:30])) 
 lines(c(-4,4),c(-4,4), col = "blue")
 
@@ -631,8 +688,6 @@ Item.47.t2 ~~ 1*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2
 Item.48.t2 ~~ 1*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
 Item.49.t2 ~~ 1*Item.49.t2 + 0*Item.50.t2                              
 Item.50.t2 ~~ 1*Item.50.t2      
-
-
 
 lambda1.t1 ==0.726371655117903
 lambda2.t1 ==0.822808811591549
@@ -1088,6 +1143,10 @@ summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
 t3.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
 t3.tri.param<-get_a_d_b(t3.sem.param)
+
+plot(cbind(a[41:70],t3.tri.param$a[1:30])) 
+lines(c(-4,4),c(-4,4), col = "blue")
+
 plot(cbind(b[41:70],t3.tri.param$b[1:30])) 
 lines(c(-4,4),c(-4,4), col = "blue")
 
@@ -1819,8 +1878,8 @@ lavaan.model.t123.t123fixed.nocov.fit <- lavaan.model.fit
 summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
 
-t123.13cov.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
-t123.13cov.tri.param<-get_a_d_b(t123.sem.param)
+t123.t123fixed.nocov.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
+t123.t123fixed.nocov.tri.param<-get_a_d_b(t123.t123fixed.nocov.sem.param)
 
 eta123.t123fixed.nocov <-predict(lavaan.model.fit)
 mean(eta123.t123fixed.nocov[,1])
@@ -2166,7 +2225,7 @@ summary ( lavaan.model.fit , standardized = TRUE )
 fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
 
 t123.t123fixed.asim.nocov.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
-t123.t123fixed.asim.nocov.tri.param<-get_a_d_b(t123.t123fixed.sim.nocov.sem.param)
+t123.t123fixed.asim.nocov.tri.param<-get_a_d_b(t123.t123fixed.asim.nocov.sem.param)
 
 eta123.t123fixed.asim.nocov.free <-predict(lavaan.model.fit)
 mean(eta123.t123fixed.asim.nocov.free[,1])
