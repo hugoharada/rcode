@@ -241,84 +241,139 @@ cat(paste("Item.",41:70,".t3 ~~ Item.",41:70,".t3" ,sep="",collapse = "\n"))
 cat(paste("Item.",21:30,".t1 ~~ Item.",21:30,".t2" ,sep="",collapse = "\n"))
 cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t3" ,sep="",collapse = "\n"))
 
-
-I= 70  # Number of Items
-Ig = 30 #Items per group
-Ic = 10 # Common Items
-
 get_item_index <- function(time,Ig,Ic){
   return( c( group_index_start = ((time-1)*Ig-(time-1)*Ic+1),  # grupo_index_start
              first_common_index_end = ((time-1)*Ig-(time-1)*Ic+Ic), # first_common_index_end
              second_common_index_start = (time*Ig-(time-1)*Ic-Ic+1),   # second_common_index_start
              group_index_end = (time*Ig-(time-1)*Ic))        # group_index_end
-          )
+  )
 }
 
 str(get_item_index(1,Ig,Ic))
 get_item_index(1,Ig,Ic)
 
-item_name <- matrix(NA,nrow = 3, ncol=Ig)
-lmb_name <- matrix(NA,nrow = 3, ncol=Ig)
-thr_name <- matrix(NA,nrow = 3, ncol=Ig)
-item_indexes <- matrix(NA,nrow = 3, ncol=4)
-for(i in 1:3){
-  item_indexes[i,] <-get_item_index(i,Ig,Ic)
-  item_name[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
-  lmb_name[i,] <- paste0("lmb.",item_indexes[i,1]:item_indexes[i,4],".t",i)
-  thr_name[i,] <- paste0("thr.",item_indexes[i,1]:item_indexes[i,4],".t",i)
 
-}
+I= 70  # Number of Items
+Ig = 30 #Items per group
+Ic = 10 # Common Items
+nt =2
 
 
-mod <- ""
-for(i in 1:3){
-  tmp <- paste0("eta",i,"=~", 
-                paste(lmb_name[i,],"*",item_name[i,],sep = "",collapse="+"))
-  mod <- c(mod,tmp,"\n")
-}
-
-#common factor covariances
-for(i in 1:2){
-  tmp<-paste0("eta",i,"~~",
-              paste("eta",(i+1):3,
-                    sep="",collapse = "+"))
-  mod <- c(mod,tmp,"\n")
-}
-
-#offset restrictions
-for(i in 1:3){
-  tmp <- paste0(length(item_name[i,]),"=~", paste(lmb_name[i,],sep = "",collapse="+"))
-  mod <- c(mod,tmp,"\n")
-}
-#thresholds
-for(i in 1:3){
-  tmp <- paste(item_name[i,]," | ",thr_name[i,],"*t1",sep="",collapse = "\n")
-  mod <- c(mod,tmp,"\n")
-}
-
-#covariance matrix
-for(i in 1:3){
-  if(i<3){
-    tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)]," ~~ ",
-                 item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)],sep="",collapse = "\n")
-    mod <- c(mod,tmp,"\n")
-    tmp <- paste(item_name[i,item_indexes[1,3]:(item_indexes[1,4])]," ~~ ",
-                 item_name[i,item_indexes[1,3]:(item_indexes[1,4])],"+",
-                 item_name[i+1,item_indexes[1,1]:(item_indexes[1,2])],
-                 sep="",collapse = "\n")
-    mod <- c(mod,tmp,"\n")
-  }else{
-    tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,4])]," ~~ ",
-                 item_name[i,item_indexes[1,1]:(item_indexes[1,4])],sep="",collapse = "\n")
-    mod <- c(mod,tmp,"\n")
+model_gen <- function(Ig = 30, #Items per group
+                    Ic = 10, # Common Items
+                    nt =2, # number of moments
+                    lmb_values = NULL, # nt x Ig matrix 
+                    tau_values = NULL # nt x Ig matrix 
+){
+  item_name <- matrix(NA,nrow = nt, ncol=Ig)
+  lmb_name <- matrix(NA,nrow = nt, ncol=Ig)
+  tau_name <- matrix(NA,nrow = nt, ncol=Ig)
+  item_indexes <- matrix(NA,nrow = nt, ncol=4)
+  for(i in 1:nt){
+    item_indexes[i,] <-get_item_index(i,Ig,Ic)
+    item_name[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    lmb_name[i,] <- paste0("lmb.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    tau_name[i,] <- paste0("thr.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    
   }
-}
+  mod <- ""
+  for(i in 1:nt){
+    tmp <- paste0("eta",i,"=~", 
+                  paste(lmb_name[i,],"*",item_name[i,],sep = "",collapse="+"))
+    mod <- c(mod,tmp,"\n\n")
+  }
+  
+  #common factor covariances
+  if(nt==1){
+    tmp<-paste0("eta",1,"~~",
+                paste("eta",1,
+                      sep="",collapse = "+"))
+    mod <- c(mod,tmp,"\n\n")
+  }else{
+    for(i in 1:(nt-1)){
+      tmp<-paste0("eta",i,"~~",
+                paste("eta",(i+1):nt,
+                      sep="",collapse = "+"))
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+
+  #offset restrictions
+  for(i in 1:nt){
+    tmp <- paste0(length(item_name[i,]),"=~", paste(lmb_name[i,],sep = "",collapse="+"))
+    mod <- c(mod,tmp,"\n\n")
+  }
+  #thresholds
+  for(i in 1:nt){
+    tmp <- paste(item_name[i,]," | ",tau_name[i,],"*t1",sep="",collapse = "\n")
+    mod <- c(mod,tmp,"\n\n")
+  }
+  mod <- c(mod,"\n")
+  
+  #covariance matrix
+  for(i in 1:nt){
+    if(i<nt){
+      tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)]," ~~ ",
+                   item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)],sep="",collapse = "\n")
+      mod <- c(mod,tmp,"\n")
+      tmp <- paste(item_name[i,item_indexes[1,3]:(item_indexes[1,4])]," ~~ ",
+                   item_name[i,item_indexes[1,3]:(item_indexes[1,4])],"+",
+                   item_name[i+1,item_indexes[1,1]:(item_indexes[1,2])],
+                   sep="",collapse = "\n")
+      mod <- c(mod,tmp,"\n\n")
+    }else{
+      tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,4])]," ~~ ",
+                   item_name[i,item_indexes[1,1]:(item_indexes[1,4])],sep="",collapse = "\n")
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+
+  if( !is.null(lmb_values)){
+    for(i in 1:nt){
+      tmp <- paste(  lmb_name[i,], "==",lmb_values[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+    
+  if( !is.null(tau_values)){
+    for(i in 1:nt){
+      tmp <- paste(  tau_name[i,], "==",tau_values[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  # for(i in 1:nt){
+  #   tmp <- paste(  lmb_name[i,], "==",lambda_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")
+  #   mod <- c(mod,tmp,"\n\n")
+  #   tmp <- paste(  tau_name[i,], "==",tau_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
+  #   mod <- c(mod,tmp,"\n\n")
+  # }
+  return(mod)
+} #model_gen <- function(I= 70,  # Number of Items
+
+cat(model_gen(Ig = 30, Ic = 10, nt=2,lmb_values = NULL, tau_values = NULL ))
+
+cat(model_gen(Ig = 15, Ic = 5, nt=3,lmb_values = NULL, tau_values = NULL ))
+
+cat(model_gen(Ig = 10, Ic = 5, nt=2,lmb_values = NULL, tau_values = NULL ))
+
+cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = NULL, tau_values = NULL ))
+
+lmb_values_prep <- matrix(data = c(lambda_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   lambda_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   lambda_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+tau_values_prep <- matrix(data = c(tau_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   tau_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   tau_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = NULL, tau_values = tau_values_prep))
+cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = lmb_values_prep, tau_values = NULL))
+cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = lmb_values_prep, tau_values = tau_values_prep))
+cat(model_gen(Ig = 10, Ic = 5, nt=2,lmb_values = lmb_values_prep, tau_values = tau_values_prep))
 
 working <- function(){}
-
-
-
-cat(mod)
 
 
 
