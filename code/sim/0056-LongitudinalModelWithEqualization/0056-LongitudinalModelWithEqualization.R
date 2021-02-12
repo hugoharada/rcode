@@ -257,18 +257,23 @@ get_item_index <- function(time,Ig,Ic){
 str(get_item_index(1,Ig,Ic))
 get_item_index(1,Ig,Ic)
 
-item_names <- matrix(NA,nrow = 3, ncol=Ig)
+item_name <- matrix(NA,nrow = 3, ncol=Ig)
+lmb_name <- matrix(NA,nrow = 3, ncol=Ig)
+thr_name <- matrix(NA,nrow = 3, ncol=Ig)
 item_indexes <- matrix(NA,nrow = 3, ncol=4)
 for(i in 1:3){
   item_indexes[i,] <-get_item_index(i,Ig,Ic)
-  item_names[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+  item_name[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+  lmb_name[i,] <- paste0("lmb.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+  thr_name[i,] <- paste0("thr.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+
 }
 
 
 mod <- ""
 for(i in 1:3){
   tmp <- paste0("eta",i,"=~", 
-                paste("l",item_indexes[i,1]:item_indexes[i,4],".t",i,"*",item_names[i,],sep = "",collapse="+"))
+                paste(lmb_name[i,],"*",item_name[i,],sep = "",collapse="+"))
   mod <- c(mod,tmp,"\n")
 }
 
@@ -282,34 +287,38 @@ for(i in 1:2){
 
 #offset restrictions
 for(i in 1:3){
-  tmp <- paste0(length(item_names[i,]),"=~", paste("l",item_indexes[i,1]:item_indexes[i,4],".t",i,sep = "",collapse="+"))
+  tmp <- paste0(length(item_name[i,]),"=~", paste(lmb_name[i,],sep = "",collapse="+"))
   mod <- c(mod,tmp,"\n")
 }
 #thresholds
 for(i in 1:3){
-  tmp <- paste(item_names[i,]," | t",item_indexes[i,1]:item_indexes[i,4],".t",i,"*t1",sep="",collapse = "\n")
+  tmp <- paste(item_name[i,]," | ",thr_name[i,],"*t1",sep="",collapse = "\n")
   mod <- c(mod,tmp,"\n")
 }
 
-working <- function(){}
 #covariance matrix
-i<-1
-paste("Item.",item_indexes[i,1]:(item_indexes[i,3]-1),".t1 ~~ Item.",item_indexes[i,1]:item_indexes[i,4],".t1" ,sep="",collapse = "\n")
+for(i in 1:3){
+  if(i<3){
+    tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)]," ~~ ",
+                 item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)],sep="",collapse = "\n")
+    mod <- c(mod,tmp,"\n")
+    tmp <- paste(item_name[i,item_indexes[1,3]:(item_indexes[1,4])]," ~~ ",
+                 item_name[i,item_indexes[1,3]:(item_indexes[1,4])],"+",
+                 item_name[i+1,item_indexes[1,1]:(item_indexes[1,2])],
+                 sep="",collapse = "\n")
+    mod <- c(mod,tmp,"\n")
+  }else{
+    tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,4])]," ~~ ",
+                 item_name[i,item_indexes[1,1]:(item_indexes[1,4])],sep="",collapse = "\n")
+    mod <- c(mod,tmp,"\n")
+  }
+}
 
-# cat(paste("Item.",21:30,".t1 ~~ Item.",21:30,".t1"," + Item.",21:30,".t2" ,sep="",collapse = "\n"))
-# 
-# 
-# cat(paste("Item.",21:40,".t2 ~~ Item.",21:40,".t2" ,sep="",collapse = "\n"))
-# cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t2"," + Item.",41:50,".t3" ,sep="",collapse = "\n"))
-# cat(paste("Item.",41:70,".t3 ~~ Item.",41:70,".t3" ,sep="",collapse = "\n"))
+working <- function(){}
 
 
 
 cat(mod)
-
-
-
-
 
 
 
