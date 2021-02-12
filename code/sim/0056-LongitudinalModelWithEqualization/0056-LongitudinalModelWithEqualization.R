@@ -208,6 +208,7 @@ lambda_sim <- a/sqrt(var_eta)/1.702
 tau_sim <- (lambda_sim*alpha -d)/1.702
 
 
+
 p1<-paste("lambda",1:30,".t1*Item.",1:30,".t1",sep="",collapse = " + ")
 p1<-paste("d1 =~",p1,sep="",collapse = "")
 p2<-paste("lambda",21:50,".t2*Item.",21:50,".t2",sep="",collapse = " + ")
@@ -250,7 +251,7 @@ get_item_index <- function(time,Ig,Ic){
 }
 
 str(get_item_index(1,Ig,Ic))
-get_item_index(1,Ig,Ic)
+
 
 
 I= 70  # Number of Items
@@ -258,9 +259,14 @@ Ig = 30 #Items per group
 Ic = 10 # Common Items
 nt =2
 
+lambda_est <- matrix(data = NA, nrow = 3,ncol = Ig)
+tau_est<- matrix(data = NA, nrow = 3,ncol = Ig)
+single_moment_item_indexes <-get_item_index(1,Ig,Ic)
+
 
 model_gen <- function(Ig = 30, #Items per group
                     Ic = 10, # Common Items
+                    n0 = 1, # Common Items
                     nt =2, # number of moments
                     lmb_values = NULL, # nt x Ig matrix 
                     tau_values = NULL # nt x Ig matrix 
@@ -269,7 +275,8 @@ model_gen <- function(Ig = 30, #Items per group
   lmb_name <- matrix(NA,nrow = nt, ncol=Ig)
   tau_name <- matrix(NA,nrow = nt, ncol=Ig)
   item_indexes <- matrix(NA,nrow = nt, ncol=4)
-  for(i in 1:nt){
+  single_moment_item_indexes <-get_item_index(1,Ig,Ic)
+  for(i in n0:nt){
     item_indexes[i,] <-get_item_index(i,Ig,Ic)
     item_name[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
     lmb_name[i,] <- paste0("lmb.",item_indexes[i,1]:item_indexes[i,4],".t",i)
@@ -277,20 +284,20 @@ model_gen <- function(Ig = 30, #Items per group
     
   }
   mod <- ""
-  for(i in 1:nt){
+  for(i in n0:nt){
     tmp <- paste0("eta",i,"=~", 
                   paste(lmb_name[i,],"*",item_name[i,],sep = "",collapse="+"))
     mod <- c(mod,tmp,"\n\n")
   }
   
   #common factor covariances
-  if(nt==1){
-    tmp<-paste0("eta",1,"~~",
-                paste("eta",1,
+  if(nt==n0){
+    tmp<-paste0("eta",n0,"~~",
+                paste("eta",n0,
                       sep="",collapse = "+"))
     mod <- c(mod,tmp,"\n\n")
   }else{
-    for(i in 1:(nt-1)){
+    for(i in n0:(nt-1)){
       tmp<-paste0("eta",i,"~~",
                 paste("eta",(i+1):nt,
                       sep="",collapse = "+"))
@@ -298,52 +305,52 @@ model_gen <- function(Ig = 30, #Items per group
     }
   }
 
-  #offset restrictions
-  for(i in 1:nt){
-    tmp <- paste0(length(item_name[i,]),"=~", paste(lmb_name[i,],sep = "",collapse="+"))
+  #effect coding restrictions
+  for(i in n0:nt){
+    tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
     mod <- c(mod,tmp,"\n\n")
   }
   #thresholds
-  for(i in 1:nt){
+  for(i in n0:nt){
     tmp <- paste(item_name[i,]," | ",tau_name[i,],"*t1",sep="",collapse = "\n")
     mod <- c(mod,tmp,"\n\n")
   }
   mod <- c(mod,"\n")
   
   #covariance matrix
-  for(i in 1:nt){
+  for(i in n0:nt){
     if(i<nt){
-      tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)]," ~~ ",
-                   item_name[i,item_indexes[1,1]:(item_indexes[1,3]-1)],sep="",collapse = "\n")
+      tmp <- paste(item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)]," ~~ ",
+                   item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)],sep="",collapse = "\n")
       mod <- c(mod,tmp,"\n")
-      tmp <- paste(item_name[i,item_indexes[1,3]:(item_indexes[1,4])]," ~~ ",
-                   item_name[i,item_indexes[1,3]:(item_indexes[1,4])],"+",
-                   item_name[i+1,item_indexes[1,1]:(item_indexes[1,2])],
+      tmp <- paste(item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]]," ~~ ",
+                   item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]],"+",
+                   item_name[i+1,1:Ic],
                    sep="",collapse = "\n")
       mod <- c(mod,tmp,"\n\n")
     }else{
-      tmp <- paste(item_name[i,item_indexes[1,1]:(item_indexes[1,4])]," ~~ ",
-                   item_name[i,item_indexes[1,1]:(item_indexes[1,4])],sep="",collapse = "\n")
+      tmp <- paste(item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]]," ~~ ",
+                   item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")
       mod <- c(mod,tmp,"\n\n")
     }
   }
 
   if( !is.null(lmb_values)){
-    for(i in 1:nt){
-      tmp <- paste(  lmb_name[i,], "==",lmb_values[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
+    for(i in n0:nt){
+      tmp <- paste(  lmb_name[i,], "==",lmb_values[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
       mod <- c(mod,tmp,"\n\n")
     }
   }
   
     
   if( !is.null(tau_values)){
-    for(i in 1:nt){
-      tmp <- paste(  tau_name[i,], "==",tau_values[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
+    for(i in n0:nt){
+      tmp <- paste(  tau_name[i,], "==",tau_values[i, single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
       mod <- c(mod,tmp,"\n\n")
     }
   }
   
-  # for(i in 1:nt){
+  # for(i in n0:nt){
   #   tmp <- paste(  lmb_name[i,], "==",lambda_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")
   #   mod <- c(mod,tmp,"\n\n")
   #   tmp <- paste(  tau_name[i,], "==",tau_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
@@ -358,7 +365,8 @@ cat(model_gen(Ig = 15, Ic = 5, nt=3,lmb_values = NULL, tau_values = NULL ))
 
 cat(model_gen(Ig = 10, Ic = 5, nt=2,lmb_values = NULL, tau_values = NULL ))
 
-cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = NULL, tau_values = NULL ))
+cat(model_gen(Ig = 10, Ic = 5, n0=2, nt=2,lmb_values = NULL, tau_values = NULL ))
+cat(model_gen(Ig = 10, Ic = 5, n0=3, nt=3,lmb_values = NULL, tau_values = NULL ))
 
 lmb_values_prep <- matrix(data = c(lambda_sim[item_indexes[1,1]:item_indexes[1,4]],
                                    lambda_sim[item_indexes[2,1]:item_indexes[2,4]],
@@ -410,42 +418,7 @@ get_a_d_b <- function( tn.sem.param){
 
 
 lavaan.model.t1.free.tag <- function(){}
-lavaan.model.t1.free <-'
-
-d1 =~ lambda1.t1*Item.1.t1+ lambda2.t1*Item.2.t1+ lambda3.t1*Item.3.t1+ lambda4.t1*Item.4.t1+ lambda5.t1*Item.5.t1+ lambda6.t1*Item.6.t1+ lambda7.t1*Item.7.t1+ lambda8.t1*Item.8.t1+ lambda9.t1*Item.9.t1+ lambda10.t1*Item.10.t1+ lambda11.t1*Item.11.t1+ lambda12.t1*Item.12.t1+ lambda13.t1*Item.13.t1+ lambda14.t1*Item.14.t1+ lambda15.t1*Item.15.t1+ lambda16.t1*Item.16.t1+ lambda17.t1*Item.17.t1+ lambda18.t1*Item.18.t1+ lambda19.t1*Item.19.t1+ lambda20.t1*Item.20.t1+ lambda21.t1*Item.21.t1+ lambda22.t1*Item.22.t1+ lambda23.t1*Item.23.t1+ lambda24.t1*Item.24.t1+ lambda25.t1*Item.25.t1+ lambda26.t1*Item.26.t1+ lambda27.t1*Item.27.t1+ lambda28.t1*Item.28.t1+ lambda29.t1*Item.29.t1+ lambda30.t1*Item.30.t1
-lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1+lambda5.t1+lambda6.t1+lambda7.t1+lambda8.t1+lambda9.t1+lambda10.t1+lambda11.t1+lambda12.t1+lambda13.t1+lambda14.t1+lambda15.t1+lambda16.t1+lambda17.t1+lambda18.t1+lambda19.t1+lambda20.t1+lambda21.t1+lambda22.t1+lambda23.t1+lambda24.t1+lambda25.t1+lambda26.t1+lambda27.t1+lambda28.t1+lambda29.t1+lambda30.t1==30
-
-Item.1.t1 | tlambda1.t1*t1
-Item.2.t1 | tlambda2.t1*t1
-Item.3.t1 | tlambda3.t1*t1
-Item.4.t1 | tlambda4.t1*t1
-Item.5.t1 | tlambda5.t1*t1
-Item.6.t1 | tlambda6.t1*t1
-Item.7.t1 | tlambda7.t1*t1
-Item.8.t1 | tlambda8.t1*t1
-Item.9.t1 | tlambda9.t1*t1
-Item.10.t1 | tlambda10.t1*t1
-Item.11.t1 | tlambda11.t1*t1
-Item.12.t1 | tlambda12.t1*t1
-Item.13.t1 | tlambda13.t1*t1
-Item.14.t1 | tlambda14.t1*t1
-Item.15.t1 | tlambda15.t1*t1
-Item.16.t1 | tlambda16.t1*t1
-Item.17.t1 | tlambda17.t1*t1
-Item.18.t1 | tlambda18.t1*t1
-Item.19.t1 | tlambda19.t1*t1
-Item.20.t1 | tlambda20.t1*t1
-Item.21.t1 | tlambda21.t1*t1
-Item.22.t1 | tlambda22.t1*t1
-Item.23.t1 | tlambda23.t1*t1
-Item.24.t1 | tlambda24.t1*t1
-Item.25.t1 | tlambda25.t1*t1
-Item.26.t1 | tlambda26.t1*t1
-Item.27.t1 | tlambda27.t1*t1
-Item.28.t1 | tlambda28.t1*t1
-Item.29.t1 | tlambda29.t1*t1
-Item.30.t1 | tlambda30.t1*t1
-'
+lavaan.model.t1.free <- model_gen(Ig = 30, Ic = 10, nt=1,lmb_values = NULL, tau_values = NULL )
 
 lavaan.model.fit <- lavaan(lavaan.model.t1.free, 
                            data = U1, 
@@ -473,9 +446,12 @@ sd(eta1.free)
 t1.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
 t1.tri.param<-get_a_d_b(t1.sem.param)
 
+lambda_est[1,] <- t1.sem.param$lambda
+tau_est[1,] <- t1.sem.param$tau
+
+
 plot(cbind(a[1:30],t1.tri.param$a[1:30]),xlim = c(0.5 , 2.5),ylim = c(0.5 , 2.5),asp=1)
 lines(c(-4,4),c(-4,4), col = "blue")
-
 
 plot(cbind(b[1:30],t1.tri.param$b[1:30]))
 lines(c(-4,4),c(-4,4), col = "blue")
@@ -486,67 +462,11 @@ sd(eta1.free)
 
 
 
-cat(paste("lambda",1:30,".t1 ==",t1.sem.param$lambda,sep="",collapse = "\n"))
-cat(paste("tlambda",1:30,".t1 ==",t1.sem.param$tau,sep="",collapse = "\n"))
-
-
-# for(i in seq(1,60,1)){
-#   if(i<31){
-#     a_est[i] <- t1.sem.param$lambda[i,1]*sqrt(t1.sem.param$psi[1,1])*1.7
-#     d_est[i] <- (-t1.sem.param$tau[i] +t1.sem.param$lambda[i,1]*t1.sem.param$alpha[1]) *1.7
-#     
-#   }else{
-#     a_est[i] <- t1.sem.param$lambda[i,2]*sqrt(t1.sem.param$psi[2,2])*1.7
-#     d_est[i] <- (-t1.sem.param$tau[i] +t1.sem.param$lambda[i,2]*t1.sem.param$alpha[2]) *1.7
-#   }
-# }
-
-
-
 
 
 lavaan.model.t2.free.tag <- function(){}
 
-lavaan.model.t2.free <-'
-
-d2 =~ lambda21.t2*Item.21.t2+ lambda22.t2*Item.22.t2+ lambda23.t2*Item.23.t2+ lambda24.t2*Item.24.t2+ lambda25.t2*Item.25.t2+ lambda26.t2*Item.26.t2+ lambda27.t2*Item.27.t2+ lambda28.t2*Item.28.t2+ lambda29.t2*Item.29.t2+ lambda30.t2*Item.30.t2+ lambda31.t2*Item.31.t2+ lambda32.t2*Item.32.t2+ lambda33.t2*Item.33.t2+ lambda34.t2*Item.34.t2+ lambda35.t2*Item.35.t2+ lambda36.t2*Item.36.t2+ lambda37.t2*Item.37.t2+ lambda38.t2*Item.38.t2+ lambda39.t2*Item.39.t2+ lambda40.t2*Item.40.t2+ lambda41.t2*Item.41.t2+ lambda42.t2*Item.42.t2+ lambda43.t2*Item.43.t2+ lambda44.t2*Item.44.t2+ lambda45.t2*Item.45.t2+ lambda46.t2*Item.46.t2+ lambda47.t2*Item.47.t2+ lambda48.t2*Item.48.t2+ lambda49.t2*Item.49.t2+ lambda50.t2*Item.50.t2
-
-lambda21.t2+lambda22.t2+lambda23.t2+lambda24.t2+lambda25.t2+lambda26.t2+lambda27.t2+lambda28.t2+lambda29.t2+lambda30.t2+lambda31.t2+lambda32.t2+lambda33.t2+lambda34.t2+lambda35.t2+lambda36.t2+lambda37.t2+lambda38.t2+lambda39.t2+lambda40.t2+lambda41.t2+lambda42.t2+lambda43.t2+lambda44.t2+lambda45.t2+lambda46.t2+lambda47.t2+lambda48.t2+lambda49.t2+lambda50.t2==30
-
-
-Item.21.t2 | tlambda21.t2*t1
-Item.22.t2 | tlambda22.t2*t1
-Item.23.t2 | tlambda23.t2*t1
-Item.24.t2 | tlambda24.t2*t1
-Item.25.t2 | tlambda25.t2*t1
-Item.26.t2 | tlambda26.t2*t1
-Item.27.t2 | tlambda27.t2*t1
-Item.28.t2 | tlambda28.t2*t1
-Item.29.t2 | tlambda29.t2*t1
-Item.30.t2 | tlambda30.t2*t1
-Item.31.t2 | tlambda31.t2*t1
-Item.32.t2 | tlambda32.t2*t1
-Item.33.t2 | tlambda33.t2*t1
-Item.34.t2 | tlambda34.t2*t1
-Item.35.t2 | tlambda35.t2*t1
-Item.36.t2 | tlambda36.t2*t1
-Item.37.t2 | tlambda37.t2*t1
-Item.38.t2 | tlambda38.t2*t1
-Item.39.t2 | tlambda39.t2*t1
-Item.40.t2 | tlambda40.t2*t1
-Item.41.t2 | tlambda41.t2*t1
-Item.42.t2 | tlambda42.t2*t1
-Item.43.t2 | tlambda43.t2*t1
-Item.44.t2 | tlambda44.t2*t1
-Item.45.t2 | tlambda45.t2*t1
-Item.46.t2 | tlambda46.t2*t1
-Item.47.t2 | tlambda47.t2*t1
-Item.48.t2 | tlambda48.t2*t1
-Item.49.t2 | tlambda49.t2*t1
-Item.50.t2 | tlambda50.t2*t1
-
-'
-
+lavaan.model.t2.free <- model_gen(Ig = 30, Ic = 10,n0=2, nt=2,lmb_values = NULL, tau_values = NULL )
 
 lavaan.model.fit <- lavaan(lavaan.model.t2.free, 
                            data = U2, 
@@ -610,276 +530,22 @@ lines(c(-4,4),c(-4,4), col = "blue")
 
 alpha = 0
 var_eta =1
-lambda_est <- a2_equalized/sqrt(var_eta)/1.702
-tau_est <- (lambda_sim*alpha -d2_equalized)/1.702
+lambda_est[2,] <- a2_equalized/sqrt(var_eta)/1.702
+tau_est[2,] <- (lambda_est[2,]*alpha -d2_equalized)/1.702
 
 
-cat(paste("lambda",21:50,".t2 ==",lambda_est,sep="",collapse = "\n"))
-cat(paste("tlambda",21:50,".t2 ==",tau_est,sep="",collapse = "\n"))
+lmb_values_prep <- matrix(data = c(lambda_est[1,single_moment_item_indexes[1]:single_moment_item_indexes[4]],
+                                   lambda_est[2,single_moment_item_indexes[1]:single_moment_item_indexes[4]],
+                                   lambda_est[3,single_moment_item_indexes[1]:single_moment_item_indexes[4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+tau_values_prep <- matrix(data = c(tau_est[1, single_moment_item_indexes[1]:single_moment_item_indexes[4]],
+                                   tau_est[2, single_moment_item_indexes[1]:single_moment_item_indexes[4]],
+                                   tau_est[3, single_moment_item_indexes[1]:single_moment_item_indexes[4]]), nrow=nt,ncol=Ig,byrow = TRUE)
 
 
 lavaan.model.t12.t12fixed.tag <- function(){}
 
-lavaan.model.t12.t12fixed <-'
-
-d1 =~ lambda1.t1*Item.1.t1+ lambda2.t1*Item.2.t1+ lambda3.t1*Item.3.t1+ lambda4.t1*Item.4.t1+ lambda5.t1*Item.5.t1+ lambda6.t1*Item.6.t1+ lambda7.t1*Item.7.t1+ lambda8.t1*Item.8.t1+ lambda9.t1*Item.9.t1+ lambda10.t1*Item.10.t1+ lambda11.t1*Item.11.t1+ lambda12.t1*Item.12.t1+ lambda13.t1*Item.13.t1+ lambda14.t1*Item.14.t1+ lambda15.t1*Item.15.t1+ lambda16.t1*Item.16.t1+ lambda17.t1*Item.17.t1+ lambda18.t1*Item.18.t1+ lambda19.t1*Item.19.t1+ lambda20.t1*Item.20.t1+ lambda21.t1*Item.21.t1+ lambda22.t1*Item.22.t1+ lambda23.t1*Item.23.t1+ lambda24.t1*Item.24.t1+ lambda25.t1*Item.25.t1+ lambda26.t1*Item.26.t1+ lambda27.t1*Item.27.t1+ lambda28.t1*Item.28.t1+ lambda29.t1*Item.29.t1+ lambda30.t1*Item.30.t1
-d2 =~ lambda21.t2*Item.21.t2+ lambda22.t2*Item.22.t2+ lambda23.t2*Item.23.t2+ lambda24.t2*Item.24.t2+ lambda25.t2*Item.25.t2+ lambda26.t2*Item.26.t2+ lambda27.t2*Item.27.t2+ lambda28.t2*Item.28.t2+ lambda29.t2*Item.29.t2+ lambda30.t2*Item.30.t2+ lambda31.t2*Item.31.t2+ lambda32.t2*Item.32.t2+ lambda33.t2*Item.33.t2+ lambda34.t2*Item.34.t2+ lambda35.t2*Item.35.t2+ lambda36.t2*Item.36.t2+ lambda37.t2*Item.37.t2+ lambda38.t2*Item.38.t2+ lambda39.t2*Item.39.t2+ lambda40.t2*Item.40.t2+ lambda41.t2*Item.41.t2+ lambda42.t2*Item.42.t2+ lambda43.t2*Item.43.t2+ lambda44.t2*Item.44.t2+ lambda45.t2*Item.45.t2+ lambda46.t2*Item.46.t2+ lambda47.t2*Item.47.t2+ lambda48.t2*Item.48.t2+ lambda49.t2*Item.49.t2+ lambda50.t2*Item.50.t2
-
-d1~~d2
-
-
-Item.1.t1 | tlambda1.t1*t1
-Item.2.t1 | tlambda2.t1*t1
-Item.3.t1 | tlambda3.t1*t1
-Item.4.t1 | tlambda4.t1*t1
-Item.5.t1 | tlambda5.t1*t1
-Item.6.t1 | tlambda6.t1*t1
-Item.7.t1 | tlambda7.t1*t1
-Item.8.t1 | tlambda8.t1*t1
-Item.9.t1 | tlambda9.t1*t1
-Item.10.t1 | tlambda10.t1*t1
-Item.11.t1 | tlambda11.t1*t1
-Item.12.t1 | tlambda12.t1*t1
-Item.13.t1 | tlambda13.t1*t1
-Item.14.t1 | tlambda14.t1*t1
-Item.15.t1 | tlambda15.t1*t1
-Item.16.t1 | tlambda16.t1*t1
-Item.17.t1 | tlambda17.t1*t1
-Item.18.t1 | tlambda18.t1*t1
-Item.19.t1 | tlambda19.t1*t1
-Item.20.t1 | tlambda20.t1*t1
-Item.21.t1 | tlambda21.t1*t1
-Item.22.t1 | tlambda22.t1*t1
-Item.23.t1 | tlambda23.t1*t1
-Item.24.t1 | tlambda24.t1*t1
-Item.25.t1 | tlambda25.t1*t1
-Item.26.t1 | tlambda26.t1*t1
-Item.27.t1 | tlambda27.t1*t1
-Item.28.t1 | tlambda28.t1*t1
-Item.29.t1 | tlambda29.t1*t1
-Item.30.t1 | tlambda30.t1*t1
-
-
-Item.21.t2 | tlambda21.t2*t1
-Item.22.t2 | tlambda22.t2*t1
-Item.23.t2 | tlambda23.t2*t1
-Item.24.t2 | tlambda24.t2*t1
-Item.25.t2 | tlambda25.t2*t1
-Item.26.t2 | tlambda26.t2*t1
-Item.27.t2 | tlambda27.t2*t1
-Item.28.t2 | tlambda28.t2*t1
-Item.29.t2 | tlambda29.t2*t1
-Item.30.t2 | tlambda30.t2*t1
-Item.31.t2 | tlambda31.t2*t1
-Item.32.t2 | tlambda32.t2*t1
-Item.33.t2 | tlambda33.t2*t1
-Item.34.t2 | tlambda34.t2*t1
-Item.35.t2 | tlambda35.t2*t1
-Item.36.t2 | tlambda36.t2*t1
-Item.37.t2 | tlambda37.t2*t1
-Item.38.t2 | tlambda38.t2*t1
-Item.39.t2 | tlambda39.t2*t1
-Item.40.t2 | tlambda40.t2*t1
-Item.41.t2 | tlambda41.t2*t1
-Item.42.t2 | tlambda42.t2*t1
-Item.43.t2 | tlambda43.t2*t1
-Item.44.t2 | tlambda44.t2*t1
-Item.45.t2 | tlambda45.t2*t1
-Item.46.t2 | tlambda46.t2*t1
-Item.47.t2 | tlambda47.t2*t1
-Item.48.t2 | tlambda48.t2*t1
-Item.49.t2 | tlambda49.t2*t1
-Item.50.t2 | tlambda50.t2*t1
-
-
-Item.1.t1 ~~ 1*Item.1.t1 + 0*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.5.t1 + 0*Item.6.t1 + 0*Item.7.t1 + 0*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2 
-Item.2.t1 ~~ 1*Item.2.t1 + 0*Item.3.t1 + 0*Item.4.t1 + 0*Item.5.t1 + 0*Item.6.t1 + 0*Item.7.t1 + 0*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2 
-Item.3.t1 ~~ 1*Item.3.t1 + 0*Item.4.t1 + 0*Item.5.t1 + 0*Item.6.t1 + 0*Item.7.t1 + 0*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.4.t1 ~~ 1*Item.4.t1 + 0*Item.5.t1 + 0*Item.6.t1 + 0*Item.7.t1 + 0*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.5.t1 ~~ 1*Item.5.t1 + 0*Item.6.t1 + 0*Item.7.t1 + 0*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.6.t1 ~~ 1*Item.6.t1 + 0*Item.7.t1 + 0*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.7.t1 ~~ 1*Item.7.t1 + 0*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.8.t1 ~~ 1*Item.8.t1 + 0*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.9.t1 ~~ 1*Item.9.t1 + 0*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.10.t1 ~~ 1*Item.10.t1 + 0*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.11.t1 ~~ 1*Item.11.t1 + 0*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.12.t1 ~~ 1*Item.12.t1 + 0*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.13.t1 ~~ 1*Item.13.t1 + 0*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.14.t1 ~~ 1*Item.14.t1 + 0*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.15.t1 ~~ 1*Item.15.t1 + 0*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.16.t1 ~~ 1*Item.16.t1 + 0*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.17.t1 ~~ 1*Item.17.t1 + 0*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.18.t1 ~~ 1*Item.18.t1 + 0*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.19.t1 ~~ 1*Item.19.t1 + 0*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.20.t1 ~~ 1*Item.20.t1 + 0*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.21.t1 ~~ 1*Item.21.t1 + 0*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 1*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.22.t1 ~~ 1*Item.22.t1 + 0*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 1*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.23.t1 ~~ 1*Item.23.t1 + 0*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 1*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.24.t1 ~~ 1*Item.24.t1 + 0*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 1*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.25.t1 ~~ 1*Item.25.t1 + 0*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 1*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.26.t1 ~~ 1*Item.26.t1 + 0*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 1*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.27.t1 ~~ 1*Item.27.t1 + 0*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 1*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.28.t1 ~~ 1*Item.28.t1 + 0*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 1*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.29.t1 ~~ 1*Item.29.t1 + 0*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 1*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.30.t1 ~~ 1*Item.30.t1 + 0*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 1*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.21.t2 ~~ 1*Item.21.t2 + 0*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.22.t2 ~~ 1*Item.22.t2 + 0*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.23.t2 ~~ 1*Item.23.t2 + 0*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.24.t2 ~~ 1*Item.24.t2 + 0*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.25.t2 ~~ 1*Item.25.t2 + 0*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.26.t2 ~~ 1*Item.26.t2 + 0*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.27.t2 ~~ 1*Item.27.t2 + 0*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.28.t2 ~~ 1*Item.28.t2 + 0*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.29.t2 ~~ 1*Item.29.t2 + 0*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.30.t2 ~~ 1*Item.30.t2 + 0*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.31.t2 ~~ 1*Item.31.t2 + 0*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.32.t2 ~~ 1*Item.32.t2 + 0*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.33.t2 ~~ 1*Item.33.t2 + 0*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.34.t2 ~~ 1*Item.34.t2 + 0*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.35.t2 ~~ 1*Item.35.t2 + 0*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.36.t2 ~~ 1*Item.36.t2 + 0*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.37.t2 ~~ 1*Item.37.t2 + 0*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.38.t2 ~~ 1*Item.38.t2 + 0*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.39.t2 ~~ 1*Item.39.t2 + 0*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.40.t2 ~~ 1*Item.40.t2 + 0*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.41.t2 ~~ 1*Item.41.t2 + 0*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.42.t2 ~~ 1*Item.42.t2 + 0*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.43.t2 ~~ 1*Item.43.t2 + 0*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.44.t2 ~~ 1*Item.44.t2 + 0*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.45.t2 ~~ 1*Item.45.t2 + 0*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.46.t2 ~~ 1*Item.46.t2 + 0*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.47.t2 ~~ 1*Item.47.t2 + 0*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.48.t2 ~~ 1*Item.48.t2 + 0*Item.49.t2 + 0*Item.50.t2                              
-Item.49.t2 ~~ 1*Item.49.t2 + 0*Item.50.t2                              
-Item.50.t2 ~~ 1*Item.50.t2      
-
-lambda1.t1 ==0.726371655117903
-lambda2.t1 ==0.822808811591549
-lambda3.t1 ==1.08304504781398
-lambda4.t1 ==1.58820037269627
-lambda5.t1 ==0.652574605506499
-lambda6.t1 ==1.39740726424945
-lambda7.t1 ==1.51160738087182
-lambda8.t1 ==1.23840723760775
-lambda9.t1 ==1.15320254443496
-lambda10.t1 ==0.450649951316108
-lambda11.t1 ==0.671195787900798
-lambda12.t1 ==0.596315148347679
-lambda13.t1 ==1.25483766885902
-lambda14.t1 ==0.86535485050754
-lambda15.t1 ==1.2799244228771
-lambda16.t1 ==1.02720264922705
-lambda17.t1 ==1.29048370810758
-lambda18.t1 ==1.48774477200108
-lambda19.t1 ==0.878366211073239
-lambda20.t1 ==1.23429804529063
-lambda21.t1 ==1.51345011147542
-lambda22.t1 ==0.643134270220657
-lambda23.t1 ==1.22144173571852
-lambda24.t1 ==0.495112980463626
-lambda25.t1 ==0.672711022194983
-lambda26.t1 ==0.820184410676499
-lambda27.t1 ==0.381742887400009
-lambda28.t1 ==0.853327635480844
-lambda29.t1 ==1.35872216510816
-lambda30.t1 ==0.830174645863274
-
-tlambda1.t1 ==-0.395546136939333
-tlambda2.t1 ==0.959079672806876
-tlambda3.t1 ==-0.588513642733792
-tlambda4.t1 ==-0.925742433597419
-tlambda5.t1 ==-0.0705454998911635
-tlambda6.t1 ==1.96953696699368
-tlambda7.t1 ==1.94015257701499
-tlambda8.t1 ==-0.487561273101274
-tlambda9.t1 ==1.11840823581658
-tlambda10.t1 ==0.688737505421704
-tlambda11.t1 ==-0.158414540595477
-tlambda12.t1 ==0.452957536204564
-tlambda13.t1 ==-0.418516267690346
-tlambda14.t1 ==-0.541699731395222
-tlambda15.t1 ==1.17103228010068
-tlambda16.t1 ==-1.01984753714729
-tlambda17.t1 ==0.961703175031416
-tlambda18.t1 ==-1.99922676647371
-tlambda19.t1 ==-0.785310801880931
-tlambda20.t1 ==-1.59388797523404
-tlambda21.t1 ==-1.37430488410851
-tlambda22.t1 ==-0.984242105837807
-tlambda23.t1 ==0.613178665334313
-tlambda24.t1 ==0.659961558506827
-tlambda25.t1 ==0.669675718400049
-tlambda26.t1 ==0.887485195339564
-tlambda27.t1 ==-0.0718487313154983
-tlambda28.t1 ==-0.275037889439151
-tlambda29.t1 ==1.53103139706903
-tlambda30.t1 ==0.304775897761329
-
-
-
-lambda21.t2 ==1.24865675112519
-lambda22.t2 ==0.515599014600513
-lambda23.t2 ==1.05145488196072
-lambda24.t2 ==0.453964212371336
-lambda25.t2 ==0.665997170349377
-lambda26.t2 ==0.770344052021204
-lambda27.t2 ==0.317495465956755
-lambda28.t2 ==0.76607864230443
-lambda29.t2 ==1.29065234352694
-lambda30.t2 ==0.745288706316526
-lambda31.t2 ==0.912844562700094
-lambda32.t2 ==0.991692689326616
-lambda33.t2 ==0.835813142483618
-lambda34.t2 ==0.502224163738531
-lambda35.t2 ==1.24889759071193
-lambda36.t2 ==1.01090652901111
-lambda37.t2 ==1.10708781059155
-lambda38.t2 ==0.440527600332572
-lambda39.t2 ==1.06183488177454
-lambda40.t2 ==0.776734132791193
-lambda41.t2 ==1.12355600081307
-lambda42.t2 ==1.06158785348757
-lambda43.t2 ==1.19948620166494
-lambda44.t2 ==0.956462962617167
-lambda45.t2 ==0.819960290219269
-lambda46.t2 ==1.03585517480234
-lambda47.t2 ==0.322652153248899
-lambda48.t2 ==0.802286752805132
-lambda49.t2 ==1.11803841197997
-lambda50.t2 ==1.11531720122423
-
-tlambda21.t2 ==-1.31480709232932
-tlambda22.t2 ==-0.93320548507609
-tlambda23.t2 ==0.633960376782047
-tlambda24.t2 ==0.711031314271462
-tlambda25.t2 ==0.743707481150658
-tlambda26.t2 ==0.952547417648624
-tlambda27.t2 ==-0.0562038392915776
-tlambda28.t2 ==-0.265436814248522
-tlambda29.t2 ==1.62421692172907
-tlambda30.t2 ==0.335303345049908
-tlambda31.t2 ==0.604055509052579
-tlambda32.t2 ==-0.560640430193666
-tlambda33.t2 ==-0.770683222667336
-tlambda34.t2 ==1.0058309206772
-tlambda35.t2 ==0.728934617019349
-tlambda36.t2 ==-1.16098304177316
-tlambda37.t2 ==-1.62497731719925
-tlambda38.t2 ==-0.022502491767487
-tlambda39.t2 ==1.8936278191813
-tlambda40.t2 ==0.321785020739131
-tlambda41.t2 ==2.20436439319413
-tlambda42.t2 ==0.992264228311611
-tlambda43.t2 ==-0.630859487814159
-tlambda44.t2 ==-0.220636663848532
-tlambda45.t2 ==-1.17162175329766
-tlambda46.t2 ==-2.13143973278746
-tlambda47.t2 ==0.321031549591306
-tlambda48.t2 ==-1.2730213246044
-tlambda49.t2 ==-0.219455302640744
-tlambda50.t2 ==0.678606190168499
-
-'
+lavaan.model.t12.t12fixed <-  model_gen(Ig = 30, Ic = 10,n0=1, nt=2,lmb_values = lmb_values_prep, tau_values = tau_values_prep )
 
 lavaan.model.fit <- lavaan(lavaan.model.t12.t12fixed, 
                            data = cbind(U1,U2), 
@@ -1147,44 +813,7 @@ cov(eta12.nocov.free)
 
 lavaan.model.t3.free.tag <- function(){}
 
-lavaan.model.t3.free <-'
-
-d3 =~ lambda41.t3*Item.41.t3 + lambda42.t3*Item.42.t3 + lambda43.t3*Item.43.t3 + lambda44.t3*Item.44.t3 + lambda45.t3*Item.45.t3 + lambda46.t3*Item.46.t3 + lambda47.t3*Item.47.t3 + lambda48.t3*Item.48.t3 + lambda49.t3*Item.49.t3 + lambda50.t3*Item.50.t3 + lambda51.t3*Item.51.t3 + lambda52.t3*Item.52.t3 + lambda53.t3*Item.53.t3 + lambda54.t3*Item.54.t3 + lambda55.t3*Item.55.t3 + lambda56.t3*Item.56.t3 + lambda57.t3*Item.57.t3 + lambda58.t3*Item.58.t3 + lambda59.t3*Item.59.t3 + lambda60.t3*Item.60.t3 + lambda61.t3*Item.61.t3 + lambda62.t3*Item.62.t3 + lambda63.t3*Item.63.t3 + lambda64.t3*Item.64.t3 + lambda65.t3*Item.65.t3 + lambda66.t3*Item.66.t3 + lambda67.t3*Item.67.t3 + lambda68.t3*Item.68.t3 + lambda69.t3*Item.69.t3 + lambda70.t3*Item.70.t3
-
-lambda41.t3 + lambda42.t3 + lambda43.t3 + lambda44.t3 + lambda45.t3 + lambda46.t3 + lambda47.t3 + lambda48.t3 + lambda49.t3 + lambda50.t3 + lambda51.t3 + lambda52.t3 + lambda53.t3 + lambda54.t3 + lambda55.t3 + lambda56.t3 + lambda57.t3 + lambda58.t3 + lambda59.t3 + lambda60.t3 + lambda61.t3 + lambda62.t3 + lambda63.t3 + lambda64.t3 + lambda65.t3 + lambda66.t3 + lambda67.t3 + lambda68.t3 + lambda69.t3 + lambda70.t3==30
-
-Item.41.t3 | tlambda41.t3*t1
-Item.42.t3 | tlambda42.t3*t1
-Item.43.t3 | tlambda43.t3*t1
-Item.44.t3 | tlambda44.t3*t1
-Item.45.t3 | tlambda45.t3*t1
-Item.46.t3 | tlambda46.t3*t1
-Item.47.t3 | tlambda47.t3*t1
-Item.48.t3 | tlambda48.t3*t1
-Item.49.t3 | tlambda49.t3*t1
-Item.50.t3 | tlambda50.t3*t1
-Item.51.t3 | tlambda51.t3*t1
-Item.52.t3 | tlambda52.t3*t1
-Item.53.t3 | tlambda53.t3*t1
-Item.54.t3 | tlambda54.t3*t1
-Item.55.t3 | tlambda55.t3*t1
-Item.56.t3 | tlambda56.t3*t1
-Item.57.t3 | tlambda57.t3*t1
-Item.58.t3 | tlambda58.t3*t1
-Item.59.t3 | tlambda59.t3*t1
-Item.60.t3 | tlambda60.t3*t1
-Item.61.t3 | tlambda61.t3*t1
-Item.62.t3 | tlambda62.t3*t1
-Item.63.t3 | tlambda63.t3*t1
-Item.64.t3 | tlambda64.t3*t1
-Item.65.t3 | tlambda65.t3*t1
-Item.66.t3 | tlambda66.t3*t1
-Item.67.t3 | tlambda67.t3*t1
-Item.68.t3 | tlambda68.t3*t1
-Item.69.t3 | tlambda69.t3*t1
-Item.70.t3 | tlambda70.t3*t1
-
-'
+lavaan.model.t3.free <- model_gen(Ig = 30, Ic = 10,n0=3, nt=3,lmb_values = NULL, tau_values = NULL )
 
 
 lavaan.model.fit <- lavaan(lavaan.model.t3.free, 
@@ -1247,408 +876,13 @@ alpha = 0
 var_eta =1
 #alpha = t3.sem.param$alpha
 #var_eta =t3.sem.param$psi
-lambda_t3_equalized <- a3_equalized/sqrt(var_eta)/1.702
-tau_t3_equalized <- (lambda_t3_equalized*alpha -d3_equalized)/1.702
-
-
-cat(paste("lambda",41:70,".t3 ==",lambda_t3_equalized,sep="",collapse = "\n"))
-cat(paste("tlambda",41:70,".t3 ==",tau_t3_equalized,sep="",collapse = "\n"))
-
-
+lambda_est[3,] <- a3_equalized/sqrt(var_eta)/1.702
+tau_est[3,] <- (lambda_est[3,]*alpha -d3_equalized)/1.702
 
 
 lavaan.model.t123.t123fixed.tag <- function(){}
 
-lavaan.model.t123.t123fixed <-'
-
-d1 =~ lambda1.t1*Item.1.t1+ lambda2.t1*Item.2.t1+ lambda3.t1*Item.3.t1+ lambda4.t1*Item.4.t1+ lambda5.t1*Item.5.t1+ lambda6.t1*Item.6.t1+ lambda7.t1*Item.7.t1+ lambda8.t1*Item.8.t1+ lambda9.t1*Item.9.t1+ lambda10.t1*Item.10.t1+ lambda11.t1*Item.11.t1+ lambda12.t1*Item.12.t1+ lambda13.t1*Item.13.t1+ lambda14.t1*Item.14.t1+ lambda15.t1*Item.15.t1+ lambda16.t1*Item.16.t1+ lambda17.t1*Item.17.t1+ lambda18.t1*Item.18.t1+ lambda19.t1*Item.19.t1+ lambda20.t1*Item.20.t1+ lambda21.t1*Item.21.t1+ lambda22.t1*Item.22.t1+ lambda23.t1*Item.23.t1+ lambda24.t1*Item.24.t1+ lambda25.t1*Item.25.t1+ lambda26.t1*Item.26.t1+ lambda27.t1*Item.27.t1+ lambda28.t1*Item.28.t1+ lambda29.t1*Item.29.t1+ lambda30.t1*Item.30.t1
-d2 =~ lambda21.t2*Item.21.t2+ lambda22.t2*Item.22.t2+ lambda23.t2*Item.23.t2+ lambda24.t2*Item.24.t2+ lambda25.t2*Item.25.t2+ lambda26.t2*Item.26.t2+ lambda27.t2*Item.27.t2+ lambda28.t2*Item.28.t2+ lambda29.t2*Item.29.t2+ lambda30.t2*Item.30.t2+ lambda31.t2*Item.31.t2+ lambda32.t2*Item.32.t2+ lambda33.t2*Item.33.t2+ lambda34.t2*Item.34.t2+ lambda35.t2*Item.35.t2+ lambda36.t2*Item.36.t2+ lambda37.t2*Item.37.t2+ lambda38.t2*Item.38.t2+ lambda39.t2*Item.39.t2+ lambda40.t2*Item.40.t2+ lambda41.t2*Item.41.t2+ lambda42.t2*Item.42.t2+ lambda43.t2*Item.43.t2+ lambda44.t2*Item.44.t2+ lambda45.t2*Item.45.t2+ lambda46.t2*Item.46.t2+ lambda47.t2*Item.47.t2+ lambda48.t2*Item.48.t2+ lambda49.t2*Item.49.t2+ lambda50.t2*Item.50.t2
-d3 =~ lambda41.t3*Item.41.t3 + lambda42.t3*Item.42.t3 + lambda43.t3*Item.43.t3 + lambda44.t3*Item.44.t3 + lambda45.t3*Item.45.t3 + lambda46.t3*Item.46.t3 + lambda47.t3*Item.47.t3 + lambda48.t3*Item.48.t3 + lambda49.t3*Item.49.t3 + lambda50.t3*Item.50.t3 + lambda51.t3*Item.51.t3 + lambda52.t3*Item.52.t3 + lambda53.t3*Item.53.t3 + lambda54.t3*Item.54.t3 + lambda55.t3*Item.55.t3 + lambda56.t3*Item.56.t3 + lambda57.t3*Item.57.t3 + lambda58.t3*Item.58.t3 + lambda59.t3*Item.59.t3 + lambda60.t3*Item.60.t3 + lambda61.t3*Item.61.t3 + lambda62.t3*Item.62.t3 + lambda63.t3*Item.63.t3 + lambda64.t3*Item.64.t3 + lambda65.t3*Item.65.t3 + lambda66.t3*Item.66.t3 + lambda67.t3*Item.67.t3 + lambda68.t3*Item.68.t3 + lambda69.t3*Item.69.t3 + lambda70.t3*Item.70.t3
-
-lambda1.t1+lambda2.t1+lambda3.t1+lambda4.t1+lambda5.t1+lambda6.t1+lambda7.t1+lambda8.t1+lambda9.t1+lambda10.t1+lambda11.t1+lambda12.t1+lambda13.t1+lambda14.t1+lambda15.t1+lambda16.t1+lambda17.t1+lambda18.t1+lambda19.t1+lambda20.t1+lambda21.t1+lambda22.t1+lambda23.t1+lambda24.t1+lambda25.t1+lambda26.t1+lambda27.t1+lambda28.t1+lambda29.t1+lambda30.t1==30
-lambda21.t2+lambda22.t2+lambda23.t2+lambda24.t2+lambda25.t2+lambda26.t2+lambda27.t2+lambda28.t2+lambda29.t2+lambda30.t2+lambda31.t2+lambda32.t2+lambda33.t2+lambda34.t2+lambda35.t2+lambda36.t2+lambda37.t2+lambda38.t2+lambda39.t2+lambda40.t2+lambda41.t2+lambda42.t2+lambda43.t2+lambda44.t2+lambda45.t2+lambda46.t2+lambda47.t2+lambda48.t2+lambda49.t2+lambda50.t2==30
-lambda41.t3 + lambda42.t3 + lambda43.t3 + lambda44.t3 + lambda45.t3 + lambda46.t3 + lambda47.t3 + lambda48.t3 + lambda49.t3 + lambda50.t3 + lambda51.t3 + lambda52.t3 + lambda53.t3 + lambda54.t3 + lambda55.t3 + lambda56.t3 + lambda57.t3 + lambda58.t3 + lambda59.t3 + lambda60.t3 + lambda61.t3 + lambda62.t3 + lambda63.t3 + lambda64.t3 + lambda65.t3 + lambda66.t3 + lambda67.t3 + lambda68.t3 + lambda69.t3 + lambda70.t3==30
-
-
-d1~~d2
-d2~~d3
-d1~~d3
-
-Item.1.t1 | tlambda1.t1*t1
-Item.2.t1 | tlambda2.t1*t1
-Item.3.t1 | tlambda3.t1*t1
-Item.4.t1 | tlambda4.t1*t1
-Item.5.t1 | tlambda5.t1*t1
-Item.6.t1 | tlambda6.t1*t1
-Item.7.t1 | tlambda7.t1*t1
-Item.8.t1 | tlambda8.t1*t1
-Item.9.t1 | tlambda9.t1*t1
-Item.10.t1 | tlambda10.t1*t1
-Item.11.t1 | tlambda11.t1*t1
-Item.12.t1 | tlambda12.t1*t1
-Item.13.t1 | tlambda13.t1*t1
-Item.14.t1 | tlambda14.t1*t1
-Item.15.t1 | tlambda15.t1*t1
-Item.16.t1 | tlambda16.t1*t1
-Item.17.t1 | tlambda17.t1*t1
-Item.18.t1 | tlambda18.t1*t1
-Item.19.t1 | tlambda19.t1*t1
-Item.20.t1 | tlambda20.t1*t1
-Item.21.t1 | tlambda21.t1*t1
-Item.22.t1 | tlambda22.t1*t1
-Item.23.t1 | tlambda23.t1*t1
-Item.24.t1 | tlambda24.t1*t1
-Item.25.t1 | tlambda25.t1*t1
-Item.26.t1 | tlambda26.t1*t1
-Item.27.t1 | tlambda27.t1*t1
-Item.28.t1 | tlambda28.t1*t1
-Item.29.t1 | tlambda29.t1*t1
-Item.30.t1 | tlambda30.t1*t1
-
-Item.21.t2 | tlambda21.t2*t1
-Item.22.t2 | tlambda22.t2*t1
-Item.23.t2 | tlambda23.t2*t1
-Item.24.t2 | tlambda24.t2*t1
-Item.25.t2 | tlambda25.t2*t1
-Item.26.t2 | tlambda26.t2*t1
-Item.27.t2 | tlambda27.t2*t1
-Item.28.t2 | tlambda28.t2*t1
-Item.29.t2 | tlambda29.t2*t1
-Item.30.t2 | tlambda30.t2*t1
-Item.31.t2 | tlambda31.t2*t1
-Item.32.t2 | tlambda32.t2*t1
-Item.33.t2 | tlambda33.t2*t1
-Item.34.t2 | tlambda34.t2*t1
-Item.35.t2 | tlambda35.t2*t1
-Item.36.t2 | tlambda36.t2*t1
-Item.37.t2 | tlambda37.t2*t1
-Item.38.t2 | tlambda38.t2*t1
-Item.39.t2 | tlambda39.t2*t1
-Item.40.t2 | tlambda40.t2*t1
-Item.41.t2 | tlambda41.t2*t1
-Item.42.t2 | tlambda42.t2*t1
-Item.43.t2 | tlambda43.t2*t1
-Item.44.t2 | tlambda44.t2*t1
-Item.45.t2 | tlambda45.t2*t1
-Item.46.t2 | tlambda46.t2*t1
-Item.47.t2 | tlambda47.t2*t1
-Item.48.t2 | tlambda48.t2*t1
-Item.49.t2 | tlambda49.t2*t1
-Item.50.t2 | tlambda50.t2*t1
-
-Item.41.t3 | tlambda41.t3*t1
-Item.42.t3 | tlambda42.t3*t1
-Item.43.t3 | tlambda43.t3*t1
-Item.44.t3 | tlambda44.t3*t1
-Item.45.t3 | tlambda45.t3*t1
-Item.46.t3 | tlambda46.t3*t1
-Item.47.t3 | tlambda47.t3*t1
-Item.48.t3 | tlambda48.t3*t1
-Item.49.t3 | tlambda49.t3*t1
-Item.50.t3 | tlambda50.t3*t1
-Item.51.t3 | tlambda51.t3*t1
-Item.52.t3 | tlambda52.t3*t1
-Item.53.t3 | tlambda53.t3*t1
-Item.54.t3 | tlambda54.t3*t1
-Item.55.t3 | tlambda55.t3*t1
-Item.56.t3 | tlambda56.t3*t1
-Item.57.t3 | tlambda57.t3*t1
-Item.58.t3 | tlambda58.t3*t1
-Item.59.t3 | tlambda59.t3*t1
-Item.60.t3 | tlambda60.t3*t1
-Item.61.t3 | tlambda61.t3*t1
-Item.62.t3 | tlambda62.t3*t1
-Item.63.t3 | tlambda63.t3*t1
-Item.64.t3 | tlambda64.t3*t1
-Item.65.t3 | tlambda65.t3*t1
-Item.66.t3 | tlambda66.t3*t1
-Item.67.t3 | tlambda67.t3*t1
-Item.68.t3 | tlambda68.t3*t1
-Item.69.t3 | tlambda69.t3*t1
-Item.70.t3 | tlambda70.t3*t1
-
-Item.1.t1 ~~ Item.1.t1
-Item.2.t1 ~~ Item.2.t1
-Item.3.t1 ~~ Item.3.t1
-Item.4.t1 ~~ Item.4.t1
-Item.5.t1 ~~ Item.5.t1
-Item.6.t1 ~~ Item.6.t1
-Item.7.t1 ~~ Item.7.t1
-Item.8.t1 ~~ Item.8.t1
-Item.9.t1 ~~ Item.9.t1
-Item.10.t1 ~~ Item.10.t1
-Item.11.t1 ~~ Item.11.t1
-Item.12.t1 ~~ Item.12.t1
-Item.13.t1 ~~ Item.13.t1
-Item.14.t1 ~~ Item.14.t1
-Item.15.t1 ~~ Item.15.t1
-Item.16.t1 ~~ Item.16.t1
-Item.17.t1 ~~ Item.17.t1
-Item.18.t1 ~~ Item.18.t1
-Item.19.t1 ~~ Item.19.t1
-Item.20.t1 ~~ Item.20.t1
-Item.21.t1 ~~ Item.21.t1 + Item.21.t2
-Item.22.t1 ~~ Item.22.t1 + Item.22.t2
-Item.23.t1 ~~ Item.23.t1 + Item.23.t2
-Item.24.t1 ~~ Item.24.t1 + Item.24.t2
-Item.25.t1 ~~ Item.25.t1 + Item.25.t2
-Item.26.t1 ~~ Item.26.t1 + Item.26.t2
-Item.27.t1 ~~ Item.27.t1 + Item.27.t2
-Item.28.t1 ~~ Item.28.t1 + Item.28.t2
-Item.29.t1 ~~ Item.29.t1 + Item.29.t2
-Item.30.t1 ~~ Item.30.t1 + Item.30.t2
-
-Item.21.t2 ~~ Item.21.t2
-Item.22.t2 ~~ Item.22.t2
-Item.23.t2 ~~ Item.23.t2
-Item.24.t2 ~~ Item.24.t2
-Item.25.t2 ~~ Item.25.t2
-Item.26.t2 ~~ Item.26.t2
-Item.27.t2 ~~ Item.27.t2
-Item.28.t2 ~~ Item.28.t2
-Item.29.t2 ~~ Item.29.t2
-Item.30.t2 ~~ Item.30.t2
-Item.31.t2 ~~ Item.31.t2
-Item.32.t2 ~~ Item.32.t2
-Item.33.t2 ~~ Item.33.t2
-Item.34.t2 ~~ Item.34.t2
-Item.35.t2 ~~ Item.35.t2
-Item.36.t2 ~~ Item.36.t2
-Item.37.t2 ~~ Item.37.t2
-Item.38.t2 ~~ Item.38.t2
-Item.39.t2 ~~ Item.39.t2
-Item.40.t2 ~~ Item.40.t2
-Item.41.t2 ~~ Item.41.t2 + Item.41.t3
-Item.42.t2 ~~ Item.42.t2 + Item.42.t3
-Item.43.t2 ~~ Item.43.t2 + Item.43.t3
-Item.44.t2 ~~ Item.44.t2 + Item.44.t3
-Item.45.t2 ~~ Item.45.t2 + Item.45.t3
-Item.46.t2 ~~ Item.46.t2 + Item.46.t3
-Item.47.t2 ~~ Item.47.t2 + Item.47.t3
-Item.48.t2 ~~ Item.48.t2 + Item.48.t3
-Item.49.t2 ~~ Item.49.t2 + Item.49.t3
-Item.50.t2 ~~ Item.50.t2 + Item.50.t3
-
-Item.41.t3 ~~ Item.41.t3
-Item.42.t3 ~~ Item.42.t3
-Item.43.t3 ~~ Item.43.t3
-Item.44.t3 ~~ Item.44.t3
-Item.45.t3 ~~ Item.45.t3
-Item.46.t3 ~~ Item.46.t3
-Item.47.t3 ~~ Item.47.t3
-Item.48.t3 ~~ Item.48.t3
-Item.49.t3 ~~ Item.49.t3
-Item.50.t3 ~~ Item.50.t3
-Item.51.t3 ~~ Item.51.t3
-Item.52.t3 ~~ Item.52.t3
-Item.53.t3 ~~ Item.53.t3
-Item.54.t3 ~~ Item.54.t3
-Item.55.t3 ~~ Item.55.t3
-Item.56.t3 ~~ Item.56.t3
-Item.57.t3 ~~ Item.57.t3
-Item.58.t3 ~~ Item.58.t3
-Item.59.t3 ~~ Item.59.t3
-Item.60.t3 ~~ Item.60.t3
-Item.61.t3 ~~ Item.61.t3
-Item.62.t3 ~~ Item.62.t3
-Item.63.t3 ~~ Item.63.t3
-Item.64.t3 ~~ Item.64.t3
-Item.65.t3 ~~ Item.65.t3
-Item.66.t3 ~~ Item.66.t3
-Item.67.t3 ~~ Item.67.t3
-Item.68.t3 ~~ Item.68.t3
-Item.69.t3 ~~ Item.69.t3
-Item.70.t3 ~~ Item.70.t3
-
-lambda1.t1 ==0.726371655117903
-lambda2.t1 ==0.822808811591549
-lambda3.t1 ==1.08304504781398
-lambda4.t1 ==1.58820037269627
-lambda5.t1 ==0.652574605506499
-lambda6.t1 ==1.39740726424945
-lambda7.t1 ==1.51160738087182
-lambda8.t1 ==1.23840723760775
-lambda9.t1 ==1.15320254443496
-lambda10.t1 ==0.450649951316108
-lambda11.t1 ==0.671195787900798
-lambda12.t1 ==0.596315148347679
-lambda13.t1 ==1.25483766885902
-lambda14.t1 ==0.86535485050754
-lambda15.t1 ==1.2799244228771
-lambda16.t1 ==1.02720264922705
-lambda17.t1 ==1.29048370810758
-lambda18.t1 ==1.48774477200108
-lambda19.t1 ==0.878366211073239
-lambda20.t1 ==1.23429804529063
-lambda21.t1 ==1.51345011147542
-lambda22.t1 ==0.643134270220657
-lambda23.t1 ==1.22144173571852
-lambda24.t1 ==0.495112980463626
-lambda25.t1 ==0.672711022194983
-lambda26.t1 ==0.820184410676499
-lambda27.t1 ==0.381742887400009
-lambda28.t1 ==0.853327635480844
-lambda29.t1 ==1.35872216510816
-lambda30.t1 ==0.830174645863274
-
-tlambda1.t1 ==-0.395546136939333
-tlambda2.t1 ==0.959079672806876
-tlambda3.t1 ==-0.588513642733792
-tlambda4.t1 ==-0.925742433597419
-tlambda5.t1 ==-0.0705454998911635
-tlambda6.t1 ==1.96953696699368
-tlambda7.t1 ==1.94015257701499
-tlambda8.t1 ==-0.487561273101274
-tlambda9.t1 ==1.11840823581658
-tlambda10.t1 ==0.688737505421704
-tlambda11.t1 ==-0.158414540595477
-tlambda12.t1 ==0.452957536204564
-tlambda13.t1 ==-0.418516267690346
-tlambda14.t1 ==-0.541699731395222
-tlambda15.t1 ==1.17103228010068
-tlambda16.t1 ==-1.01984753714729
-tlambda17.t1 ==0.961703175031416
-tlambda18.t1 ==-1.99922676647371
-tlambda19.t1 ==-0.785310801880931
-tlambda20.t1 ==-1.59388797523404
-tlambda21.t1 ==-1.37430488410851
-tlambda22.t1 ==-0.984242105837807
-tlambda23.t1 ==0.613178665334313
-tlambda24.t1 ==0.659961558506827
-tlambda25.t1 ==0.669675718400049
-tlambda26.t1 ==0.887485195339564
-tlambda27.t1 ==-0.0718487313154983
-tlambda28.t1 ==-0.275037889439151
-tlambda29.t1 ==1.53103139706903
-tlambda30.t1 ==0.304775897761329
-
-
-
-
-lambda21.t2 ==1.24865675112519
-lambda22.t2 ==0.515599014600513
-lambda23.t2 ==1.05145488196072
-lambda24.t2 ==0.453964212371336
-lambda25.t2 ==0.665997170349377
-lambda26.t2 ==0.770344052021204
-lambda27.t2 ==0.317495465956755
-lambda28.t2 ==0.76607864230443
-lambda29.t2 ==1.29065234352694
-lambda30.t2 ==0.745288706316526
-lambda31.t2 ==0.912844562700094
-lambda32.t2 ==0.991692689326616
-lambda33.t2 ==0.835813142483618
-lambda34.t2 ==0.502224163738531
-lambda35.t2 ==1.24889759071193
-lambda36.t2 ==1.01090652901111
-lambda37.t2 ==1.10708781059155
-lambda38.t2 ==0.440527600332572
-lambda39.t2 ==1.06183488177454
-lambda40.t2 ==0.776734132791193
-lambda41.t2 ==1.12355600081307
-lambda42.t2 ==1.06158785348757
-lambda43.t2 ==1.19948620166494
-lambda44.t2 ==0.956462962617167
-lambda45.t2 ==0.819960290219269
-lambda46.t2 ==1.03585517480234
-lambda47.t2 ==0.322652153248899
-lambda48.t2 ==0.802286752805132
-lambda49.t2 ==1.11803841197997
-lambda50.t2 ==1.11531720122423
-
-tlambda21.t2 ==-1.31480709232932
-tlambda22.t2 ==-0.93320548507609
-tlambda23.t2 ==0.633960376782047
-tlambda24.t2 ==0.711031314271462
-tlambda25.t2 ==0.743707481150658
-tlambda26.t2 ==0.952547417648624
-tlambda27.t2 ==-0.0562038392915776
-tlambda28.t2 ==-0.265436814248522
-tlambda29.t2 ==1.62421692172907
-tlambda30.t2 ==0.335303345049908
-tlambda31.t2 ==0.604055509052579
-tlambda32.t2 ==-0.560640430193666
-tlambda33.t2 ==-0.770683222667336
-tlambda34.t2 ==1.0058309206772
-tlambda35.t2 ==0.728934617019349
-tlambda36.t2 ==-1.16098304177316
-tlambda37.t2 ==-1.62497731719925
-tlambda38.t2 ==-0.022502491767487
-tlambda39.t2 ==1.8936278191813
-tlambda40.t2 ==0.321785020739131
-tlambda41.t2 ==2.20436439319413
-tlambda42.t2 ==0.992264228311611
-tlambda43.t2 ==-0.630859487814159
-tlambda44.t2 ==-0.220636663848532
-tlambda45.t2 ==-1.17162175329766
-tlambda46.t2 ==-2.13143973278746
-tlambda47.t2 ==0.321031549591306
-tlambda48.t2 ==-1.2730213246044
-tlambda49.t2 ==-0.219455302640744
-tlambda50.t2 ==0.678606190168499
-
-lambda41.t3 ==1.13674458788625
-lambda42.t3 ==1.03740150741995
-lambda43.t3 ==1.17813132908303
-lambda44.t3 ==0.951498252333523
-lambda45.t3 ==0.818258198646234
-lambda46.t3 ==1.00660517016793
-lambda47.t3 ==0.326924325648512
-lambda48.t3 ==0.787731600234125
-lambda49.t3 ==1.09120906273515
-lambda50.t3 ==1.11460348435176
-lambda51.t3 ==0.816233142073153
-lambda52.t3 ==1.29287063622832
-lambda53.t3 ==0.823998824550205
-lambda54.t3 ==0.523945800862641
-lambda55.t3 ==0.375846847777514
-lambda56.t3 ==0.396986418341473
-lambda57.t3 ==0.702432085544673
-lambda58.t3 ==0.866761887121046
-lambda59.t3 ==0.972944097944099
-lambda60.t3 ==0.730579959622904
-lambda61.t3 ==1.31354276183209
-lambda62.t3 ==0.539129607596811
-lambda63.t3 ==0.666819415059735
-lambda64.t3 ==0.72650442932979
-lambda65.t3 ==0.975108143170974
-lambda66.t3 ==0.647650383815503
-lambda67.t3 ==0.864115093598389
-lambda68.t3 ==1.16520700739012
-lambda69.t3 ==0.393811154881989
-lambda70.t3 ==1.26307829776951
-
-tlambda41.t3 ==2.25931240844049
-tlambda42.t3 ==1.01436659963001
-tlambda43.t3 ==-0.632071619276557
-tlambda44.t3 ==-0.194947321121622
-tlambda45.t3 ==-1.19548441260042
-tlambda46.t3 ==-2.02208016717385
-tlambda47.t3 ==0.294384369528725
-tlambda48.t3 ==-1.26957735518161
-tlambda49.t3 ==-0.202095523313382
-tlambda50.t3 ==0.686814259672656
-tlambda51.t3 ==1.67815538861616
-tlambda52.t3 ==0.053281355180257
-tlambda53.t3 ==-0.011247802320198
-tlambda54.t3 ==-0.760476285713574
-tlambda55.t3 ==0.394520185777281
-tlambda56.t3 ==-0.0914460922169649
-tlambda57.t3 ==0.0977817741751932
-tlambda58.t3 ==-0.933009857204826
-tlambda59.t3 ==-1.03637570503153
-tlambda60.t3 ==0.263676886331173
-tlambda61.t3 ==0.449197216531391
-tlambda62.t3 ==-1.04749082181893
-tlambda63.t3 ==-1.38628062154474
-tlambda64.t3 ==0.456069174469632
-tlambda65.t3 ==1.77266748692894
-tlambda66.t3 ==0.31106898085597
-tlambda67.t3 ==0.264735596225932
-tlambda68.t3 ==0.196786727698108
-tlambda69.t3 ==0.790992463976648
-tlambda70.t3 ==0.093319078296131
-'
+lavaan.model.t123.t123fixed <- model_gen(Ig = 30, Ic = 10,n0=1, nt=3,lmb_values = lmb_values_prep, tau_values = tau_values_prep )
 
 
 lavaan.model.fit <- lavaan(lavaan.model.t123.t123fixed, 
