@@ -54,6 +54,7 @@ model_gen <- function(Ig = 30, #Items per group
                       Ic = 10, # Common Items
                       n0 = 1, # Common Items
                       nt =2, # number of moments
+                      lmb_restriction = FALSE, #add lambda restrictions
                       lmb_values = NULL, # nt x Ig matrix 
                       tau_values = NULL # nt x Ig matrix 
 ){
@@ -91,10 +92,12 @@ model_gen <- function(Ig = 30, #Items per group
     }
   }
   
-  #effect coding restrictions
-  for(i in n0:nt){
-    tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
-    mod <- c(mod,tmp,"\n\n")
+  if(lmb_restriction==TRUE){
+    #effect coding restrictions
+    for(i in n0:nt){
+      tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
+      mod <- c(mod,tmp,"\n\n")
+    }
   }
   #thresholds
   for(i in n0:nt){
@@ -150,6 +153,7 @@ model_gen_nocov <- function(Ig = 30, #Items per group
                             Ic = 10, # Common Items
                             n0 = 1, # Common Items
                             nt =2, # number of moments
+                            lmb_restriction = FALSE, #add lambda restrictions
                             lmb_values = NULL, # nt x Ig matrix 
                             tau_values = NULL # nt x Ig matrix 
 ){
@@ -187,10 +191,12 @@ model_gen_nocov <- function(Ig = 30, #Items per group
     }
   }
   
-  #effect coding restrictions
-  for(i in n0:nt){
-    tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
-    mod <- c(mod,tmp,"\n\n")
+  if(lmb_restriction==TRUE){
+    #effect coding restrictions
+    for(i in n0:nt){
+      tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
+      mod <- c(mod,tmp,"\n\n")
+    }
   }
   #thresholds
   for(i in n0:nt){
@@ -256,7 +262,7 @@ Ig = 30 #Items per group
 Ic = 10 # Common Items
 
 PL=2 # Logistic Model (1,2,3 parameters)
-SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covari?ncia AR1, 2 =  Covari?ncia de bandas
+SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariância AR1, 2 =  Covari?ncia de bandas
 rho<-0.7
 
 #if (PL==1) {a = rep(1,I)} else {a = runif(I,0.5, 2.5)}    # U(0.5 , 2.5)
@@ -265,19 +271,19 @@ if (PL==1) {a = rep(1,I)} else {a = runif(I,0.65, 1.34)}    # moderate
 b = runif(I,-2, 2.0)     # U(-2 , 2)
 if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
   
-d=-a*b # MIRT trabalha com o intercepto (d=-ab) e n?o com a dificuldade (b)
+d=-a*b # MIRT trabalha com o intercepto (d=-ab) e não com a dificuldade (b)
 
 if(SigmaType==0){
-  Sigma <- rockchalk::lazyCor(c(rho,rho,rho)) #Matriz de Covari?ncia Uniforme
+  Sigma <- rockchalk::lazyCov(Rho=c(rho,rho,rho),Sd=1) #Matriz de Covari?ncia Uniforme
 }else if(SigmaType==1){
-  Sigma <- rockchalk::lazyCor(c(rho,rho*rho,rho)) #Matriz de Covari?ncia AR(1)
+  Sigma <- rockchalk::lazyCov(Rho=c(rho,rho*rho,rho),Sd=1) #Matriz de Covari?ncia AR(1)
 }else if(SigmaType==2){
-  Sigma <- rockchalk::lazyCor(c(rho,0,0)) #Matriz de Covari?ncia de bandas
+  Sigma <- rockchalk::lazyCov(Rho=c(rho,0,0),Sd=1) #Matriz de Covari?ncia de bandas
 }else{
   Sigma <- NULL
 }
-
-Theta <- mvrnorm(n=N, mu=c(0,0.7,1.3), Sigma )
+mu=c(0,0.7,1.3)
+Theta <- mvrnorm(n=N, mu=mu , Sigma=Sigma )
 
 head(Theta)
 cor(Theta)
@@ -339,8 +345,6 @@ plot(cbind(a[21:50],par$items[,"a"]))
 lines(c(-4,4),c(-4,4), col = "blue")
 plot(cbind(b[21:50],par$items[,"b"]))
 lines(c(-4,4),c(-4,4), col = "blue")
-
-
 
 # momento 2
 parameters = mirt(U2, 1, itemtype = '2PL', pars = "values")
@@ -444,7 +448,7 @@ tau_sim <- (lambda_sim*alpha -d)/1.702
 I= 70  # Number of Items
 Ig = 30 #Items per group
 Ic = 10 # Common Items
-nt =2
+nt =3
 
 lambda_est <- matrix(data = NA, nrow = 3,ncol = Ig)
 tau_est<- matrix(data = NA, nrow = 3,ncol = Ig)
@@ -470,7 +474,10 @@ for(i in 1:3){
 
 
 lavaan.model.t1.free.tag <- function(){}
-lavaan.model.t1.free <- model_gen(Ig = 30, Ic = 10, nt=1,lmb_values = NULL, tau_values = NULL )
+lavaan.model.t1.free <- model_gen(Ig = 30, Ic = 10, nt=1,
+                                  lmb_restriction=TRUE,
+                                  lmb_values = NULL, 
+                                  tau_values = NULL )
 
 lavaan.model.fit <- lavaan(lavaan.model.t1.free, 
                            data = U1, 
@@ -512,13 +519,12 @@ eta1.free<-predict(lavaan.model.fit)
 mean(eta1.free)
 sd(eta1.free)
 
-
-
-
-
 lavaan.model.t2.free.tag <- function(){}
 
-lavaan.model.t2.free <- model_gen(Ig = 30, Ic = 10,n0=2, nt=2,lmb_values = NULL, tau_values = NULL )
+lavaan.model.t2.free <- model_gen(Ig = 30, Ic = 10,n0=2, nt=2,
+                                  lmb_restriction=TRUE,
+                                  lmb_values = NULL, 
+                                  tau_values = NULL )
 
 lavaan.model.fit <- lavaan(lavaan.model.t2.free, 
                            data = U2, 
@@ -586,6 +592,66 @@ lambda_est[2,] <- a2_equalized/sqrt(var_eta)/1.702
 tau_est[2,] <- (lambda_est[2,]*alpha -d2_equalized)/1.702
 
 
+lavaan.model.t2.fixed.tag <- function(){}
+
+lmb_values_prep <- matrix(data = c(lambda_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   lambda_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   lambda_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+tau_values_prep <- matrix(data = c(tau_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   tau_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   tau_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+
+lavaan.model.t2.fixed <- model_gen_nocov(Ig = 30, Ic = 10,n0=2, nt=2,
+                                   lmb_restriction=FALSE,
+                                   lmb_values = lmb_values_prep, 
+                                   tau_values = tau_values_prep )
+cat(
+model_gen_nocov(Ig = 30, Ic = 10,n0=2, nt=2,
+          lmb_restriction=FALSE,
+          lmb_values = lmb_values_prep, 
+          tau_values = tau_values_prep )
+)
+
+lavaan.model.fit <- lavaan(lavaan.model.t2.fixed, 
+                           data = U2, 
+                           int.ov.free = TRUE,
+                           int.lv.free = FALSE,
+                           meanstructure = TRUE,
+                           std.lv =FALSE,
+                           auto.fix.first = FALSE,
+                           auto.var = TRUE,
+                           auto.th = TRUE,
+                           auto.delta = TRUE,
+                           auto.cov.y = TRUE,
+                           auto.var = TRUE,
+                           ordered = colnames(U2),
+                           parameterization = "theta")
+
+lavaan.model.t2.fixed.fit <- lavaan.model.fit
+
+summary ( lavaan.model.fit , standardized = TRUE )
+fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
+t2.fixed.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
+t2.fixed.tri.param<-get_a_d_b(t2.fixed.sem.param)
+
+eta2.fixed<-predict(lavaan.model.fit)
+mean(eta2.fixed)
+sd(eta2.fixed)
+
+plot(cbind(a[21:50],t2.fixed.tri.param$a[1:30])) 
+lines(c(-4,4),c(-4,4), col = "blue")
+
+plot(cbind(b[21:50],t2.fixed.tri.param$b[1:30])) 
+lines(c(-4,4),c(-4,4), col = "blue")
+
+
+
+
+
+lavaan.model.t12.t12fixed.tag <- function(){}
+
 lmb_values_prep <- matrix(data = c(lambda_est[1,single_moment_item_indexes[1]:single_moment_item_indexes[4]],
                                    lambda_est[2,single_moment_item_indexes[1]:single_moment_item_indexes[4]],
                                    lambda_est[3,single_moment_item_indexes[1]:single_moment_item_indexes[4]]), nrow=nt,ncol=Ig,byrow = TRUE)
@@ -604,11 +670,9 @@ tau_values_prep <- matrix(data = c(tau_sim[item_indexes[1,1]:item_indexes[1,4]],
                                    tau_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
 
 
-
-lavaan.model.t12.t12fixed.tag <- function(){}
-
-
-lavaan.model.t12.t12fixed <-  model_gen(Ig = 30, Ic = 10,n0=1, nt=2,lmb_values = lmb_values_prep, tau_values = tau_values_prep )
+lavaan.model.t12.t12fixed <-  model_gen(Ig = 30, Ic = 10,n0=1, nt=2,
+                                        lmb_values = lmb_values_prep, 
+                                        tau_values = tau_values_prep )
 
 lavaan.model.fit <- lavaan(lavaan.model.t12.t12fixed, 
                            data = cbind(U1,U2), 
@@ -679,8 +743,10 @@ cov(eta12.nocov.free)
 
 lavaan.model.t3.free.tag <- function(){}
 
-lavaan.model.t3.free <- model_gen(Ig = 30, Ic = 10,n0=3, nt=3,lmb_values = NULL, tau_values = NULL )
-
+lavaan.model.t3.free <- model_gen(Ig = 30, Ic = 10,n0=3, nt=3,
+                                  lmb_restriction=TRUE,
+                                  lmb_values = NULL, 
+                                  tau_values = NULL )
 
 lavaan.model.fit <- lavaan(lavaan.model.t3.free, 
                            data = U3, 
@@ -744,6 +810,61 @@ var_eta =1
 #var_eta =t3.sem.param$psi
 lambda_est[3,] <- a3_equalized/sqrt(var_eta)/1.702
 tau_est[3,] <- (lambda_est[3,]*alpha -d3_equalized)/1.702
+
+
+
+lavaan.model.t3.fixed.tag <- function(){}
+
+lmb_values_prep <- matrix(data = c(lambda_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   lambda_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   lambda_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+tau_values_prep <- matrix(data = c(tau_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   tau_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   tau_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+
+lavaan.model.t3.fixed <- model_gen(Ig = 30, Ic = 10,n0=3, nt=3,
+                                   lmb_values = lmb_values_prep, 
+                                   tau_values = tau_values_prep )
+ cat(
+ model_gen(Ig = 30, Ic = 10,n0=3, nt=3,
+           lmb_values = lmb_values_prep, 
+           tau_values = tau_values_prep )
+ )
+
+lavaan.model.fit <- lavaan(lavaan.model.t3.fixed, 
+                           data = U3, 
+                           int.ov.free = TRUE,
+                           int.lv.free = FALSE,
+                           meanstructure = TRUE,
+                           std.lv =FALSE,
+                           auto.fix.first = FALSE,
+                           auto.var = TRUE,
+                           auto.th = TRUE,
+                           auto.delta = TRUE,
+                           auto.cov.y = TRUE,
+                           auto.var = TRUE,
+                           ordered = colnames(U3),
+                           parameterization = "theta")
+lavaan.model.t3.fixed.fit <- lavaan.model.fit
+
+summary ( lavaan.model.fit , standardized = TRUE )
+fitMeasures(lavaan.model.fit)[c("cfi","tli","rmsea")]
+t3.fixed.sem.param<-get_lmb_tau_alpha_psi(lavaan.model.fit)
+t3.fixed.tri.param<-get_a_d_b(t3.fixed.sem.param)
+
+plot(cbind(a[41:70],t3.fixed.tri.param$a[1:30])) 
+lines(c(-4,4),c(-4,4), col = "blue")
+
+plot(cbind(b[41:70],t3.fixed.tri.param$b[1:30])) 
+lines(c(-4,4),c(-4,4), col = "blue")
+
+eta3.fixed<-predict(lavaan.model.fit)
+mean(eta3.fixed)
+sd(eta3.fixed)
+
+
 
 
 lavaan.model.t123.t123fixed.tag <- function(){}
