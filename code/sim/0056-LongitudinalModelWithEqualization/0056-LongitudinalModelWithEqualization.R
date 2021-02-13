@@ -11,9 +11,242 @@ if(!require(ggplot2)) install.packages("ggplot2"); library(ggplot2)
 if(!require(ggrepel)) install.packages("ggrepel"); library(ggrepel)
 
 
+get_item_index <- function(time,Ig,Ic){
+  return( c( group_index_start = ((time-1)*Ig-(time-1)*Ic+1),  # grupo_index_start
+             first_common_index_end = ((time-1)*Ig-(time-1)*Ic+Ic), # first_common_index_end
+             second_common_index_start = (time*Ig-(time-1)*Ic-Ic+1),   # second_common_index_start
+             group_index_end = (time*Ig-(time-1)*Ic))        # group_index_end
+  )
+}
+
+get_lmb_tau_alpha_psi <- function( fitted.model){
+  
+  lambda <- lavInspect(fitted.model,what = 'est')$lambda
+  colnames(lambda) <- paste0("lambda", 1:ncol(lambda))
+  
+  #getting tau values
+  tau <- lavInspect(fitted.model,what = 'est')$tau
+  colnames(tau) <- c("tau")
+  
+  alpha <- lavInspect(fitted.model,what = 'mean.lv')
+  psi <- lavInspect(fitted.model,what = 'cov.lv')
+  
+  return(list(lambda=lambda,tau=tau,alpha=alpha,psi=psi))         
+}
 
 
+get_a_d_b <- function( tn.sem.param){
+  
+  n <- length(tn.sem.param$tau)
+  a <- rep(NA,n)
+  d <- rep(NA,n)
+  
+  for(i in seq(1,n,1)){
+    a[i] <- tn.sem.param$lambda[i,1]*sqrt(tn.sem.param$psi[1,1])*1.7
+    d[i] <- (-tn.sem.param$tau[i] +tn.sem.param$lambda[i,1]*tn.sem.param$alpha[1]) *1.7
+  }
+  b = -d/a
+  
+  return(list(a=a,d=d,b=b))         
+}
+
+model_gen <- function(Ig = 30, #Items per group
+                      Ic = 10, # Common Items
+                      n0 = 1, # Common Items
+                      nt =2, # number of moments
+                      lmb_values = NULL, # nt x Ig matrix 
+                      tau_values = NULL # nt x Ig matrix 
+){
+  item_name <- matrix(NA,nrow = nt, ncol=Ig)
+  lmb_name <- matrix(NA,nrow = nt, ncol=Ig)
+  tau_name <- matrix(NA,nrow = nt, ncol=Ig)
+  item_indexes <- matrix(NA,nrow = nt, ncol=4)
+  single_moment_item_indexes <-get_item_index(1,Ig,Ic)
+  for(i in n0:nt){
+    item_indexes[i,] <-get_item_index(i,Ig,Ic)
+    item_name[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    lmb_name[i,] <- paste0("lmb.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    tau_name[i,] <- paste0("thr.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    
+  }
+  mod <- ""
+  for(i in n0:nt){
+    tmp <- paste0("eta",i,"=~", 
+                  paste(lmb_name[i,],"*",item_name[i,],sep = "",collapse="+"))
+    mod <- c(mod,tmp,"\n\n")
+  }
+  
+  #common factor covariances
+  if(nt==n0){
+    tmp<-paste0("eta",n0,"~~",
+                paste("eta",n0,
+                      sep="",collapse = "+"))
+    mod <- c(mod,tmp,"\n\n")
+  }else{
+    for(i in n0:(nt-1)){
+      tmp<-paste0("eta",i,"~~",
+                  paste("eta",(i+1):nt,
+                        sep="",collapse = "+"))
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  #effect coding restrictions
+  for(i in n0:nt){
+    tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
+    mod <- c(mod,tmp,"\n\n")
+  }
+  #thresholds
+  for(i in n0:nt){
+    tmp <- paste(item_name[i,]," | ",tau_name[i,],"*t1",sep="",collapse = "\n")
+    mod <- c(mod,tmp,"\n\n")
+  }
+  mod <- c(mod,"\n")
+  
+  #covariance matrix
+  for(i in n0:nt){
+    if(i<nt){
+      tmp <- paste(item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)]," ~~ ",
+                   item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)],sep="",collapse = "\n")
+      mod <- c(mod,tmp,"\n")
+      tmp <- paste(item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]]," ~~ ",
+                   item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]],"+",
+                   item_name[i+1,1:Ic],
+                   sep="",collapse = "\n")
+      mod <- c(mod,tmp,"\n\n")
+    }else{
+      tmp <- paste(item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]]," ~~ ",
+                   item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  if( !is.null(lmb_values)){
+    for(i in n0:nt){
+      tmp <- paste(  lmb_name[i,], "==",lmb_values[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  
+  if( !is.null(tau_values)){
+    for(i in n0:nt){
+      tmp <- paste(  tau_name[i,], "==",tau_values[i, single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  # for(i in n0:nt){
+  #   tmp <- paste(  lmb_name[i,], "==",lambda_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")
+  #   mod <- c(mod,tmp,"\n\n")
+  #   tmp <- paste(  tau_name[i,], "==",tau_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
+  #   mod <- c(mod,tmp,"\n\n")
+  # }
+  return(mod)
+} #model_gen <- function(I= 70,  # Number of Items
+
+
+model_gen_nocov <- function(Ig = 30, #Items per group
+                            Ic = 10, # Common Items
+                            n0 = 1, # Common Items
+                            nt =2, # number of moments
+                            lmb_values = NULL, # nt x Ig matrix 
+                            tau_values = NULL # nt x Ig matrix 
+){
+  item_name <- matrix(NA,nrow = nt, ncol=Ig)
+  lmb_name <- matrix(NA,nrow = nt, ncol=Ig)
+  tau_name <- matrix(NA,nrow = nt, ncol=Ig)
+  item_indexes <- matrix(NA,nrow = nt, ncol=4)
+  single_moment_item_indexes <-get_item_index(1,Ig,Ic)
+  for(i in n0:nt){
+    item_indexes[i,] <-get_item_index(i,Ig,Ic)
+    item_name[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    lmb_name[i,] <- paste0("lmb.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    tau_name[i,] <- paste0("thr.",item_indexes[i,1]:item_indexes[i,4],".t",i)
+    
+  }
+  mod <- ""
+  for(i in n0:nt){
+    tmp <- paste0("eta",i,"=~", 
+                  paste(lmb_name[i,],"*",item_name[i,],sep = "",collapse="+"))
+    mod <- c(mod,tmp,"\n\n")
+  }
+  
+  #common factor covariances
+  if(nt==n0){
+    tmp<-paste0("eta",n0,"~~",
+                paste("eta",n0,
+                      sep="",collapse = "+"))
+    mod <- c(mod,tmp,"\n\n")
+  }else{
+    for(i in n0:(nt-1)){
+      tmp<-paste0("eta",i,"~~",
+                  paste("eta",(i+1):nt,
+                        sep="",collapse = "+"))
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  #effect coding restrictions
+  for(i in n0:nt){
+    tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
+    mod <- c(mod,tmp,"\n\n")
+  }
+  #thresholds
+  for(i in n0:nt){
+    tmp <- paste(item_name[i,]," | ",tau_name[i,],"*t1",sep="",collapse = "\n")
+    mod <- c(mod,tmp,"\n\n")
+  }
+  mod <- c(mod,"\n")
+  
+  #covariance matrix
+  # for(i in n0:nt){
+  #   if(i<nt){
+  #     tmp <- paste(item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)]," ~~ ",
+  #                  item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)],sep="",collapse = "\n")
+  #     mod <- c(mod,tmp,"\n")
+  #     tmp <- paste(item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]]," ~~ ",
+  #                  item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]],"+",
+  #                  item_name[i+1,1:Ic],
+  #                  sep="",collapse = "\n")
+  #     mod <- c(mod,tmp,"\n\n")
+  #   }else{
+  #     tmp <- paste(item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]]," ~~ ",
+  #                  item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")
+  #     mod <- c(mod,tmp,"\n\n")
+  #   }
+  # }
+  
+  if( !is.null(lmb_values)){
+    for(i in n0:nt){
+      tmp <- paste(  lmb_name[i,], "==",lmb_values[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  
+  if( !is.null(tau_values)){
+    for(i in n0:nt){
+      tmp <- paste(  tau_name[i,], "==",tau_values[i, single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
+      mod <- c(mod,tmp,"\n\n")
+    }
+  }
+  
+  return(mod)
+} #model_gen <- function(I= 70,  # Number of Items
+
+# cat(model_gen(Ig = 30, Ic = 10, nt=2,lmb_values = NULL, tau_values = NULL ))
+# cat(model_gen(Ig = 15, Ic = 5, nt=3,lmb_values = NULL, tau_values = NULL ))
+# cat(model_gen(Ig = 10, Ic = 5, nt=2,lmb_values = NULL, tau_values = NULL ))
+# cat(model_gen(Ig = 10, Ic = 5, n0=2, nt=2,lmb_values = NULL, tau_values = NULL ))
+# cat(model_gen(Ig = 10, Ic = 5, n0=3, nt=3,lmb_values = NULL, tau_values = NULL ))
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+#
 ###Generate person parameters
+#
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
 parameter_set <- function (){}
 set.seed(1) # Resetando a semente
 
@@ -35,16 +268,16 @@ if (PL<=2) {c = rep(0,I)} else{c = runif(I,0.0, 0.3) } # U(0 , 0.3)
 d=-a*b # MIRT trabalha com o intercepto (d=-ab) e n?o com a dificuldade (b)
 
 if(SigmaType==0){
-  Sigma <- lazyCor(c(rho,rho,rho)) #Matriz de Covari?ncia Uniforme
+  Sigma <- rockchalk::lazyCor(c(rho,rho,rho)) #Matriz de Covari?ncia Uniforme
 }else if(SigmaType==1){
-  Sigma <- lazyCor(c(rho,rho*rho,rho)) #Matriz de Covari?ncia AR(1)
+  Sigma <- rockchalk::lazyCor(c(rho,rho*rho,rho)) #Matriz de Covari?ncia AR(1)
 }else if(SigmaType==2){
-  Sigma <- lazyCor(c(rho,0,0)) #Matriz de Covari?ncia de bandas
+  Sigma <- rockchalk::lazyCor(c(rho,0,0)) #Matriz de Covari?ncia de bandas
 }else{
   Sigma <- NULL
 }
 
-Theta <- mvrnorm(n=N, mu=c(0,0.5,1), Sigma )
+Theta <- mvrnorm(n=N, mu=c(0,0.7,1.3), Sigma )
 
 head(Theta)
 cor(Theta)
@@ -77,13 +310,13 @@ sd(profic)
 plot(cbind(a[1:30],par$items[,"a"]))
 lines(c(-4,4),c(-4,4), col = "blue")
 
+plot(cbind(b[1:30],par$items[,"b"]))
+lines(c(-4,4),c(-4,4), col = "blue")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # momento 2
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 eta  = Theta[,2]%*% t(a[21:50]) +  matrix(d[21:50],N,30,byrow=TRUE);  eta=t(eta) # N x I (a'theta+d)
 P = c[21:50] + (1-c[21:50])/(1+exp(-eta));  P=t(P) # n x I
 X = runif(N*30);  dim(X)=c(N,30)   # matriz n x I de U(0,1)
@@ -208,52 +441,6 @@ lambda_sim <- a/sqrt(var_eta)/1.702
 tau_sim <- (lambda_sim*alpha -d)/1.702
 
 
-
-p1<-paste("lambda",1:30,".t1*Item.",1:30,".t1",sep="",collapse = " + ")
-p1<-paste("d1 =~",p1,sep="",collapse = "")
-p2<-paste("lambda",21:50,".t2*Item.",21:50,".t2",sep="",collapse = " + ")
-p2<-paste("d2 =~",p2,sep="",collapse = "")
-p3<-paste("lambda",41:70,".t3*Item.",41:70,".t3",sep="",collapse = " + ")
-paste("lambda",41:70,".t3",sep="",collapse = " + ")
-
-p3<-paste("d3 =~",p3,sep="",collapse = "")
-
-cat(paste("Item.",1:30,".t1 | tlambda",1:30,".t1*t1",sep="",collapse = "\n"))
-cat(paste("Item.",21:50,".t2 | tlambda",21:50,".t2*t1",sep="",collapse = "\n"))
-cat(paste("Item.",41:70,".t3 | tlambda",41:70,".t3*t1",sep="",collapse = "\n"))
-
-parameters <-function(){}
-
-cat(paste("lambda",1:30,".t1 ==",lambda_sim[1:30],sep="",collapse = "\n"))
-cat(paste("tlambda",1:30,".t1 ==",tau_sim[1:30],sep="",collapse = "\n"))
-
-cat(paste("lambda",21:50,".t2 ==",lambda_sim[21:50],sep="",collapse = "\n"))
-cat(paste("tlambda",21:50,".t2 ==",tau_sim[21:50],sep="",collapse = "\n"))
-
-cat(paste("lambda",1:30,".t1+",sep="",collapse = ""))
-cat(paste("lambda",21:50,".t2+",sep="",collapse = ""))
-
-cat(paste("Item.",1:20,".t1 ~~ Item.",1:20,".t1" ,sep="",collapse = "\n"))
-cat(paste("Item.",21:30,".t1 ~~ Item.",21:30,".t1"," + Item.",21:30,".t2" ,sep="",collapse = "\n"))
-cat(paste("Item.",21:40,".t2 ~~ Item.",21:40,".t2" ,sep="",collapse = "\n"))
-cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t2"," + Item.",41:50,".t3" ,sep="",collapse = "\n"))
-cat(paste("Item.",41:70,".t3 ~~ Item.",41:70,".t3" ,sep="",collapse = "\n"))
-
-cat(paste("Item.",21:30,".t1 ~~ Item.",21:30,".t2" ,sep="",collapse = "\n"))
-cat(paste("Item.",41:50,".t2 ~~ Item.",41:50,".t3" ,sep="",collapse = "\n"))
-
-get_item_index <- function(time,Ig,Ic){
-  return( c( group_index_start = ((time-1)*Ig-(time-1)*Ic+1),  # grupo_index_start
-             first_common_index_end = ((time-1)*Ig-(time-1)*Ic+Ic), # first_common_index_end
-             second_common_index_start = (time*Ig-(time-1)*Ic-Ic+1),   # second_common_index_start
-             group_index_end = (time*Ig-(time-1)*Ic))        # group_index_end
-  )
-}
-
-str(get_item_index(1,Ig,Ic))
-
-
-
 I= 70  # Number of Items
 Ig = 30 #Items per group
 Ic = 10 # Common Items
@@ -263,158 +450,23 @@ lambda_est <- matrix(data = NA, nrow = 3,ncol = Ig)
 tau_est<- matrix(data = NA, nrow = 3,ncol = Ig)
 single_moment_item_indexes <-get_item_index(1,Ig,Ic)
 
-
-model_gen <- function(Ig = 30, #Items per group
-                    Ic = 10, # Common Items
-                    n0 = 1, # Common Items
-                    nt =2, # number of moments
-                    lmb_values = NULL, # nt x Ig matrix 
-                    tau_values = NULL # nt x Ig matrix 
-){
-  item_name <- matrix(NA,nrow = nt, ncol=Ig)
-  lmb_name <- matrix(NA,nrow = nt, ncol=Ig)
-  tau_name <- matrix(NA,nrow = nt, ncol=Ig)
-  item_indexes <- matrix(NA,nrow = nt, ncol=4)
-  single_moment_item_indexes <-get_item_index(1,Ig,Ic)
-  for(i in n0:nt){
-    item_indexes[i,] <-get_item_index(i,Ig,Ic)
-    item_name[i,] <- paste0("Item.",item_indexes[i,1]:item_indexes[i,4],".t",i)
-    lmb_name[i,] <- paste0("lmb.",item_indexes[i,1]:item_indexes[i,4],".t",i)
-    tau_name[i,] <- paste0("thr.",item_indexes[i,1]:item_indexes[i,4],".t",i)
-    
-  }
-  mod <- ""
-  for(i in n0:nt){
-    tmp <- paste0("eta",i,"=~", 
-                  paste(lmb_name[i,],"*",item_name[i,],sep = "",collapse="+"))
-    mod <- c(mod,tmp,"\n\n")
-  }
-  
-  #common factor covariances
-  if(nt==n0){
-    tmp<-paste0("eta",n0,"~~",
-                paste("eta",n0,
-                      sep="",collapse = "+"))
-    mod <- c(mod,tmp,"\n\n")
-  }else{
-    for(i in n0:(nt-1)){
-      tmp<-paste0("eta",i,"~~",
-                paste("eta",(i+1):nt,
-                      sep="",collapse = "+"))
-      mod <- c(mod,tmp,"\n\n")
-    }
-  }
-
-  #effect coding restrictions
-  for(i in n0:nt){
-    tmp <- paste0(length(item_name[i,]),"==", paste(lmb_name[i,],sep = "",collapse="+"))
-    mod <- c(mod,tmp,"\n\n")
-  }
-  #thresholds
-  for(i in n0:nt){
-    tmp <- paste(item_name[i,]," | ",tau_name[i,],"*t1",sep="",collapse = "\n")
-    mod <- c(mod,tmp,"\n\n")
-  }
-  mod <- c(mod,"\n")
-  
-  #covariance matrix
-  for(i in n0:nt){
-    if(i<nt){
-      tmp <- paste(item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)]," ~~ ",
-                   item_name[i,single_moment_item_indexes[1]:(single_moment_item_indexes[3]-1)],sep="",collapse = "\n")
-      mod <- c(mod,tmp,"\n")
-      tmp <- paste(item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]]," ~~ ",
-                   item_name[i,single_moment_item_indexes[3]:single_moment_item_indexes[4]],"+",
-                   item_name[i+1,1:Ic],
-                   sep="",collapse = "\n")
-      mod <- c(mod,tmp,"\n\n")
-    }else{
-      tmp <- paste(item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]]," ~~ ",
-                   item_name[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")
-      mod <- c(mod,tmp,"\n\n")
-    }
-  }
-
-  if( !is.null(lmb_values)){
-    for(i in n0:nt){
-      tmp <- paste(  lmb_name[i,], "==",lmb_values[i,single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
-      mod <- c(mod,tmp,"\n\n")
-    }
-  }
-  
-    
-  if( !is.null(tau_values)){
-    for(i in n0:nt){
-      tmp <- paste(  tau_name[i,], "==",tau_values[i, single_moment_item_indexes[1]:single_moment_item_indexes[4]],sep="",collapse = "\n")  
-      mod <- c(mod,tmp,"\n\n")
-    }
-  }
-  
-  # for(i in n0:nt){
-  #   tmp <- paste(  lmb_name[i,], "==",lambda_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")
-  #   mod <- c(mod,tmp,"\n\n")
-  #   tmp <- paste(  tau_name[i,], "==",tau_sim[item_indexes[i,1]:(item_indexes[i,4])],sep="",collapse = "\n")  
-  #   mod <- c(mod,tmp,"\n\n")
-  # }
-  return(mod)
-} #model_gen <- function(I= 70,  # Number of Items
-
-cat(model_gen(Ig = 30, Ic = 10, nt=2,lmb_values = NULL, tau_values = NULL ))
-
-cat(model_gen(Ig = 15, Ic = 5, nt=3,lmb_values = NULL, tau_values = NULL ))
-
-cat(model_gen(Ig = 10, Ic = 5, nt=2,lmb_values = NULL, tau_values = NULL ))
-
-cat(model_gen(Ig = 10, Ic = 5, n0=2, nt=2,lmb_values = NULL, tau_values = NULL ))
-cat(model_gen(Ig = 10, Ic = 5, n0=3, nt=3,lmb_values = NULL, tau_values = NULL ))
-
-lmb_values_prep <- matrix(data = c(lambda_sim[item_indexes[1,1]:item_indexes[1,4]],
-                                   lambda_sim[item_indexes[2,1]:item_indexes[2,4]],
-                                   lambda_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
-
-tau_values_prep <- matrix(data = c(tau_sim[item_indexes[1,1]:item_indexes[1,4]],
-                                   tau_sim[item_indexes[2,1]:item_indexes[2,4]],
-                                   tau_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
-
-cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = NULL, tau_values = tau_values_prep))
-cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = lmb_values_prep, tau_values = NULL))
-cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = lmb_values_prep, tau_values = tau_values_prep))
-cat(model_gen(Ig = 10, Ic = 5, nt=2,lmb_values = lmb_values_prep, tau_values = tau_values_prep))
-
-working <- function(){}
-
-
-
-get_lmb_tau_alpha_psi <- function( fitted.model){
-  
-  lambda <- lavInspect(fitted.model,what = 'est')$lambda
-  colnames(lambda) <- paste0("lambda", 1:ncol(lambda))
-  
-  #getting tau values
-  tau <- lavInspect(fitted.model,what = 'est')$tau
-  colnames(tau) <- c("tau")
-  
-  alpha <- lavInspect(fitted.model,what = 'mean.lv')
-  psi <- lavInspect(fitted.model,what = 'cov.lv')
-  
-  return(list(lambda=lambda,tau=tau,alpha=alpha,psi=psi))         
+item_indexes <- matrix(NA,nrow = 3, ncol=4)
+for(i in 1:3){
+  item_indexes[i,] <-get_item_index(i,Ig,Ic)
 }
 
-
-get_a_d_b <- function( tn.sem.param){
-  
-  n <- length(tn.sem.param$tau)
-  a <- rep(NA,n)
-  d <- rep(NA,n)
-  
-  for(i in seq(1,n,1)){
-    a[i] <- tn.sem.param$lambda[i,1]*sqrt(tn.sem.param$psi[1,1])*1.7
-    d[i] <- (-tn.sem.param$tau[i] +tn.sem.param$lambda[i,1]*tn.sem.param$alpha[1]) *1.7
-  }
-  b = -d/a
-  
-  return(list(a=a,d=d,b=b))         
-}
+# lmb_values_prep <- matrix(data = c(lambda_sim[item_indexes[1,1]:item_indexes[1,4]],
+#                                    lambda_sim[item_indexes[2,1]:item_indexes[2,4]],
+#                                    lambda_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+# 
+# tau_values_prep <- matrix(data = c(tau_sim[item_indexes[1,1]:item_indexes[1,4]],
+#                                    tau_sim[item_indexes[2,1]:item_indexes[2,4]],
+#                                    tau_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+# 
+# cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = NULL, tau_values = tau_values_prep))
+# cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = lmb_values_prep, tau_values = NULL))
+# cat(model_gen(Ig = 10, Ic = 5, nt=1,lmb_values = lmb_values_prep, tau_values = tau_values_prep))
+# cat(model_gen(Ig = 10, Ic = 5, nt=2,lmb_values = lmb_values_prep, tau_values = tau_values_prep))
 
 
 lavaan.model.t1.free.tag <- function(){}
@@ -515,16 +567,16 @@ b2_equalized <- t2.tri.param$b*A+B
 d2_equalized = -a2_equalized*b2_equalized
 
 
-plot(cbind(b[21:50],t2.tri.param$b))
+plot(cbind(b[21:50],t2.tri.param$b),xlim = c(-2.5 , 2.5),ylim = c(-2.5 , 2.5),asp=1)
 lines(c(-4,4),c(-4,4), col = "blue")
 
-plot(cbind(b[21:50],b2_equalized))
+plot(cbind(b[21:50],b2_equalized),xlim = c(-2.5 , 2.5),ylim = c(-2.5 , 2.5),asp=1)
 lines(c(-4,4),c(-4,4), col = "blue")
 
-plot(cbind(a[21:50],a2_equalized))
+plot(cbind(a[21:50],a2_equalized),xlim = c(0.5 , 2.5),ylim = c(0.5 , 2.5),asp=1)
 lines(c(-4,4),c(-4,4), col = "blue")
 
-plot(cbind(a[21:50],t2.tri.param$a))
+plot(cbind(a[21:50],t2.tri.param$a),xlim = c(0.5 , 2.5),ylim = c(0.5 , 2.5),asp=1)
 lines(c(-4,4),c(-4,4), col = "blue")
 
 
@@ -543,7 +595,18 @@ tau_values_prep <- matrix(data = c(tau_est[1, single_moment_item_indexes[1]:sing
                                    tau_est[3, single_moment_item_indexes[1]:single_moment_item_indexes[4]]), nrow=nt,ncol=Ig,byrow = TRUE)
 
 
+lmb_values_prep <- matrix(data = c(lambda_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   lambda_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   lambda_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+tau_values_prep <- matrix(data = c(tau_sim[item_indexes[1,1]:item_indexes[1,4]],
+                                   tau_sim[item_indexes[2,1]:item_indexes[2,4]],
+                                   tau_sim[item_indexes[3,1]:item_indexes[3,4]]), nrow=nt,ncol=Ig,byrow = TRUE)
+
+
+
 lavaan.model.t12.t12fixed.tag <- function(){}
+
 
 lavaan.model.t12.t12fixed <-  model_gen(Ig = 30, Ic = 10,n0=1, nt=2,lmb_values = lmb_values_prep, tau_values = tau_values_prep )
 
@@ -576,210 +639,13 @@ mean(eta12.free[,2])
 sd(eta12.free[,2])
 cov(eta12.free)
 
+
+
+
+
 lavaan.model.t12.t12fixed.nocov.tag <- function(){}
+lavaan.model.t12.t12fixed.nocov <-  model_gen_nocov(Ig = 30, Ic = 10,n0=1, nt=2,lmb_values = lmb_values_prep, tau_values = tau_values_prep )
 
-lavaan.model.t12.t12fixed.nocov <-'
-
-d1 =~ lambda1.t1*Item.1.t1+ lambda2.t1*Item.2.t1+ lambda3.t1*Item.3.t1+ lambda4.t1*Item.4.t1+ lambda5.t1*Item.5.t1+ lambda6.t1*Item.6.t1+ lambda7.t1*Item.7.t1+ lambda8.t1*Item.8.t1+ lambda9.t1*Item.9.t1+ lambda10.t1*Item.10.t1+ lambda11.t1*Item.11.t1+ lambda12.t1*Item.12.t1+ lambda13.t1*Item.13.t1+ lambda14.t1*Item.14.t1+ lambda15.t1*Item.15.t1+ lambda16.t1*Item.16.t1+ lambda17.t1*Item.17.t1+ lambda18.t1*Item.18.t1+ lambda19.t1*Item.19.t1+ lambda20.t1*Item.20.t1+ lambda21.t1*Item.21.t1+ lambda22.t1*Item.22.t1+ lambda23.t1*Item.23.t1+ lambda24.t1*Item.24.t1+ lambda25.t1*Item.25.t1+ lambda26.t1*Item.26.t1+ lambda27.t1*Item.27.t1+ lambda28.t1*Item.28.t1+ lambda29.t1*Item.29.t1+ lambda30.t1*Item.30.t1
-d2 =~ lambda21.t2*Item.21.t2+ lambda22.t2*Item.22.t2+ lambda23.t2*Item.23.t2+ lambda24.t2*Item.24.t2+ lambda25.t2*Item.25.t2+ lambda26.t2*Item.26.t2+ lambda27.t2*Item.27.t2+ lambda28.t2*Item.28.t2+ lambda29.t2*Item.29.t2+ lambda30.t2*Item.30.t2+ lambda31.t2*Item.31.t2+ lambda32.t2*Item.32.t2+ lambda33.t2*Item.33.t2+ lambda34.t2*Item.34.t2+ lambda35.t2*Item.35.t2+ lambda36.t2*Item.36.t2+ lambda37.t2*Item.37.t2+ lambda38.t2*Item.38.t2+ lambda39.t2*Item.39.t2+ lambda40.t2*Item.40.t2+ lambda41.t2*Item.41.t2+ lambda42.t2*Item.42.t2+ lambda43.t2*Item.43.t2+ lambda44.t2*Item.44.t2+ lambda45.t2*Item.45.t2+ lambda46.t2*Item.46.t2+ lambda47.t2*Item.47.t2+ lambda48.t2*Item.48.t2+ lambda49.t2*Item.49.t2+ lambda50.t2*Item.50.t2
-
-d1~~d2
-
-
-Item.1.t1 | tlambda1.t1*t1
-Item.2.t1 | tlambda2.t1*t1
-Item.3.t1 | tlambda3.t1*t1
-Item.4.t1 | tlambda4.t1*t1
-Item.5.t1 | tlambda5.t1*t1
-Item.6.t1 | tlambda6.t1*t1
-Item.7.t1 | tlambda7.t1*t1
-Item.8.t1 | tlambda8.t1*t1
-Item.9.t1 | tlambda9.t1*t1
-Item.10.t1 | tlambda10.t1*t1
-Item.11.t1 | tlambda11.t1*t1
-Item.12.t1 | tlambda12.t1*t1
-Item.13.t1 | tlambda13.t1*t1
-Item.14.t1 | tlambda14.t1*t1
-Item.15.t1 | tlambda15.t1*t1
-Item.16.t1 | tlambda16.t1*t1
-Item.17.t1 | tlambda17.t1*t1
-Item.18.t1 | tlambda18.t1*t1
-Item.19.t1 | tlambda19.t1*t1
-Item.20.t1 | tlambda20.t1*t1
-Item.21.t1 | tlambda21.t1*t1
-Item.22.t1 | tlambda22.t1*t1
-Item.23.t1 | tlambda23.t1*t1
-Item.24.t1 | tlambda24.t1*t1
-Item.25.t1 | tlambda25.t1*t1
-Item.26.t1 | tlambda26.t1*t1
-Item.27.t1 | tlambda27.t1*t1
-Item.28.t1 | tlambda28.t1*t1
-Item.29.t1 | tlambda29.t1*t1
-Item.30.t1 | tlambda30.t1*t1
-
-
-Item.21.t2 | tlambda21.t2*t1
-Item.22.t2 | tlambda22.t2*t1
-Item.23.t2 | tlambda23.t2*t1
-Item.24.t2 | tlambda24.t2*t1
-Item.25.t2 | tlambda25.t2*t1
-Item.26.t2 | tlambda26.t2*t1
-Item.27.t2 | tlambda27.t2*t1
-Item.28.t2 | tlambda28.t2*t1
-Item.29.t2 | tlambda29.t2*t1
-Item.30.t2 | tlambda30.t2*t1
-Item.31.t2 | tlambda31.t2*t1
-Item.32.t2 | tlambda32.t2*t1
-Item.33.t2 | tlambda33.t2*t1
-Item.34.t2 | tlambda34.t2*t1
-Item.35.t2 | tlambda35.t2*t1
-Item.36.t2 | tlambda36.t2*t1
-Item.37.t2 | tlambda37.t2*t1
-Item.38.t2 | tlambda38.t2*t1
-Item.39.t2 | tlambda39.t2*t1
-Item.40.t2 | tlambda40.t2*t1
-Item.41.t2 | tlambda41.t2*t1
-Item.42.t2 | tlambda42.t2*t1
-Item.43.t2 | tlambda43.t2*t1
-Item.44.t2 | tlambda44.t2*t1
-Item.45.t2 | tlambda45.t2*t1
-Item.46.t2 | tlambda46.t2*t1
-Item.47.t2 | tlambda47.t2*t1
-Item.48.t2 | tlambda48.t2*t1
-Item.49.t2 | tlambda49.t2*t1
-Item.50.t2 | tlambda50.t2*t1
-
-
-
-
-
-lambda1.t1 ==0.726371655117903
-lambda2.t1 ==0.822808811591549
-lambda3.t1 ==1.08304504781398
-lambda4.t1 ==1.58820037269627
-lambda5.t1 ==0.652574605506499
-lambda6.t1 ==1.39740726424945
-lambda7.t1 ==1.51160738087182
-lambda8.t1 ==1.23840723760775
-lambda9.t1 ==1.15320254443496
-lambda10.t1 ==0.450649951316108
-lambda11.t1 ==0.671195787900798
-lambda12.t1 ==0.596315148347679
-lambda13.t1 ==1.25483766885902
-lambda14.t1 ==0.86535485050754
-lambda15.t1 ==1.2799244228771
-lambda16.t1 ==1.02720264922705
-lambda17.t1 ==1.29048370810758
-lambda18.t1 ==1.48774477200108
-lambda19.t1 ==0.878366211073239
-lambda20.t1 ==1.23429804529063
-lambda21.t1 ==1.51345011147542
-lambda22.t1 ==0.643134270220657
-lambda23.t1 ==1.22144173571852
-lambda24.t1 ==0.495112980463626
-lambda25.t1 ==0.672711022194983
-lambda26.t1 ==0.820184410676499
-lambda27.t1 ==0.381742887400009
-lambda28.t1 ==0.853327635480844
-lambda29.t1 ==1.35872216510816
-lambda30.t1 ==0.830174645863274
-
-tlambda1.t1 ==-0.395546136939333
-tlambda2.t1 ==0.959079672806876
-tlambda3.t1 ==-0.588513642733792
-tlambda4.t1 ==-0.925742433597419
-tlambda5.t1 ==-0.0705454998911635
-tlambda6.t1 ==1.96953696699368
-tlambda7.t1 ==1.94015257701499
-tlambda8.t1 ==-0.487561273101274
-tlambda9.t1 ==1.11840823581658
-tlambda10.t1 ==0.688737505421704
-tlambda11.t1 ==-0.158414540595477
-tlambda12.t1 ==0.452957536204564
-tlambda13.t1 ==-0.418516267690346
-tlambda14.t1 ==-0.541699731395222
-tlambda15.t1 ==1.17103228010068
-tlambda16.t1 ==-1.01984753714729
-tlambda17.t1 ==0.961703175031416
-tlambda18.t1 ==-1.99922676647371
-tlambda19.t1 ==-0.785310801880931
-tlambda20.t1 ==-1.59388797523404
-tlambda21.t1 ==-1.37430488410851
-tlambda22.t1 ==-0.984242105837807
-tlambda23.t1 ==0.613178665334313
-tlambda24.t1 ==0.659961558506827
-tlambda25.t1 ==0.669675718400049
-tlambda26.t1 ==0.887485195339564
-tlambda27.t1 ==-0.0718487313154983
-tlambda28.t1 ==-0.275037889439151
-tlambda29.t1 ==1.53103139706903
-tlambda30.t1 ==0.304775897761329
-
-
-
-lambda21.t2 ==1.24865675112519
-lambda22.t2 ==0.515599014600513
-lambda23.t2 ==1.05145488196072
-lambda24.t2 ==0.453964212371336
-lambda25.t2 ==0.665997170349377
-lambda26.t2 ==0.770344052021204
-lambda27.t2 ==0.317495465956755
-lambda28.t2 ==0.76607864230443
-lambda29.t2 ==1.29065234352694
-lambda30.t2 ==0.745288706316526
-lambda31.t2 ==0.912844562700094
-lambda32.t2 ==0.991692689326616
-lambda33.t2 ==0.835813142483618
-lambda34.t2 ==0.502224163738531
-lambda35.t2 ==1.24889759071193
-lambda36.t2 ==1.01090652901111
-lambda37.t2 ==1.10708781059155
-lambda38.t2 ==0.440527600332572
-lambda39.t2 ==1.06183488177454
-lambda40.t2 ==0.776734132791193
-lambda41.t2 ==1.12355600081307
-lambda42.t2 ==1.06158785348757
-lambda43.t2 ==1.19948620166494
-lambda44.t2 ==0.956462962617167
-lambda45.t2 ==0.819960290219269
-lambda46.t2 ==1.03585517480234
-lambda47.t2 ==0.322652153248899
-lambda48.t2 ==0.802286752805132
-lambda49.t2 ==1.11803841197997
-lambda50.t2 ==1.11531720122423
-
-tlambda21.t2 ==-1.31480709232932
-tlambda22.t2 ==-0.93320548507609
-tlambda23.t2 ==0.633960376782047
-tlambda24.t2 ==0.711031314271462
-tlambda25.t2 ==0.743707481150658
-tlambda26.t2 ==0.952547417648624
-tlambda27.t2 ==-0.0562038392915776
-tlambda28.t2 ==-0.265436814248522
-tlambda29.t2 ==1.62421692172907
-tlambda30.t2 ==0.335303345049908
-tlambda31.t2 ==0.604055509052579
-tlambda32.t2 ==-0.560640430193666
-tlambda33.t2 ==-0.770683222667336
-tlambda34.t2 ==1.0058309206772
-tlambda35.t2 ==0.728934617019349
-tlambda36.t2 ==-1.16098304177316
-tlambda37.t2 ==-1.62497731719925
-tlambda38.t2 ==-0.022502491767487
-tlambda39.t2 ==1.8936278191813
-tlambda40.t2 ==0.321785020739131
-tlambda41.t2 ==2.20436439319413
-tlambda42.t2 ==0.992264228311611
-tlambda43.t2 ==-0.630859487814159
-tlambda44.t2 ==-0.220636663848532
-tlambda45.t2 ==-1.17162175329766
-tlambda46.t2 ==-2.13143973278746
-tlambda47.t2 ==0.321031549591306
-tlambda48.t2 ==-1.2730213246044
-tlambda49.t2 ==-0.219455302640744
-tlambda50.t2 ==0.678606190168499
-
-'
 
 lavaan.model.fit <- lavaan(lavaan.model.t12.t12fixed.nocov, 
                            data = cbind(U1,U2), 
