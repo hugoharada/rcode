@@ -21,28 +21,29 @@ thresholdCalc <- function(vector){
   th <- qnorm(cprop)
   return (list(th=th, prop=prop, cprop=cprop))
 }
+th <- list(
+  thresholdCalc(dat[,1]),
+  thresholdCalc(dat[,2]),
+  thresholdCalc(dat[,3]),
+  thresholdCalc(dat[,4]),
+  thresholdCalc(dat[,5])
+)
 
-thresholdCalc(dat[,1])
-thresholdCalc(dat[,2])
-thresholdCalc(dat[,3])
-thresholdCalc(dat[,4])
-thresholdCalc(dat[,5])
-
-
+th
 
 #calculating parameters.
-item.a <- matrix(0,nrow=5,ncol=6)
-colnames(item.a) <- c("mirt","lavI","lavII","lavIII","lavIV","label")
+item.a <- matrix(0,nrow=5,ncol=8)
+colnames(item.a) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
 item.a[,"label"]=1:5
-item.d <- matrix(0,nrow=5,ncol=6)
-colnames(item.d) <- c("mirt","lavI","lavII","lavIII","lavIV","label")
+item.d <- matrix(0,nrow=5,ncol=8)
+colnames(item.d) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
 item.d[,"label"]=1:5
 
-lambda <- matrix(NA,nrow=5,ncol=6)
-colnames(lambda) <- c("mirt","lavI","lavII","lavIII","lavIV","label")
+lambda <- matrix(NA,nrow=5,ncol=8)
+colnames(lambda) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
 lambda[,"label"]=1:5
-tau <- matrix(NA,nrow=5,ncol=6)
-colnames(tau) <- c("mirt","lavI","lavII","lavIII","lavIV","label")
+tau <- matrix(NA,nrow=5,ncol=8)
+colnames(tau) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
 tau[,"label"]=1:5
 
 mirt_bookmark <- function(){}
@@ -59,140 +60,6 @@ item.d[,"mirt"]<-coef(mod, simplify=TRUE)$item[,"d"]
 cbind(item = 1:5, b= -item.d[,"mirt"]/item.a[,"mirt"])
 
 lavaan_models <- function(){}
-
-mod2ind4lv1 <- '
-lv1 =~ lmbd1*Item_1 + lmbd2*Item_2 + lmbd3*Item_3 +lmbd4*Item_4 + lmbd5*Item_5
-lv1 ~ lv1mean*1
-lv1 ~~ lv1var*lv1 
-
-## LIR means
-Item_1 ~ mean1*1
-Item_2 ~ mean2*1
-Item_3 ~ mean3*1
-Item_4 ~ mean4*1
-Item_5 ~ mean5*1
-0 == mean1+mean2+mean3+mean4+mean5
-
-## LIR means
-# Item_1 ~ mean1*1 + 0*1
-# Item_2 ~ mean2*1 + 0*1
-# Item_3 ~ mean3*1 + 0*1
-# Item_4 ~ mean4*1 + 0*1
-# Item_5 ~ mean5*1 + 0*1
-
-
-## LIR (co)variances
-Item_1 ~~ var1*Item_1 + 0*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_2 ~~ var2*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_3 ~~ var3*Item_3 + 0*Item_4 + 0*Item_5 
-Item_4 ~~ var4*Item_4 + 0*Item_5 
-Item_5 ~~ var5*Item_5 
-
-# Item_1 ~~ var1*Item_1 + 1*Item_1 + 0*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-# Item_2 ~~ var2*Item_2 + 1*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-# Item_3 ~~ var3*Item_3 + 1*Item_3 + 0*Item_4 + 0*Item_5 
-# Item_4 ~~ var4*Item_4 + 1*Item_4 + 0*Item_5 
-# Item_5 ~~ var5*Item_5 + 1*Item_5
-
-## thresholds link LIRs to observed items
-Item_1 | thr1*t1 
-Item_2 | thr2*t1
-Item_3 | thr3*t1
-Item_4 | thr4*t1
-Item_5 | thr5*t1
-#thr1 + thr2 + thr3 + thr4 + thr5 ==0
-'
-mod2ind4lv1 <- '
-lv1 =~ lmbd1*Item_1 + lmbd2*Item_2 + lmbd3*Item_3 +lmbd4*Item_4 + lmbd5*Item_5
-lv1 ~ lv1mean*1
-lv1 ~~ lv1var*lv1 
-
-## LIR means
-Item_1 ~ mean1*1
-Item_2 ~ mean2*1
-Item_3 ~ mean3*1
-Item_4 ~ mean4*1
-Item_5 ~ mean5*1
-
-mean1+lmbd1*lv1mean==0
-mean2+lmbd2*lv1mean==0
-mean3+lmbd3*lv1mean==0
-mean4+lmbd4*lv1mean==0
-mean5+lmbd5*lv1mean==0
-
-## LIR (co)variances
-Item_1 ~~ var1*Item_1 + 0*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_2 ~~ var2*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_3 ~~ var3*Item_3 + 0*Item_4 + 0*Item_5 
-Item_4 ~~ var4*Item_4 + 0*Item_5 
-Item_5 ~~ var5*Item_5 
-
-# Item_1 ~~ var1*Item_1 + 1*Item_1 + 0*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-# Item_2 ~~ var2*Item_2 + 1*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-# Item_3 ~~ var3*Item_3 + 1*Item_3 + 0*Item_4 + 0*Item_5 
-# Item_4 ~~ var4*Item_4 + 1*Item_4 + 0*Item_5 
-# Item_5 ~~ var5*Item_5 + 1*Item_5
-
-## thresholds link LIRs to observed items
-Item_1 | thr1*t1 
-Item_2 | thr2*t1
-Item_3 | thr3*t1
-Item_4 | thr4*t1
-Item_5 | thr5*t1
-thr1 + thr2 + thr3 + thr4 + thr5 ==0
-'
-
-
-lavaan_constraints <- function(){}
-
-constraint.m0.v1.tf <- '
-## Wave 1
-mean1 == 0 ; var1 == 1
-## Wave 2
-mean2 == 0 ; var2 == 1
-## Wave 3
-mean3 == 0 ; var3 == 1
-## Wave 4
-mean4 == 0 ; var4 == 1
-## Wave 5
-mean5 == 0 ; var5 == 1
-'
-constraint.mf.v1.t0 <- '
-## Wave 1
-thr1 == 0 ; var1 == 1
-## Wave 2
-thr2 == 0 ; var2 == 1
-## Wave 3
-thr3 == 0 ; var3 == 1
-## Wave 4
-thr4 == 0 ; var4 == 1
-## Wave 5
-thr5 == 0 ; var5 == 1
-'
-constraint.mf.v1.t1_0 <- '
-## Wave 1
-thr1 == 0 ; var1 == 1
-## Wave 2
-var2 == 1
-## Wave 3
-var3 == 1
-## Wave 4
-var4 == 1
-## Wave 5
-var5 == 1
-'
-
-#does not work
-#df becomes -5
-constraint.mf.vf.t1_0 <- '
-## Wave 1
-thr1 == 0 
-'
-
-
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-mod2ind4lv1_parametros_I <- function(){}
-
 
 mod_noconstraints <- '
 lv1 =~ lmbd1*Item_1 + lmbd2*Item_2 + lmbd3*Item_3 +lmbd4*Item_4 + lmbd5*Item_5
@@ -219,8 +86,13 @@ Item_2 | thr2*t1
 Item_3 | thr3*t1
 Item_4 | thr4*t1
 Item_5 | thr5*t1
-
 '
+
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+mod2ind4lv1_parametros_I <- function(){}
+
+
 
 constraint.I <- '
 lv1mean==0
@@ -236,66 +108,12 @@ int5==0
 1== lmbd3*lmbd3*lv1var + var3
 1== lmbd4*lmbd4*lv1var + var4
 1== lmbd5*lmbd5*lv1var + var5
-
-'
-
-
-mod2ind4lv1 <- '
-lv1 =~ lmbd1*Item_1 + lmbd2*Item_2 + lmbd3*Item_3 +lmbd4*Item_4 + lmbd5*Item_5
-lv1 ~ lv1mean*1
-lv1 ~~ lv1var*lv1 
-
-lv1mean==0
-
-## LIR means
-Item_1 ~ mean1*1 + 0*1
-Item_2 ~ mean2*1 + 0*1
-Item_3 ~ mean3*1 + 0*1
-Item_4 ~ mean4*1 + 0*1
-Item_5 ~ mean5*1 + 0*1
-
-Item_1 ~~ var1*Item_1 + 0*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5
-Item_2 ~~ var2*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5
-Item_3 ~~ var3*Item_3 + 0*Item_4 + 0*Item_5
-Item_4 ~~ var4*Item_4 + 0*Item_5
-Item_5 ~~ var5*Item_5 
-
-## thresholds link LIRs to observed items
-Item_1 | thr1*t1 
-Item_2 | thr2*t1
-Item_3 | thr3*t1
-Item_4 | thr4*t1
-Item_5 | thr5*t1
-
-1== lmbd1*lmbd1*lv1var + var1
-1== lmbd2*lmbd2*lv1var + var2
-1== lmbd3*lmbd3*lv1var + var3
-1== lmbd4*lmbd4*lv1var + var4
-1== lmbd5*lmbd5*lv1var + var5
-
 '
 
 
 
-rm(mod2ind4lv1.fit)
-mod2ind4lv1.fit <- lavaan(mod2ind4lv1, 
-                          data = dat, 
-                          int.ov.free = TRUE, # intercepts
-                          int.lv.free = FALSE,
-                          std.lv =TRUE,
-                          fixed.x = FALSE,
-                          meanstructure = TRUE,
-                          auto.fix.first = FALSE,
-                          auto.fix.single = TRUE,
-                          auto.var = TRUE,
-                          auto.th = TRUE,
-                          auto.cov.lv.x = TRUE,
-                          auto.cov.y = TRUE,
-                          auto.delta = TRUE,
-                          ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
-                          parameterization = "delta")
 
-mod2ind4lv1.fit.noconst <- lavaan(mod_noconstraints, 
+mod.fit.I <- lavaan(mod_noconstraints, 
                           data = dat, 
                           int.ov.free = TRUE, # intercepts
                           int.lv.free = FALSE,
@@ -313,37 +131,35 @@ mod2ind4lv1.fit.noconst <- lavaan(mod_noconstraints,
                           parameterization = "delta",
                           constraints = constraint.I)
 
-summary(mod2ind4lv1.fit.noconst)
-
-
-summary(mod2ind4lv1.fit)
-fitmeasures(mod2ind4lv1.fit)[c("tli","cfi","rmsea")]
-fitMeasures(mod2ind4lv1.fit)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
+summary(mod.fit.I)
+fitmeasures(mod.fit.I)[c("tli","cfi","rmsea")]
+fitMeasures(mod.fit.I)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
 
 #getting lambda values
-lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
-lambda[,"lavI"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
+lavInspect(mod.fit.I,what = 'est')$lambda
+lambda[,"lavI"] <- lavInspect(mod.fit.I,what = 'est')$lambda
 lambda
 
 #getting tau values
-lavInspect(mod2ind4lv1.fit,what = 'est')$tau
-tau[,"lavI"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$tau
+lavInspect(mod.fit.I,what = 'est')$tau
+tau[,"lavI"] <- lavInspect(mod.fit.I,what = 'est')$tau
 tau
 
-#getting mean values
-lavInspect(mod2ind4lv1.fit,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
-alpha <- lavInspect(mod2ind4lv1.fit,what = 'est')$alpha
-alpha
-
 #LRV mean and var
-lavInspect(mod2ind4lv1.fit,what = 'mu')
-lavInspect(mod2ind4lv1.fit,what = 'vy')
+lavInspect(mod.fit.I,what = 'mu')
+lavInspect(mod.fit.I,what = 'vy')
 th
 
 
+#getting mean values
+lavInspect(mod.fit.I,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.I,what = 'est')$alpha
+alpha
+
+
 #getting cov values
-lavInspect(mod2ind4lv1.fit,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
-thetvar<- diag(lavInspect(mod2ind4lv1.fit,what = 'est')$psi)
+lavInspect(mod.fit.I,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+thetvar<- diag(lavInspect(mod.fit.I,what = 'est')$psi)
 thetvar
 
 for(i in seq(1,5,1)){# i items
@@ -373,157 +189,30 @@ b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavI))+
 cowplot::plot_grid(a,b,nrow=1)
 
 
-loopn<-500
-tmp <- matrix(NA,nrow=loopn,ncol=10)
-mod2ind4lv1 <- '
-lv1 =~ lmbd1*Item_1 + lmbd2*Item_2 + lmbd3*Item_3 +lmbd4*Item_4 + lmbd5*Item_5
-'
-for(i in 1:loopn){
-  
-  boot_data <- dplyr::sample_n(dat,size=500,replace=TRUE)
-  
-  mod2ind4lv1.fit <- cfa(mod2ind4lv1,
-                         data = boot_data, 
-                         std.lv =TRUE,
-                         ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
-                         parameterization = "delta")
-  
-  if(fitmeasures(mod2ind4lv1.fit)["tli"] > 0.9){
-    tmp[i,1:5]<- lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
-    tmp[i,6:10]<- lavInspect(mod2ind4lv1.fit,what = 'est')$tau
-    
-  }
-}
-tmp
 
-tmp2 <- tmp[complete.cases(tmp),]
-
-quantile(tmp2[,1], prob=c(.25))
-quantile(tmp2[,1], prob=c(.75))
-
-histogram(tmp[,1])
-histogram(tmp2[,1])
-histogram(tmp3[,1])
-summary(tmp3)
-qqnorm(tmp2[,1])
-qqline(tmp2[,1])
-boxplot(tmp2[,1])
-
-iqr_values_only <- function(vector){
-  quantis_25_75 <-quantile(vector, prob=c(.25,.75),na.rm = TRUE)
-  vector<- ifelse( (vector < quantis_25_75[1])|(vector > quantis_25_75[2]),
-                   NA,
-                   vector)
-  return(vector)
-}
-
-iqr_values_only(tmp2[,1])
-
-tmp3 <- apply(tmp2, MARGIN=2, FUN=iqr_values_only)
-
-
-mean_tmp <-colMeans(tmp2,na.rm = TRUE)
-mean_tmp <-colMeans(tmp3,na.rm = TRUE)
-
-lambda[,"lavI"] <- mean_tmp[1:5]
-tau[,"lavI"] <-  mean_tmp[6:10]
-
-
-for(i in seq(1,5,1)){# i items
-  item.a[i,"lavI"] <- lambda[i,"lavI"]/sqrt(1-lambda[i,"lavI"]*lambda[i,"lavI"])*1.702
-  item.d[i,"lavI"] <- -tau[i,"lavI"]/sqrt(1-lambda[i,"lavI"]*lambda[i,"lavI"])*1.702
-}
-
-item.a
-item.d
-
-lambda
-tau
-
--item.a[,"lavI"]*item.d[,"lavI"]
-
-
-
-a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavI))+
-  geom_point()+
-  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
-  ggtitle("Estimativas de a")+ 
-  xlab("MIRT")+
-  ylab("LAVAAN")+ coord_fixed()+theme_bw()
-
-b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavI))+
-  geom_point()+
-  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
-  ggtitle("Estimativas de d")+ 
-  xlab("MIRT")+
-  ylab("LAVAAN")+ coord_fixed()+theme_bw()
-
-cowplot::plot_grid(a,b,nrow=1)
-
-fitmeasures(mod2ind4lv1.fit)["tli"]
-
-
-# twoP.model<-'
-# # loadings
-# Theta =~ l1*Q1 + l2*Q2 + l3*Q3 + l4*Q4 + l5*Q5
-# # thresholds
-# Q1 | th1*t1
-# Q2 | th2*t1
-# Q3 | th3*t1
-# Q4 | th4*t1
-# Q5 | th5*t1
-# # convert loadings to slopes (normal)
-# alpha1.N := (l1)/sqrt(1-l1^2)
-# alpha2.N := (l2)/sqrt(1-l2^2)
-# alpha3.N := (l3)/sqrt(1-l3^2)
-# alpha4.N := (l4)/sqrt(1-l4^2)
-# alpha5.N := (l5)/sqrt(1-l5^2)
-# # convert thresholds to intercepts (normal)
-# beta1.N := (-th1)/sqrt(1-l1^2)
-# beta2.N := (-th2)/sqrt(1-l2^2)
-# beta3.N := (-th3)/sqrt(1-l3^2)
-# beta4.N := (-th4)/sqrt(1-l4^2)
-# beta5.N := (-th5)/sqrt(1-l5^2)
-# # convert intercepts to locations (normal)
-# loc1 := -beta1.N/alpha1.N
-# loc2 := -beta2.N/alpha2.N
-# loc3 := -beta3.N/alpha3.N
-# loc4 := -beta4.N/alpha4.N
-# loc5 := -beta5.N/alpha5.N
-# # convert loadings to slopes (logistic)
-# alpha1.L := (l1)/sqrt(1-l1^2)*1.7
-# alpha2.L := (l2)/sqrt(1-l2^2)*1.7
-# alpha3.L := (l3)/sqrt(1-l3^2)*1.7
-# alpha4.L := (l4)/sqrt(1-l4^2)*1.7
-# alpha5.L := (l5)/sqrt(1-l5^2)*1.7
-# # convert thresholds to locations (logistic)
-# loc1.L := th1/l1
-# loc2.L := th2/l2
-# loc3.L := th3/l3
-# loc4.L := th4/l4
-# loc5.L := th5/l5
-# # convert locations to intercepts (logistic)
-# beta1.L := (-alpha1.L)*loc1.L
-# beta2.L := (-alpha2.L)*loc2.L
-# beta3.L := (-alpha3.L)*loc3.L
-# beta4.L := (-alpha4.L)*loc4.L
-# beta5.L := (-alpha5.L)*loc5.L
-# '
-# 
-# dat2 <- dat
-# colnames(dat2)<- c("Q1","Q2","Q3","Q4", "Q5")
-# 
-# twoP.fit <- cfa(twoP.model, data=dat2,  std.lv=TRUE, ordered=c("Q1","Q2","Q3","Q4", "Q5"))
-# summary(twoP.fit, standardized=TRUE)
-# 
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 mod2ind4lv1_parametros_II <- function(){}
 
+constraint.II <- '
+lv1mean==0
 
-rm(mod2ind4lv1.fit)
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
 
-mod2ind4lv1.fit <- lavaan(mod2ind4lv1, 
+1== var1
+1== var2
+1== var3
+1== var4
+1== var5
+'
+
+rm(mod.fit.II)
+
+mod.fit.II <- lavaan(mod_noconstraints, 
                           data = dat, 
                           int.ov.free = TRUE,
                           int.lv.free = FALSE,
@@ -533,49 +222,49 @@ mod2ind4lv1.fit <- lavaan(mod2ind4lv1,
                           auto.fix.first = FALSE,
                           auto.var = TRUE,
                           ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
-                          parameterization = "theta")
+                          parameterization = "theta",
+                          constraints = constraint.II)
 
-lavParTable(mod2ind4lv1, 
-            int.ov.free = TRUE,
-            int.lv.free = FALSE,
-            meanstructure = TRUE,
-            std.lv =TRUE,
-            auto.fix.first = FALSE,
-            auto.var = TRUE,
-            constraints = constraint.m0.v1.tf,
-            parameterization = "theta")
-
-parTable(mod2ind4lv1.fit)
-
-lavop <- lavInspect(mod2ind4lv1.fit, "options")
-summary(mod2ind4lv1.fit)
-fitMeasures(mod2ind4lv1.fit)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
-vcov <- lavInspect(mod2ind4lv1.fit,what = "vcov")
-eigen(vcov)$values
-resid(mod2ind4lv1.fit, type = "cor")
-#View(resid(mod2ind4lv1.fit, type = "cor")$cov)
+summary(mod.fit.II)
+fitMeasures(mod.fit.II)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
 
 #getting lambda values
-lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
-lambda[,"lavII"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
+lavInspect(mod.fit.II,what = 'est')$lambda
+lambda[,"lavII"] <- lavInspect(mod.fit.II,what = 'est')$lambda
 lambda
 
 #getting tau values
-lavInspect(mod2ind4lv1.fit,what = 'est')$tau
-tau[,"lavII"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$tau
+lavInspect(mod.fit.II,what = 'est')$tau
+tau[,"lavII"] <- lavInspect(mod.fit.II,what = 'est')$tau
 tau
+lavInspect(mod.fit.II,what = 'th')
+
+
+#LRV mean and var
+mu <- lavInspect(mod.fit.II,what = 'mu')
+vy <- lavInspect(mod.fit.II,what = 'vy')
+vy_exp <- lambda[,"lavII"]*lambda[,"lavII"] +1 #expected values of vy
+vy - vy_exp #should be zero
+
+
+# checking if accumulated probabilities are accurate for  estimated/standardized LIR/LRV
+pnorm(tau[1,"lavII"],mean = mu[1],sd =sqrt(vy[1])) 
+th[[1]]$cprop[2]
+
+pnorm(tau[2,"lavII"],mean = mu[2],sd =sqrt(vy[2])) 
+th[[2]]$cprop[2]
+
 
 #getting mean values
-lavInspect(mod2ind4lv1.fit,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
-mu <- lavInspect(mod2ind4lv1.fit,what = 'est')$alpha
-mu
-#getting cov values
-lavInspect(mod2ind4lv1.fit,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
-thetvar<- diag(lavInspect(mod2ind4lv1.fit,what = 'est')$psi)
-thetvar
+lavInspect(mod.fit.II,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.II,what = 'est')$alpha
+alpha
 
-lavInspect(mod2ind4lv1.fit,what = 'sampstat')
-lavInspect(mod2ind4lv1.fit,what = 'mu')
+
+#getting cov values
+lavInspect(mod.fit.II,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+thetvar<- diag(lavInspect(mod.fit.II,what = 'est')$psi)
+thetvar
 
 
 
@@ -606,149 +295,85 @@ b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavII))+
 cowplot::plot_grid(a,b,nrow=1)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-mod2ind4lv1_parametros_III <- function(){}
-
-mod2ind4lv1 <- '
-lv1 =~ lmbd1*Item_1 + 1*Item_1 + lmbd2*Item_2 + lmbd3*Item_3 +lmbd4*Item_4 + lmbd5*Item_5
-lv1 ~ lv1mean*1
-lv1 ~~ lv1var*lv1 
-
-## LIR means
-Item_1 ~ mean1*1
-Item_2 ~ mean2*1
-Item_3 ~ mean3*1
-Item_4 ~ mean4*1
-Item_5 ~ mean5*1
-0 == mean1+mean2+mean3+mean4+mean5
-
-## LIR means
-# Item_1 ~ mean1*1 + 0*1
-# Item_2 ~ mean2*1 + 0*1
-# Item_3 ~ mean3*1 + 0*1
-# Item_4 ~ mean4*1 + 0*1
-# Item_5 ~ mean5*1 + 0*1
+mod2ind4lv1_parametros_IIIa <- function(){}
 
 
-## LIR (co)variances
-Item_1 ~~ var1*Item_1 + 1*Item_1 + 0*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_2 ~~ var2*Item_2 + 1*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_3 ~~ var3*Item_3 + 1*Item_3 + 0*Item_4 + 0*Item_5 
-Item_4 ~~ var4*Item_4 + 1*Item_4 + 0*Item_5 
-Item_5 ~~ var5*Item_5 + 1*Item_5
+constraint.IIIa <- '
 
-## thresholds link LIRs to observed items
-Item_1 | thr1*t1
-#Item_1 | thr1*t1
-Item_2 | thr2*t1
-Item_3 | thr3*t1
-Item_4 | thr4*t1
-Item_5 | thr5*t1
+lmbd1==1
+thr1 ==0
+
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
+
+1== lv1var + var1
+1== lv1var + var2
+1== lv1var + var3
+1== lv1var + var4
+1== lv1var + var5
 '
 
-rm(mod2ind4lv1.fit)
+rm(mod.fit.IIIa)
 
-mod2ind4lv1.fit <- lavaan(mod2ind4lv1, 
-                          data = dat, 
-                          int.ov.free = TRUE,
-                          int.lv.free = TRUE,
-                          meanstructure = TRUE,
-                          std.lv =FALSE,
-                          auto.fix.first = TRUE,
-                          auto.var = TRUE,
-                          ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
-                          parameterization = "delta")
-
-lavParTable(mod2ind4lv1, 
-            int.ov.free = TRUE,
-            int.lv.free = TRUE,
-            meanstructure = TRUE,
-            std.lv =FALSE,
-            auto.fix.first = TRUE,
-            auto.var = TRUE,
-#            constraints = constraint.mf.v1.t0 ,
-            parameterization = "delta")
-
-parTable(mod2ind4lv1.fit)
-
-lavop <- lavInspect(mod2ind4lv1.fit, "options")
-summary(mod2ind4lv1.fit)
-
-lavInspect(mod2ind4lv1.fit,what="free")
-lavInspect(mod2ind4lv1.fit,what="start")
-
-fitMeasures(mod2ind4lv1.fit)['tli']
-fitMeasures(mod2ind4lv1.fit)['cfi']
-fitMeasures(mod2ind4lv1.fit)['rmsea']
-vcov <- lavInspect(mod2ind4lv1.fit,what = "vcov")
-eigen(vcov)$values
-resid(mod2ind4lv1.fit, type = "cor")
-#View(resid(mod2ind4lv1.fit, type = "cor")$cov)
-
-#getting lambda values
-lavInspect(mod2ind4lv1.fit,what = 'est')$lambda0..0..9,,,,uiuiuiiuiiuiuiiuiuiuiuuunmN     
+mod.fit.IIIa <- lavaan(mod_noconstraints, 
+                       data = dat, 
+                       int.ov.free = TRUE,
+                       int.lv.free = TRUE,
+                       meanstructure = TRUE,
+                       std.lv =FALSE,
+                       auto.fix.first = TRUE,
+                       auto.var = TRUE,
+                       ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                       parameterization = "delta",
+                       constraints = constraint.IIIa
+)
 
 
+summary(mod.fit.IIIa)
+fitMeasures(mod.fit.IIIa)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-lambda[,"lavIII"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
+lambda[,"lavIIIa"] <- lavInspect(mod.fit.IIIa,what = 'est')$lambda
 lambda
 
 #getting tau values
-lavInspect(mod2ind4lv1.fit,what = 'est')$tau
-tau[,"lavIII"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$tau
+lavInspect(mod.fit.IIIa,what = 'est')$tau
+tau[,"lavIIIa"] <- lavInspect(mod.fit.IIIa,what = 'est')$tau
 tau
 
+#LRV mean and var
+mu <- lavInspect(mod.fit.IIIa,what = 'mu')
+vy <- lavInspect(mod.fit.IIIa,what = 'vy')
+
+
+# checking if accumulated probabilities are accurate for  estimated/standardized LIR/LRV
+pnorm(tau[1,"lavIIIa"],mean = mu[1],sd =sqrt(vy[1])) 
+th[[1]]$cprop[2]
+
+pnorm(tau[2,"lavIIIa"],mean = mu[2],sd =sqrt(vy[2])) 
+th[[2]]$cprop[2]
+
+
 #getting mean values
-lavInspect(mod2ind4lv1.fit,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
-mu <- lavInspect(mod2ind4lv1.fit,what = 'est')$alpha
-mu
+lavInspect(mod.fit.IIIa,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.IIIa,what = 'est')$alpha
+alpha
+
+
 #getting cov values
-lavInspect(mod2ind4lv1.fit,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
-theta_var<- diag(lavInspect(mod2ind4lv1.fit,what = 'est')$psi)
+lavInspect(mod.fit.IIIa,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.IIIa,what = 'est')$psi)
 theta_var
 
 
+
+
+
 for(i in seq(1,5,1)){# i items
-  item.a[i,"lavIII"] <- lambda[i,"lavIII"]*sqrt(theta_var)/sqrt(1-lambda[i,"lavIII"]*lambda[i,"lavIII"]*theta_var)*1.7
-  item.d[i,"lavIII"] <- (-tau[i,"lavIII"]+lambda[i,"lavIII"]*mu)/sqrt(1-lambda[i,"lavIII"]*lambda[i,"lavIII"]*theta_var)*1.7
+  item.a[i,"lavIIIa"] <- lambda[i,"lavIIIa"]*sqrt(theta_var)/sqrt(1-lambda[i,"lavIIIa"]*lambda[i,"lavIIIa"]*theta_var)*1.7
+  item.d[i,"lavIIIa"] <- (-tau[i,"lavIIIa"]+lambda[i,"lavIIIa"]*alpha)/sqrt(1-lambda[i,"lavIIIa"]*lambda[i,"lavIIIa"]*theta_var)*1.7
 }
 
 item.a
@@ -756,14 +381,14 @@ item.d
 lambda
 tau
 
-a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavIII))+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavIIIa))+
   geom_point()+
   geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
   ggtitle("Estimativas de a")+ 
   xlab("MIRT")+
   ylab("LAVAAN")+ coord_fixed()+theme_bw()
 
-b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavIII))+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavIIIa))+
   geom_point()+
   geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
   ggtitle("Estimativas de d")+ 
@@ -774,107 +399,83 @@ cowplot::plot_grid(a,b,nrow=1)
 
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-mod2ind4lv1_parametros_IV <- function(){}
+mod2ind4lv1_parametros_IIIb <- function(){}
 
 
-mod2ind4lv1 <- '
-lv1 =~ lmbd1*Item_1 + 1*Item_1 + lmbd2*Item_2 + lmbd3*Item_3 +lmbd4*Item_4 + lmbd5*Item_5
-lv1 ~ lv1mean*1
-lv1 ~~ lv1var*lv1 
+constraint.IIIb <- '
 
-## LIR means
-Item_1 ~ mean1*1
-Item_2 ~ mean2*1
-Item_3 ~ mean3*1
-Item_4 ~ mean4*1
-Item_5 ~ mean5*1
-0 == mean1+mean2+mean3+mean4+mean5
+lmbd1==1
+lv1mean==0
 
-## LIR means
-# Item_1 ~ mean1*1 + 0*1
-# Item_2 ~ mean2*1 + 0*1
-# Item_3 ~ mean3*1 + 0*1
-# Item_4 ~ mean4*1 + 0*1
-# Item_5 ~ mean5*1 + 0*1
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
 
-
-## LIR (co)variances
-Item_1 ~~ var1*Item_1 + 1*Item_1 + 0*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_2 ~~ var2*Item_2 + 1*Item_2 + 0*Item_3 + 0*Item_4 + 0*Item_5 
-Item_3 ~~ var3*Item_3 + 1*Item_3 + 0*Item_4 + 0*Item_5 
-Item_4 ~~ var4*Item_4 + 1*Item_4 + 0*Item_5 
-Item_5 ~~ var5*Item_5 + 1*Item_5
-
-## thresholds link LIRs to observed items
-Item_1 | thr1*t1
-Item_2 | thr2*t1
-Item_3 | thr3*t1
-Item_4 | thr4*t1
-Item_5 | thr5*t1
+1== lmbd1*lmbd1*lv1var + var1
+1== lmbd2*lmbd2*lv1var + var2
+1== lmbd3*lmbd3*lv1var + var3
+1== lmbd4*lmbd4*lv1var + var4
+1== lmbd5*lmbd5*lv1var + var5
 '
 
-rm(mod2ind4lv1.fit)
+rm(mod.fit.IIIb)
 
-mod2ind4lv1.fit <- lavaan(mod2ind4lv1, 
-                          data = dat, 
-                          int.ov.free = TRUE,
-                          int.lv.free = TRUE,
-                          meanstructure = TRUE,
-                          std.lv =FALSE,
-                          auto.fix.first = TRUE,
-                          auto.var = TRUE,
-                          ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
-                          parameterization = "theta")
+mod.fit.IIIb <- lavaan(mod_noconstraints, 
+                       data = dat, 
+                       int.ov.free = TRUE,
+                       int.lv.free = TRUE,
+                       meanstructure = TRUE,
+                       std.lv =FALSE,
+                       auto.fix.first = TRUE,
+                       auto.var = TRUE,
+                       ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                       parameterization = "delta",
+                       constraints = constraint.IIIb
+)
 
-lavParTable(mod2ind4lv1, 
-            int.ov.free = TRUE,
-            int.lv.free = TRUE,
-            meanstructure = TRUE,
-            std.lv =FALSE,
-            auto.fix.first = TRUE,
-            auto.var = TRUE,
-            #            constraints = constraint.mf.v1.t0 ,
-            parameterization = "delta")
 
-parTable(mod2ind4lv1.fit)
+summary(mod.fit.IIIb)
+fitMeasures(mod.fit.IIIb)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
 
-lavop <- lavInspect(mod2ind4lv1.fit, "options")
-summary(mod2ind4lv1.fit)
-fitMeasures(mod2ind4lv1.fit)['tli']
-fitMeasures(mod2ind4lv1.fit)['cfi']
-fitMeasures(mod2ind4lv1.fit)['rmsea']
-vcov <- lavInspect(mod2ind4lv1.fit,what = "vcov")
-eigen(vcov)$values
-resid(mod2ind4lv1.fit, type = "cor")
-#View(resid(mod2ind4lv1.fit, type = "cor")$cov)
-
-#getting lambda values
-lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
-lambda[,"lavIV"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$lambda
+lambda[,"lavIIIb"] <- lavInspect(mod.fit.IIIb,what = 'est')$lambda
 lambda
 
 #getting tau values
-lavInspect(mod2ind4lv1.fit,what = 'est')$tau
-tau[,"lavIV"] <- lavInspect(mod2ind4lv1.fit,what = 'est')$tau
+lavInspect(mod.fit.IIIb,what = 'est')$tau
+tau[,"lavIIIb"] <- lavInspect(mod.fit.IIIb,what = 'est')$tau
 tau
 
+#LRV mean and var
+mu <- lavInspect(mod.fit.IIIb,what = 'mu')
+vy <- lavInspect(mod.fit.IIIb,what = 'vy')
+
+
+# checking if accumulated probabilities are accurate for  estimated/standardized LIR/LRV
+pnorm(tau[1,"lavIIIb"],mean = mu[1],sd =sqrt(vy[1])) 
+th[[1]]$cprop[2]
+
+pnorm(tau[2,"lavIIIb"],mean = mu[2],sd =sqrt(vy[2])) 
+th[[2]]$cprop[2]
+
+
 #getting mean values
-lavInspect(mod2ind4lv1.fit,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
-mu <- lavInspect(mod2ind4lv1.fit,what = 'est')$alpha
-mu
+lavInspect(mod.fit.IIIb,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.IIIb,what = 'est')$alpha
+alpha
+
+
 #getting cov values
-lavInspect(mod2ind4lv1.fit,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
-theta_var<- diag(lavInspect(mod2ind4lv1.fit,what = 'est')$psi)
+lavInspect(mod.fit.IIIb,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.IIIb,what = 'est')$psi)
 theta_var
-
-
-lavInspect(mod2ind4lv1.fit,what = "est")$theta[1,1]+lavInspect(mod2ind4lv1.fit,what = "est")$lambda[1]*lavInspect(mod2ind4lv1.fit,what = "est")$lambda[1]*lavInspect(mod2ind4lv1.fit,what = "est")$psi
 
 
 
 for(i in seq(1,5,1)){# i items
-  item.a[i,"lavIV"] <- lambda[i,"lavIV"]*sqrt(theta_var)*1.702
-  item.d[i,"lavIV"] <- (-tau[i,"lavIV"]+lambda[i,"lavIV"]*mu)*1.702
+  item.a[i,"lavIIIb"] <- lambda[i,"lavIIIb"]*sqrt(theta_var)/sqrt(1-lambda[i,"lavIIIb"]*lambda[i,"lavIIIb"]*theta_var)*1.7
+  item.d[i,"lavIIIb"] <- (-tau[i,"lavIIIb"]+lambda[i,"lavIIIb"]*alpha)/sqrt(1-lambda[i,"lavIIIb"]*lambda[i,"lavIIIb"]*theta_var)*1.7
 }
 
 item.a
@@ -882,19 +483,221 @@ item.d
 lambda
 tau
 
-a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavIII))+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavIIIb))+
   geom_point()+
   geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
   ggtitle("Estimativas de a")+ 
   xlab("MIRT")+
-  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+  ylab("LAVAAN IIIb")+ coord_fixed()+theme_bw()
 
-b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavIII))+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavIIIb))+
   geom_point()+
   geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
   ggtitle("Estimativas de d")+ 
   xlab("MIRT")+
-  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+  ylab("LAVAAN IIIb")+ coord_fixed()+theme_bw()
+
+cowplot::plot_grid(a,b,nrow=1)
+
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+mod2ind4lv1_parametros_IVa <- function(){}
+
+
+constraint.IVa <- '
+
+lmbd1==1
+thr1 ==0
+
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
+
+1== var1
+1== var2
+1== var3
+1== var4
+1== var5
+'
+
+rm(mod.fit.IVa)
+
+mod.fit.IVa <- lavaan(mod_noconstraints, 
+                       data = dat, 
+                       int.ov.free = TRUE,
+                       int.lv.free = TRUE,
+                       meanstructure = TRUE,
+                       std.lv =FALSE,
+                       auto.fix.first = TRUE,
+                       auto.var = TRUE,
+                       ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                       parameterization = "theta",
+                       constraints = constraint.IVa
+)
+summary(mod.fit.IVa)
+fitMeasures(mod.fit.IVa)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
+
+#getting lambda values
+lavInspect(mod.fit.IVa,what = 'est')$lambda
+lambda[,"lavIVa"] <- lavInspect(mod.fit.IVa,what = 'est')$lambda
+lambda
+
+#getting tau values
+lavInspect(mod.fit.IVa,what = 'est')$tau
+tau[,"lavIVa"] <- lavInspect(mod.fit.IVa,what = 'est')$tau
+tau
+
+#LRV mean and var
+mu <- lavInspect(mod.fit.IVa,what = 'mu')
+vy <- lavInspect(mod.fit.IVa,what = 'vy')
+
+
+# checking if accumulated probabilities are accurate for  estimated/standardized LIR/LRV
+pnorm(tau[1,"lavIVa"],mean = mu[1],sd =sqrt(vy[1])) 
+th[[1]]$cprop[2]
+
+pnorm(tau[2,"lavIVa"],mean = mu[2],sd =sqrt(vy[2])) 
+th[[2]]$cprop[2]
+
+
+#getting mean values
+lavInspect(mod.fit.IVa,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.IVa,what = 'est')$alpha
+alpha
+
+
+#getting cov values
+lavInspect(mod.fit.IVa,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.IVa,what = 'est')$psi)
+theta_var
+
+for(i in seq(1,5,1)){# i items
+  item.a[i,"lavIVa"] <- lambda[i,"lavIVa"]*sqrt(theta_var)*1.702
+  item.d[i,"lavIVa"] <- (-tau[i,"lavIVa"]+lambda[i,"lavIVa"]*alpha)*1.702
+}
+
+item.a
+item.d
+lambda
+tau
+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavIVa))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de a")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN IVa")+ coord_fixed()+theme_bw()
+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavIVa))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de d")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN IVa")+ coord_fixed()+theme_bw()
+
+cowplot::plot_grid(a,b,nrow=1)
+
+
+
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+mod2ind4lv1_parametros_IVb <- function(){}
+
+
+constraint.IVb <- '
+
+lmbd1==1
+lv1mean==0
+
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
+
+1== var1
+1== var2
+1== var3
+1== var4
+1== var5
+'
+
+rm(mod.fit.IVb)
+
+mod.fit.IVb <- lavaan(mod_noconstraints, 
+                      data = dat, 
+                      int.ov.free = TRUE,
+                      int.lv.free = TRUE,
+                      meanstructure = TRUE,
+                      std.lv =FALSE,
+                      auto.fix.first = TRUE,
+                      auto.var = TRUE,
+                      ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                      parameterization = "theta",
+                      constraints = constraint.IVb
+)
+summary(mod.fit.IVb)
+fitMeasures(mod.fit.IVb)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
+
+#getting lambda values
+lavInspect(mod.fit.IVb,what = 'est')$lambda
+lambda[,"lavIVb"] <- lavInspect(mod.fit.IVb,what = 'est')$lambda
+lambda
+
+#getting tau values
+lavInspect(mod.fit.IVb,what = 'est')$tau
+tau[,"lavIVb"] <- lavInspect(mod.fit.IVb,what = 'est')$tau
+tau
+
+#LRV mean and var
+mu <- lavInspect(mod.fit.IVb,what = 'mu')
+vy <- lavInspect(mod.fit.IVb,what = 'vy')
+
+
+# checking if accumulated probabilities are accurate for  estimated/standardized LIR/LRV
+pnorm(tau[1,"lavIVb"],mean = mu[1],sd =sqrt(vy[1])) 
+th[[1]]$cprop[2]
+
+pnorm(tau[2,"lavIVb"],mean = mu[2],sd =sqrt(vy[2])) 
+th[[2]]$cprop[2]
+
+
+#getting mean values
+lavInspect(mod.fit.IVb,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.IVb,what = 'est')$alpha
+alpha
+
+
+#getting cov values
+lavInspect(mod.fit.IVb,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.IVb,what = 'est')$psi)
+theta_var
+
+for(i in seq(1,5,1)){# i items
+  item.a[i,"lavIVb"] <- lambda[i,"lavIVb"]*sqrt(theta_var)*1.702
+  item.d[i,"lavIVb"] <- (-tau[i,"lavIVb"]+lambda[i,"lavIVb"]*alpha)*1.702
+}
+
+item.a
+item.d
+lambda
+tau
+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavIVb))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("EstimatIVbs de a")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN IVb")+ coord_fixed()+theme_bw()
+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavIVb))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de d")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN IVb")+ coord_fixed()+theme_bw()
 
 cowplot::plot_grid(a,b,nrow=1)
 
