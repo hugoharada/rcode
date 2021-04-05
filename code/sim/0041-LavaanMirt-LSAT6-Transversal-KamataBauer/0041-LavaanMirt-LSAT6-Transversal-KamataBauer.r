@@ -13,6 +13,7 @@ lsat6_parametros <- function(){}
 
 dat <- expand.table(LSAT6)
 head(dat)
+table(dat[,1])
 
 
 thresholdCalc <- function(vector){
@@ -31,19 +32,21 @@ th <- list(
 
 th
 
+colnames_lav <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","lavVa","lavVb","lavVIa","lavVIb","label")
+
 #calculating parameters.
-item.a <- matrix(0,nrow=5,ncol=8)
-colnames(item.a) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
+item.a <- matrix(0,nrow=5,ncol=length(colnames_lav))
+colnames(item.a) <- colnames_lav
 item.a[,"label"]=1:5
-item.d <- matrix(0,nrow=5,ncol=8)
-colnames(item.d) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
+item.d <- matrix(0,nrow=5,ncol=length(colnames_lav))
+colnames(item.d) <- colnames_lav
 item.d[,"label"]=1:5
 
-lambda <- matrix(NA,nrow=5,ncol=8)
-colnames(lambda) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
+lambda <- matrix(NA,nrow=5,ncol=length(colnames_lav))
+colnames(lambda) <- colnames_lav
 lambda[,"label"]=1:5
-tau <- matrix(NA,nrow=5,ncol=8)
-colnames(tau) <- c("mirt","lavI","lavII","lavIIIa","lavIIIb","lavIVa","lavIVb","label")
+tau <- matrix(NA,nrow=5,ncol=length(colnames_lav))
+colnames(tau) <- colnames_lav
 tau[,"label"]=1:5
 
 mirt_bookmark <- function(){}
@@ -87,6 +90,9 @@ Item_3 | thr3*t1
 Item_4 | thr4*t1
 Item_5 | thr5*t1
 '
+
+
+
 
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -309,11 +315,11 @@ int3==0
 int4==0
 int5==0
 
-1== lv1var + var1
-1== lv1var + var2
-1== lv1var + var3
-1== lv1var + var4
-1== lv1var + var5
+1== lmbd1*lmbd1*lv1var + var1
+1== lmbd2*lmbd2*lv1var + var2
+1== lmbd3*lmbd3*lv1var + var3
+1== lmbd4*lmbd4*lv1var + var4
+1== lmbd5*lmbd5*lv1var + var5
 '
 
 rm(mod.fit.IIIa)
@@ -700,4 +706,429 @@ b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavIVb))+
   ylab("LAVAAN IVb")+ coord_fixed()+theme_bw()
 
 cowplot::plot_grid(a,b,nrow=1)
+
+
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+# offset coding
+# std.lv = FALSE
+
+mod2ind4lv1_parametros_Va <- function(){}
+
+constraint.Va <- '
+
+lmbd1+lmbd2+lmbd3+lmbd4+lmbd5==5
+thr1==0
+
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
+
+1== lmbd1*lmbd1*lv1var + var1
+1== lmbd2*lmbd2*lv1var + var2
+1== lmbd3*lmbd3*lv1var + var3
+1== lmbd4*lmbd4*lv1var + var4
+1== lmbd5*lmbd5*lv1var + var5
+'
+
+cat(mod_noconstraints)
+
+
+mod.fit.Va <- lavaan(mod_noconstraints, 
+                    data = dat, 
+                    int.ov.free = TRUE, # intercepts
+                    int.lv.free = FALSE,
+                    std.lv =FALSE,
+                    fixed.x = FALSE,
+                    meanstructure = TRUE,
+                    auto.fix.first = FALSE,
+                    auto.fix.single = TRUE,
+                    auto.var = TRUE,
+                    auto.th = TRUE,
+                    auto.cov.lv.x = TRUE,
+                    auto.cov.y = TRUE,
+                    auto.delta = TRUE,
+                    ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                    parameterization = "delta",
+                    constraints = constraint.Va)
+
+summary(mod.fit.Va)
+fitmeasures(mod.fit.Va)[c("tli","cfi","rmsea")]
+fitMeasures(mod.fit.Va)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
+
+lambda[,"lavVa"] <- lavInspect(mod.fit.Va,what = 'est')$lambda
+lambda
+
+#getting tau values
+lavInspect(mod.fit.Va,what = 'est')$tau
+tau[,"lavVa"] <- lavInspect(mod.fit.Va,what = 'est')$tau
+tau
+
+#LRV mean and var
+mu <- lavInspect(mod.fit.Va,what = 'mu')
+vy <- lavInspect(mod.fit.Va,what = 'vy')
+
+
+
+
+#getting mean values
+lavInspect(mod.fit.IIIa,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.Va,what = 'est')$alpha
+alpha
+
+
+#getting cov values
+lavInspect(mod.fit.Va,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.Va,what = 'est')$psi)
+theta_var
+
+
+
+
+
+for(i in seq(1,5,1)){# i items
+  item.a[i,"lavVa"] <- lambda[i,"lavVa"]*sqrt(theta_var)/sqrt(1-lambda[i,"lavVa"]*lambda[i,"lavVa"]*theta_var)*1.7
+  item.d[i,"lavVa"] <- (-tau[i,"lavVa"]+lambda[i,"lavVa"]*alpha)/sqrt(1-lambda[i,"lavVa"]*lambda[i,"lavVa"]*theta_var)*1.7
+}
+
+item.a
+item.d
+lambda
+tau
+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavVa))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de a")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavVa))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de d")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+cowplot::plot_grid(a,b,nrow=1)
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+# offset coding
+# std.lv = FALSE
+
+mod2ind4lv1_parametros_Vb <- function(){}
+
+constraint.Vb <- '
+
+lmbd1+lmbd2+lmbd3+lmbd4+lmbd5 ==5
+thr1+thr2+thr3+thr4+thr5 ==0
+
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
+
+1== lmbd1*lmbd1*lv1var + var1
+1== lmbd2*lmbd2*lv1var + var2
+1== lmbd3*lmbd3*lv1var + var3
+1== lmbd4*lmbd4*lv1var + var4
+1== lmbd5*lmbd5*lv1var + var5
+'
+
+cat(mod_noconstraints)
+
+
+mod.fit.Vb <- lavaan(mod_noconstraints, 
+                     data = dat, 
+                     int.ov.free = TRUE, # intercepts
+                     int.lv.free = FALSE,
+                     std.lv =FALSE,
+                     fixed.x = FALSE,
+                     meanstructure = TRUE,
+                     auto.fix.first = FALSE,
+                     auto.fix.single = TRUE,
+                     auto.var = TRUE,
+                     auto.th = TRUE,
+                     auto.cov.lv.x = TRUE,
+                     auto.cov.y = TRUE,
+                     auto.delta = TRUE,
+                     ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                     parameterization = "delta",
+                     constraints = constraint.Vb)
+
+summary(mod.fit.Vb)
+fitmeasures(mod.fit.Vb)[c("tli","cfi","rmsea")]
+fitMeasures(mod.fit.Vb)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
+
+lambda[,"lavVb"] <- lavInspect(mod.fit.Vb,what = 'est')$lambda
+lambda
+
+#getting tau values
+lavInspect(mod.fit.Vb,what = 'est')$tau
+tau[,"lavVb"] <- lavInspect(mod.fit.Vb,what = 'est')$tau
+tau
+
+#LRV mean and var
+mu <- lavInspect(mod.fit.Vb,what = 'mu')
+vy <- lavInspect(mod.fit.Vb,what = 'vy')
+
+
+#getting mean values
+lavInspect(mod.fit.Vb,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.Vb,what = 'est')$alpha
+alpha
+
+
+#getting cov values
+lavInspect(mod.fit.Vb,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.Vb,what = 'est')$psi)
+theta_var
+
+
+
+
+
+for(i in seq(1,5,1)){# i items
+  item.a[i,"lavVb"] <- lambda[i,"lavVb"]*sqrt(theta_var)/sqrt(1-lambda[i,"lavVb"]*lambda[i,"lavVb"]*theta_var)*1.7
+  item.d[i,"lavVb"] <- (-tau[i,"lavVb"]+lambda[i,"lavVb"]*alpha)/sqrt(1-lambda[i,"lavVb"]*lambda[i,"lavVb"]*theta_var)*1.7
+}
+
+item.a
+item.d
+lambda
+tau
+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavVb))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de a")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavVb))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de d")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+cowplot::plot_grid(a,b,nrow=1)
+
+
+mod2ind4lv1_parametros_VIa <- function(){}
+
+constraint.VIa <- '
+
+lmbd1+lmbd2+lmbd3+lmbd4+lmbd5==5
+thr1==0
+
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
+
+1== var1
+1== var2
+1== var3
+1== var4
+1== var5
+'
+
+cat(mod_noconstraints)
+
+
+mod.fit.VIa <- lavaan(mod_noconstraints, 
+                     data = dat, 
+                     int.ov.free = TRUE, # intercepts
+                     int.lv.free = FALSE,
+                     std.lv =FALSE,
+                     fixed.x = FALSE,
+                     meanstructure = TRUE,
+                     auto.fix.first = FALSE,
+                     auto.fix.single = TRUE,
+                     auto.var = TRUE,
+                     auto.th = TRUE,
+                     auto.cov.lv.x = TRUE,
+                     auto.cov.y = TRUE,
+                     auto.delta = TRUE,
+                     ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                     parameterization = "theta",
+                     constraints = constraint.VIa)
+
+summary(mod.fit.VIa)
+fitmeasures(mod.fit.VIa)[c("tli","cfi","rmsea")]
+fitMeasures(mod.fit.VIa)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
+
+lambda[,"lavVIa"] <- lavInspect(mod.fit.VIa,what = 'est')$lambda
+lambda
+
+#getting tau values
+lavInspect(mod.fit.IIIa,what = 'est')$tau
+tau[,"lavVIa"] <- lavInspect(mod.fit.VIa,what = 'est')$tau
+tau
+
+#LRV mean and var
+mu <- lavInspect(mod.fit.VIa,what = 'mu')
+vy <- lavInspect(mod.fit.VIa,what = 'vy')
+
+
+
+#getting mean values
+lavInspect(mod.fit.VIa,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.VIa,what = 'est')$alpha
+alpha
+
+
+#getting cov values
+lavInspect(mod.fit.VIa,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.VIa,what = 'est')$psi)
+theta_var
+
+
+
+
+
+for(i in seq(1,5,1)){# i items
+  item.a[i,"lavVIa"] <- lambda[i,"lavVIa"]*sqrt(theta_var)/sqrt(1-lambda[i,"lavVIa"]*lambda[i,"lavVIa"]*theta_var)*1.7
+  item.d[i,"lavVIa"] <- (-tau[i,"lavVIa"]+lambda[i,"lavVIa"]*alpha)/sqrt(1-lambda[i,"lavVIa"]*lambda[i,"lavVIa"]*theta_var)*1.7
+}
+
+item.a
+item.d
+lambda
+tau
+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavVIa))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de a")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavVIa))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de d")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+cowplot::plot_grid(a,b,nrow=1)
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+# offset coding
+# std.lv = FALSE
+
+mod2ind4lv1_parametros_VIb <- function(){}
+
+constraint.VIb <- '
+
+lmbd1+lmbd2+lmbd3+lmbd4+lmbd5 ==5
+thr1+thr2+thr3+thr4+thr5 ==0
+
+int1==0
+int2==0
+int3==0
+int4==0
+int5==0
+
+1== var1
+1== var2
+1== var3
+1== var4
+1== var5
+'
+
+cat(mod_noconstraints)
+
+
+mod.fit.VIb <- lavaan(mod_noconstraints, 
+                     data = dat, 
+                     int.ov.free = TRUE, # intercepts
+                     int.lv.free = FALSE,
+                     std.lv =FALSE,
+                     fixed.x = FALSE,
+                     meanstructure = TRUE,
+                     auto.fix.first = FALSE,
+                     auto.fix.single = TRUE,
+                     auto.var = TRUE,
+                     auto.th = TRUE,
+                     auto.cov.lv.x = TRUE,
+                     auto.cov.y = TRUE,
+                     auto.delta = TRUE,
+                     ordered = c("Item_1","Item_2","Item_3","Item_4","Item_5"),
+                     parameterization = "theta",
+                     constraints = constraint.VIb)
+
+summary(mod.fit.VIb)
+fitmeasures(mod.fit.VIb)[c("tli","cfi","rmsea")]
+fitMeasures(mod.fit.VIb)[c("chisq","pvalue","df",'tli',"cfi","rmsea","srmr")]
+
+lambda[,"lavVIb"] <- lavInspect(mod.fit.VIb,what = 'est')$lambda
+lambda
+
+#getting tau values
+lavInspect(mod.fit.VIb,what = 'est')$tau
+tau[,"lavVIb"] <- lavInspect(mod.fit.VIb,what = 'est')$tau
+tau
+
+#LRV mean and var
+mu <- lavInspect(mod.fit.VIb,what = 'mu')
+vy <- lavInspect(mod.fit.VIb,what = 'vy')
+
+
+#getting mean values
+lavInspect(mod.fit.VIb,what = 'est')$alpha # same as lavInspect(mod2ind4lv1.fit,what = "mean.lv")
+alpha <- lavInspect(mod.fit.VIb,what = 'est')$alpha
+alpha
+
+
+#getting cov values
+lavInspect(mod.fit.VIb,what = 'est')$psi # same as lavInspect(mod2ind4lv1.fit,what = "cov.lv")
+theta_var<- diag(lavInspect(mod.fit.VIb,what = 'est')$psi)
+theta_var
+
+
+
+
+
+for(i in seq(1,5,1)){# i items
+  item.a[i,"lavVIb"] <- lambda[i,"lavVIb"]*sqrt(theta_var)/sqrt(1-lambda[i,"lavVIb"]*lambda[i,"lavVIb"]*theta_var)*1.7
+  item.d[i,"lavVIb"] <- (-tau[i,"lavVIb"]+lambda[i,"lavVIb"]*alpha)/sqrt(1-lambda[i,"lavVIb"]*lambda[i,"lavVIb"]*theta_var)*1.7
+}
+
+item.a
+item.d
+lambda
+tau
+
+a <- ggplot(data=data.frame(item.a), aes(x=mirt,y=lavVIb))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de a")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+b<- ggplot(data=data.frame(item.d), aes(x=mirt,y=lavVIb))+
+  geom_point()+
+  geom_abline(slope=1,intercept = 0)+geom_text(aes(label=label, hjust = 0.5,  vjust = -1))+
+  ggtitle("Estimativas de d")+ 
+  xlab("MIRT")+
+  ylab("LAVAAN")+ coord_fixed()+theme_bw()
+
+cowplot::plot_grid(a,b,nrow=1)
+
+lavInspect(mod.fit.I,what = 'Sigma')
+lavInspect(mod.fit.II,what = 'Sigma')
+lavInspect(mod.fit.IIIa,what = 'Sigma')
+lavInspect(mod.fit.IIIb,what = 'Sigma')
+lavInspect(mod.fit.IVa,what = 'Sigma')
+lavInspect(mod.fit.IVb,what = 'Sigma')
+lavInspect(mod.fit.Va,what = 'Sigma')
+lavInspect(mod.fit.Vb,what = 'Sigma')
+lavInspect(mod.fit.VIa,what = 'Sigma')
+lavInspect(mod.fit.VIb,what = 'Sigma')
 
