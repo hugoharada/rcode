@@ -8,6 +8,10 @@ fit <- cfa(HS.model, data=HSbinary, ordered=names(HSbinary),
            parameterization = "theta")
 
 ## these don't match
+#OK, turns out for categorical data, 
+#"vy" is the model-implied variances of the latent item responses (not necessarily 1), 
+# whereas "sigma" will return the model-implied polychoric correlations (i.e., the diagonal will be 1s).  See below when using theta parameterization.
+
 lavInspect(fit, "sigma")
 lavInspect(fit, "vy")
 
