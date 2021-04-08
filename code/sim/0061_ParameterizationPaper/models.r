@@ -11,19 +11,33 @@ eta1_1 ~~ eta1_1_var*eta1_1
 eta1_1_mean==0
 
 ## Latent response variable (LRV) intercepts
-item1_1 ~ int1_1*1
-item2_1 ~ int2_1*1
-item3_1 ~ int3_1*1
-item4_1 ~ int4_1*1
-item5_1 ~ int5_1*1
-item6_1 ~ int6_1*1
-item7_1 ~ int7_1*1
-item8_1 ~ int8_1*1
-item9_1 ~ int9_1*1
+item1_1  ~ int1_1 *1
+item2_1  ~ int2_1 *1
+item3_1  ~ int3_1 *1
+item4_1  ~ int4_1 *1
+item5_1  ~ int5_1 *1
+item6_1  ~ int6_1 *1
+item7_1  ~ int7_1 *1
+item8_1  ~ int8_1 *1
+item9_1  ~ int9_1 *1
 item10_1 ~ int10_1*1
 item11_1 ~ int11_1*1
 item12_1 ~ int12_1*1
 item13_1 ~ int13_1*1
+
+int1_1 ==0
+int2_1 ==0
+int3_1 ==0
+int4_1 ==0
+int5_1 ==0
+int6_1 ==0
+int7_1 ==0
+int8_1 ==0
+int9_1 ==0
+int10_1==0
+int11_1==0
+int12_1==0
+int13_1==0
 
 
 ## thresholds link  LRVs to observed items
@@ -40,8 +54,6 @@ item10_1 | thr10_1*t1
 item11_1 | thr11_1*t1
 item12_1 | thr12_1*t1
 item13_1 | thr13_1*t1
-
-#thr1_1 + thr2_1 + thr3_1 + thr4_1 + thr5_1 + thr6_1 + thr7_1 + thr8_1 + thr9_1 + thr10_1 + thr11_1 + thr12_1 + thr13_1==0
 
 ## LRVs (co)variances
 item1_1 ~~ var1_1*item1_1+ 0*item2_1+ 0*item3_1+ 0*item4_1+ 0*item5_1+ 0*item6_1+ 0*item7_1+ 0*item8_1+ 0*item9_1+ 0*item10_1+ 0*item11_1+ 0*item12_1+ 0*item13_1
@@ -279,6 +291,19 @@ mod.factor_parameterization.conditional_parameterization.free_threshold <- '
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
 
+  int1_1 ==0
+  int2_1 ==0
+  int3_1 ==0
+  int4_1 ==0
+  int5_1 ==0
+  int6_1 ==0
+  int7_1 ==0
+  int8_1 ==0
+  int9_1 ==0
+  int10_1==0
+  int11_1==0
+  int12_1==0
+  int13_1==0
 
     ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
@@ -505,6 +530,7 @@ mod.effects_coding.marginal_parameterization.free_threshold <- '
 #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
+  eta1_1_mean==0
 
 ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
@@ -520,23 +546,21 @@ mod.effects_coding.marginal_parameterization.free_threshold <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
 
-#Latent response variable (LRV) mean constraint
+  int1_1 ==0
+  int2_1 ==0
+  int3_1 ==0
+  int4_1 ==0
+  int5_1 ==0
+  int6_1 ==0
+  int7_1 ==0
+  int8_1 ==0
+  int9_1 ==0
+  int10_1==0
+  int11_1==0
+  int12_1==0
+  int13_1==0
 
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
 
 ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
@@ -596,6 +620,8 @@ mod.effects_coding.marginal_parameterization.free_intercept <- '
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
 
+  eta1_1_mean==0
+
 ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -610,7 +636,6 @@ mod.effects_coding.marginal_parameterization.free_intercept <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
 
 
 ## thresholds link  LRVs to observed items
@@ -777,6 +802,8 @@ mod.effects_coding.conditional_parameterization.free_threshold <- '
 #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
+  
+  eta1_1_mean==0
 
 ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
@@ -792,7 +819,21 @@ mod.effects_coding.conditional_parameterization.free_threshold <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
+
+  int1_1 ==0
+  int2_1 ==0
+  int3_1 ==0
+  int4_1 ==0
+  int5_1 ==0
+  int6_1 ==0
+  int7_1 ==0
+  int8_1 ==0
+  int9_1 ==0
+  int10_1==0
+  int11_1==0
+  int12_1==0
+  int13_1==0
+
 
 #Latent response variable (LRV) mean constraint
 
@@ -865,7 +906,8 @@ mod.effects_coding.conditional_parameterization.free_intercept <- '
 #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-
+	eta1_1_mean==0
+	
 ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -880,7 +922,6 @@ mod.effects_coding.conditional_parameterization.free_intercept <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
 
 ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
@@ -1040,6 +1081,7 @@ mod.reference_indicator.marginal_parameterization.free_threshold <- '
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
+  eta1_1_mean==0
   
   ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
@@ -1055,26 +1097,23 @@ mod.reference_indicator.marginal_parameterization.free_threshold <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-  int4_1==0
-    
-  #Latent response variable (LRV) mean constraint
-    
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
-    
-    ## thresholds link  LRVs to observed items
+
+  int1_1 ==0
+  int2_1 ==0
+  int3_1 ==0
+  int4_1 ==0
+  int5_1 ==0
+  int6_1 ==0
+  int7_1 ==0
+  int8_1 ==0
+  int9_1 ==0
+  int10_1==0
+  int11_1==0
+  int12_1==0
+  int13_1==0
+
+
+  ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
   item2_1 | thr2_1*t1
   item3_1 | thr3_1*t1
@@ -1128,7 +1167,8 @@ mod.reference_indicator.marginal_parameterization.free_intercept <- '
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-  
+	eta1_1_mean==0
+	
   ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -1143,9 +1183,7 @@ mod.reference_indicator.marginal_parameterization.free_intercept <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-  int4_1==0
-    
+
 
     ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
@@ -1304,7 +1342,8 @@ mod.reference_indicator.conditional_parameterization.free_threshold <- '
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-  
+  eta1_1_mean==0
+
   ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -1319,25 +1358,22 @@ mod.reference_indicator.conditional_parameterization.free_threshold <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-  int4_1==0
-    
-  #Latent response variable (LRV) mean constraint
-    
-  int1_1 + l1_1*eta1_1_mean == 0
-  int2_1 + l2_1*eta1_1_mean == 0
-  int3_1 + l3_1*eta1_1_mean == 0
-  int4_1 + l4_1*eta1_1_mean == 0
-  int5_1 + l5_1*eta1_1_mean == 0
-  int6_1 + l6_1*eta1_1_mean == 0
-  int7_1 + l7_1*eta1_1_mean == 0
-  int8_1 + l8_1*eta1_1_mean == 0
-  int9_1 + l9_1*eta1_1_mean == 0
-  int10_1 + l10_1*eta1_1_mean == 0
-  int11_1 + l11_1*eta1_1_mean == 0
-  int12_1 + l12_1*eta1_1_mean == 0
-  int13_1 + l13_1*eta1_1_mean == 0
-    
+
+	int1_1 ==0
+	int2_1 ==0
+	int3_1 ==0
+	int4_1 ==0
+	int5_1 ==0
+	int6_1 ==0
+	int7_1 ==0
+	int8_1 ==0
+	int9_1 ==0
+	int10_1==0
+	int11_1==0
+	int12_1==0
+	int13_1==0
+
+
     ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
   item2_1 | thr2_1*t1
@@ -1391,6 +1427,7 @@ mod.reference_indicator.conditional_parameterization.free_intercept <- '
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
+  eta1_1_mean==0
   
   ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
@@ -1406,9 +1443,7 @@ mod.reference_indicator.conditional_parameterization.free_intercept <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-  int4_1==0
-  
+
 
     ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
@@ -1564,7 +1599,8 @@ eta1_1=~l1_1*item1_1+l2_1*item2_1+l3_1*item3_1+l4_1*item4_1+l5_1*item5_1+l6_1*it
 #latent var means and var
 eta1_1 ~ eta1_1_mean*1
 eta1_1 ~~ eta1_1_var*eta1_1
-
+eta1_1_mean==0
+	
 ## Latent response variable (LRV) intercepts
 item1_1 ~ int1_1*1
 item2_1 ~ int2_1*1
@@ -1580,7 +1616,6 @@ item11_1 ~ int11_1*1
 item12_1 ~ int12_1*1
 item13_1 ~ int13_1*1
 
-int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1==0
 
 ## thresholds link  LRVs to observed items
 item1_1 | thr1_1*t1
@@ -1650,7 +1685,8 @@ mod.factor_parameterization.conditional_parameterization.free_intercept.threqu0p
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-  
+  eta1_1_mean==0
+  	
   ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -1665,8 +1701,7 @@ mod.factor_parameterization.conditional_parameterization.free_intercept.threqu0p
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-    
+
     ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
   item2_1 | thr2_1*t1
@@ -1910,7 +1945,8 @@ mod.effects_coding.marginal_parameterization.free_intercept.threqu0p5 <- '
 #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-
+	eta1_1_mean==0
+	
 ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -1925,7 +1961,6 @@ mod.effects_coding.marginal_parameterization.free_intercept.threqu0p5 <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
 
 
 ## thresholds link  LRVs to observed items
@@ -2000,7 +2035,8 @@ mod.effects_coding.conditional_parameterization.free_intercept.threqu0p5 <- '
 #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-
+	eta1_1_mean==0
+	
 ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -2015,7 +2051,6 @@ mod.effects_coding.conditional_parameterization.free_intercept.threqu0p5 <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
 
 ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
@@ -2086,7 +2121,8 @@ mod.reference_indicator.conditional_parameterization.free_intercept.threqu0p5 <-
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-  
+	eta1_1_mean==0
+	
   ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -2101,9 +2137,7 @@ mod.reference_indicator.conditional_parameterization.free_intercept.threqu0p5 <-
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-  int4_1==0
-  
+
 
     ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
@@ -2174,7 +2208,8 @@ mod.reference_indicator.marginal_parameterization.free_intercept.threqu0p5 <- '
   #latent var means and var
   eta1_1 ~ eta1_1_mean*1
   eta1_1 ~~ eta1_1_var*eta1_1
-  
+	eta1_1_mean==0
+	
   ## Latent response variable (LRV) intercepts
   item1_1 ~ int1_1*1
   item2_1 ~ int2_1*1
@@ -2189,9 +2224,7 @@ mod.reference_indicator.marginal_parameterization.free_intercept.threqu0p5 <- '
   item11_1 ~ int11_1*1
   item12_1 ~ int12_1*1
   item13_1 ~ int13_1*1
-  #int1_1 + int2_1 + int3_1 + int4_1 + int5_1 + int6_1 + int7_1 + int8_1 + int9_1 + int10_1 + int11_1 + int12_1 + int13_1 ==0
-  int4_1==0
-    
+
 
     ## thresholds link  LRVs to observed items
   item1_1 | thr1_1*t1
