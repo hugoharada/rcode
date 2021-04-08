@@ -92,20 +92,20 @@ irt_param_calc2 <- function(lambda, nu, tau, psi,alpha){
 irt_param_calc <- function(lambda, nu, tau, alpha,psi,parameterization){
   
   a <- switch(parameterization,
-    ff_dm = {lambda/sqrt(1-lambda^2)*1.7},
-    ff_tc = {lambda*1.7},
-    im_dm = {lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)},
-    im_tc = {lambda*sqrt(psi)*1.7},
-    ie_dm = {lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)},
-    ie_tc = {lambda*sqrt(psi)*1.7}
+    fp_mp = {lambda/sqrt(1-lambda^2)*1.7},
+    fp_cp = {lambda*1.7},
+    ri_mp = {lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)},
+    ri_cp = {lambda*sqrt(psi)*1.7},
+    ec_mp = {lambda*sqrt(psi)*1.7 / sqrt( 1 - psi*lambda^2)},
+    ec_cp = {lambda*sqrt(psi)*1.7}
   )
   d <- switch(parameterization,
-    ff_dm = {(nu - tau)/sqrt(1-lambda^2)*1.7},
-    ff_tc = {(nu - tau)*1.7},
-    im_dm = {(nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)},
-    im_tc = {(nu - tau + lambda*alpha)*1.7},
-    ie_dm = {(nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)},
-    ie_tc = {(nu - tau + lambda*alpha)*1.7}
+    fp_mp = {(nu - tau)/sqrt(1-lambda^2)*1.7},
+    fp_cp = {(nu - tau)*1.7},
+    ri_mp = {(nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)},
+    ri_cp = {(nu - tau + lambda*alpha)*1.7},
+    ec_mp = {(nu - tau + lambda*alpha)*1.7 / sqrt( 1 - psi*lambda^2)},
+    ec_cp = {(nu - tau + lambda*alpha)*1.7}
   )
   
   b <- -d/a
@@ -333,11 +333,11 @@ plot_cci <- function(a=1,b,c=0,n=200,filename=NULL,item_id="", plot_info=FALSE){
 data_creation <-function(){}
 
 #carregando modelos
-#source("./models.r")
+source("./models.r")
 
 set.seed(12) # Resetando a semente
 N <- 1500    ## subjects
-loopn <-50   ## number of runs
+loopn <-10   ## number of runs
 #N <- 10000 ## subjects
 #loopn <-500   ## number of runs
 
@@ -347,7 +347,7 @@ I= 13  # Number of Items
 PL=2 # Logistic Model (1,2,3 parameters)
 SigmaType <- 1 # 0 = Covariance Uniform, 1 = Covariancia AR1, 2 =  Covariancia de bandas 3 = Covariancia Nula
 rho<-0.7
-y_star_mean <- 3 #'0p0'=1,'0p5'=2, '1p0'=3 
+y_star_mean <- 1 #'0p0'=1,'0p5'=2, '1p0'=3 
 mu<-c(0,0.5,1)
 coefs <- matrix(ncol=6,nrow=I)
 colnames(coefs)=c("a1","b1","c1","a2","b2","c2")
@@ -395,36 +395,49 @@ if(SigmaType==0){
 }
 Sigma
 
-# 1  fixed_factor,		  delta_marginal 		  ystar_thre_free  	<-	"ff_dm_yt"
-# 2  fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym"
-# 3  fixed_factor, 		  theta_conditional	  ystar_thre_free 	<- 	"ff_tc_yt"
-# 4  fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym"
+# 1  factor_parameterization, marginal_parameterization 	  free_threshold 	<-	"fp_mp_ft"
+# 2  factor_parameterization, marginal_parameterization 	  free_intercept 	<-	"fp_mp_fi"
+# 3  factor_parameterization, conditional_parameterization  free_threshold 	<- 	"fp_cp_ft"
+# 4  factor_parameterization, conditional_parameterization  free_intercept 	<- 	"fp_cp_fi"
 
-# 5  indicator_marker, 	delta_marginal 		  ystar_thre_free 	<- 	"im_dm_yt"
-# 6  indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym"
-# 7  indicator_marker, 	theta_conditional 	ystar_thre_free 	<-  "im_tc_yt"
-# 8  indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym"
+# 5  reference_indicator,     marginal_parameterization 		free_threshold 	<- 	"ri_mp_ft"
+# 6  reference_indicator,     marginal_parameterization 		free_intercept 	<- 	"ri_mp_fi"
+# 7  reference_indicator,     conditional_parameterization 	free_threshold 	<-  "ri_cp_ft"
+# 8  reference_indicator,     conditional_parameterization 	free_intercept 	<-  "ri_cp_fi"
 
-# 9  indicator_effects, delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
-# 10 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
-# 11 indicator_effects, theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
-# 12 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
+# 9  effects_coding,          marginal_parameterization     free_threshold 	<- 	"ec_mp_ft"
+# 10 effects_coding,          marginal_parameterization     free_intercept 	<- 	"ec_mp_fi"
+# 11 effects_coding,          conditional_parameterization  free_threshold 	<-	"ec_cp_ft"
+# 12 effects_coding,          conditional_parameterization  free_intercept 	<-	"ec_cp_fi"
 
-# 13 fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym_t0p5" threshold=0.5
-# 14 fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym_t0p5" threshold=0.5
-# 15 indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym_t0p5" threshold=0.5
-# 16 indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym_t0p5" threshold=0.5
-# 17 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym_t0p5" threshold=0.5
-# 18 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
+# 13 factor_parameterization,	marginal_parameterization     free_intercept  <-	"fp_mp_fi_t0p5" threshold=0.5
+# 14 factor_parameterization, conditional_parameterization  free_intercept 	<- 	"fp_cp_fi_t0p5" threshold=0.5
+# 15 reference_indicator, 	  marginal_parameterization     free_intercept 	<- 	"ri_mp_fi_t0p5" threshold=0.5
+# 16 reference_indicator, 	  conditional_parameterization  free_intercept 	<-  "ri_cp_fi_t0p5" threshold=0.5
+# 17 effects_coding,          marginal_parameterization     free_intercept 	<- 	"ec_mp_fi_t0p5" threshold=0.5
+# 18 effects_coding,          conditional_parameterization  free_intercept 	<-	"ec_cp_fi_t0p5" threshold=0.5
+
+# 19 factor_parameterization, marginal_parameterization,          free_mean <- "fp_mp_fm"
+# 20 factor_parameterization, conditional_parameterization,       free_mean <- "fp_cp_fm"
+# 21 reference_indicator,     marginal_parameterization,          free_mean <- "ri_mp_fm"
+# 22 reference_indicator, 	  conditional_parameterization,	      free_mean <- "ri_cp_fm"
+# 23 effects_coding,          marginal_parameterization,          free_mean <- "ec_mp_fm"
+# 24 effects_coding,          conditional_parameterization,       free_mean <- "ec_cp_fm"
+
+
+
+
 
 working1 <- function(){}
 
-experiments <- c("sim", "mirt", "ff_dm_yt","ff_dm_ym","ff_tc_yt","ff_tc_ym",
-                 "im_dm_yt","im_dm_ym","im_tc_yt","im_tc_ym",
-                 "ie_dm_yt","ie_dm_ym","ie_tc_yt","ie_tc_ym",
-                 "ff_dm_ym_t0p5","ff_tc_ym_t0p5",
-                 "im_dm_ym_t0p5","im_tc_ym_t0p5",
-                 "ie_dm_ym_t0p5","ie_tc_ym_t0p5")
+experiments <- c("sim", "mirt", "fp_mp_ft","fp_mp_fi","fp_cp_ft","fp_cp_fi",
+                 "ri_mp_ft","ri_mp_fi","ri_cp_ft","ri_cp_fi",
+                 "ec_mp_ft","ec_mp_fi","ec_cp_ft","ec_cp_fi",
+                 "fp_mp_fi_t0p5","fp_cp_fi_t0p5",
+                 "ri_mp_fi_t0p5","ri_cp_fi_t0p5",
+                 "ec_mp_fi_t0p5","ec_cp_fi_t0p5",
+                 "fp_mp_fm","fp_cp_fm","ri_mp_fm","ri_cp_fm","ec_mp_fm","ec_cp_fm"
+                 )
 names(experiments) <- c("sim","mirt",1:(length(experiments)-2))  
 
 placeholder <- matrix(data=rep(NA,length(experiments)*I),ncol = length(experiments),nrow = I)
@@ -480,8 +493,8 @@ loop_tmp.init <-list(
   psi = loop_placeholder_vector,
   alpha = loop_placeholder_vector,
   eta = list(sim = list(mean = loop_placeholder_vector, sd = loop_placeholder_vector),
-             eap = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector),
-             ebm = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector),
+             eap = list(mean = loop_placeholder_vector, sd= loop_placeholder_vector),
+             ebm = list(mean = loop_placeholder_vector, sd= loop_placeholder_vector),
              ml = list(mean = loop_placeholder_vector,  sd= loop_placeholder_vector)),
   fit = list(tli = loop_placeholder_vector,
              cfi = loop_placeholder_vector,
@@ -566,165 +579,216 @@ est.param$b$mean
 
 
 
-# 1  fixed_factor,		  delta_marginal 		  ystar_thre_free  	<-	"ff_dm_yt"
-# 2  fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym"
-# 3  fixed_factor, 		  theta_conditional	  ystar_thre_free 	<- 	"ff_tc_yt"
-# 4  fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym"
+# 1  factor_parameterization, marginal_parameterization 	  free_threshold  	<-	"fp_mp_ft"
+# 2  factor_parameterization, marginal_parameterization 	  free_intercept  	<-	"fp_mp_fi"
+# 3  factor_parameterization, conditional_parameterization  free_threshold 	<- 	"fp_cp_ft"
+# 4  factor_parameterization, conditional_parameterization  free_intercept 	<- 	"fp_cp_fi"
 
-# 5  indicator_marker, 	delta_marginal 		  ystar_thre_free 	<- 	"im_dm_yt"
-# 6  indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym"
-# 7  indicator_marker, 	theta_conditional 	ystar_thre_free 	<-  "im_tc_yt"
-# 8  indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym"
+# 5  reference_indicator,     marginal_parameterization 		free_threshold 	<- 	"ri_mp_ft"
+# 6  reference_indicator,     marginal_parameterization 		free_intercept 	<- 	"ri_mp_fi"
+# 7  reference_indicator,     conditional_parameterization 	free_threshold 	<-  "ri_cp_ft"
+# 8  reference_indicator,     conditional_parameterization 	free_intercept 	<-  "ri_cp_fi"
 
-# 9  indicator_effects, delta_marginal   	  ystar_thre_free 	<- 	"ie_dm_yt"
-# 10 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym"
-# 11 indicator_effects, theta_conditional 	ystar_thre_free 	<-	"ie_tc_yt"
-# 12 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym"
+# 9  effects_coding,          marginal_parameterization     free_threshold 	<- 	"ec_mp_ft"
+# 10 effects_coding,          marginal_parameterization     free_intercept 	<- 	"ec_mp_fi"
+# 11 effects_coding,          conditional_parameterization  free_threshold 	<-	"ec_cp_ft"
+# 12 effects_coding,          conditional_parameterization  free_intercept 	<-	"ec_cp_fi"
 
-# 13 fixed_factor,		  delta_marginal 		  ystar_mean_free  	<-	"ff_dm_ym_t0p5" threshold=0.5
-# 14 fixed_factor, 		  theta_conditional	  ystar_mean_free 	<- 	"ff_tc_ym_t0p5" threshold=0.5
-# 15 indicator_marker, 	delta_marginal 		  ystar_mean_free 	<- 	"im_dm_ym_t0p5" threshold=0.5
-# 16 indicator_marker, 	theta_conditional 	ystar_mean_free 	<-  "im_tc_ym_t0p5" threshold=0.5
-# 17 indicator_effects, delta_marginal   	  ystar_mean_free 	<- 	"ie_dm_ym_t0p5" threshold=0.5
-# 18 indicator_effects, theta_conditional 	ystar_mean_free 	<-	"ie_tc_ym_t0p5" threshold=0.5
+# 13 factor_parameterization,	marginal_parameterization     free_intercept  <-	"fp_mp_fi_t0p5" threshold=0.5
+# 14 factor_parameterization, conditional_parameterization  free_intercept 	<- 	"fp_cp_fi_t0p5" threshold=0.5
+# 15 reference_indicator, 	  marginal_parameterization     free_intercept 	<- 	"ri_mp_fi_t0p5" threshold=0.5
+# 16 reference_indicator, 	  conditional_parameterization  free_intercept 	<-  "ri_cp_fi_t0p5" threshold=0.5
+# 17 effects_coding,          marginal_parameterization     free_intercept 	<- 	"ec_mp_fi_t0p5" threshold=0.5
+# 18 effects_coding,          conditional_parameterization  free_intercept 	<-	"ec_cp_fi_t0p5" threshold=0.5
+
+# 19 factor_parameterization, marginal_parameterization, 	  free_mean  	<-	"fp_mp_fm"
+# 20 factor_parameterization, conditional_parameterization, free_mean 	<- 	"fp_cp_fm"
+# 21 reference_indicator,     marginal_parameterization, 	  free_mean 	<- 	"ri_mp_fm"
+# 22 reference_indicator, 	  conditional_parameterization,	free_mean 	<-  "ri_cp_fm"
+# 23 effects_coding,          marginal_parameterization,    free_mean 	<- 	"ec_mp_fm"
+# 24 effects_coding,          conditional_parameterization, free_mean 	<-	"ec_cp_fm"
+
+
+
 
 working <- function(){}
 
 itemnames <- paste("item",1:I,"_",1,sep="")
 
-for(sim in 1:18){
-#for(sim in c(16:18)){
+#for(sim in 1:18){
+for(sim in c(19:24)){
 #for(sim in c(12:12)){
     #for(sim in c(13:14)){
     
   switch (sim,
     {#1
-      param_index <-"ff_dm_yt"
-      calc_sel <- "ff_dm"
+      param_index <-"fp_mp_ft"
+      calc_sel <- "fp_mp"
       std_lv <- TRUE
       delta_theta <- "delta"
-      sem.model <- mod.fixed_factor.delta_marginal.ystar_thre_free
+      sem.model <- mod.factor_parameterization.marginal_parameterization.free_threshold
     },
     {#2
-      param_index <-"ff_dm_ym"
-      calc_sel <- "ff_dm"
+      param_index <-"fp_mp_fi"
+      calc_sel <- "fp_mp"
       std_lv <- TRUE
       delta_theta <- "delta"
-      sem.model <- mod.fixed_factor.delta_marginal.ystar_mean_free
+      sem.model <- mod.factor_parameterization.marginal_parameterization.free_intercept
     },
     {#3
-      param_index <-"ff_tc_yt"
-      calc_sel <- "ff_tc"
+      param_index <-"fp_cp_ft"
+      calc_sel <- "fp_cp"
       std_lv <- TRUE
       delta_theta <- "theta"
-      sem.model <- mod.fixed_factor.theta_conditional.ystar_thre_free
+      sem.model <- mod.factor_parameterization.conditional_parameterization.free_threshold
     },
     {#4
-      param_index <-"ff_tc_ym"
-      calc_sel <- "ff_tc"
+      param_index <-"fp_cp_fi"
+      calc_sel <- "fp_cp"
       std_lv <- TRUE
       delta_theta <- "theta"
-      sem.model <- mod.fixed_factor.theta_conditional.ystar_mean_free
+      sem.model <- mod.factor_parameterization.conditional_parameterization.free_intercept
     },
     {#5
-      param_index <-"im_dm_yt"
-      calc_sel <- "im_dm"
+      param_index <-"ri_mp_ft"
+      calc_sel <- "ri_mp"
       std_lv <- FALSE
       delta_theta <- "delta"
-      sem.model <- mod.indicator_marker.delta_marginal.ystar_thre_free
+      sem.model <- mod.reference_indicator.marginal_parameterization.free_threshold
     },
     {#6
-      param_index <-"im_dm_ym"
-      calc_sel <- "im_dm"
+      param_index <-"ri_mp_fi"
+      calc_sel <- "ri_mp"
       std_lv <- FALSE
       delta_theta <- "delta"
-      sem.model <- mod.indicator_marker.delta_marginal.ystar_mean_free
+      sem.model <- mod.reference_indicator.marginal_parameterization.free_intercept
     },
     {#7
-      param_index <-"im_tc_yt"
-      calc_sel <- "im_tc"
+      param_index <-"ri_cp_ft"
+      calc_sel <- "ri_cp"
       std_lv <- FALSE
       delta_theta <- "theta"
-      sem.model <- mod.indicator_marker.theta_conditional.ystar_thre_free
+      sem.model <- mod.reference_indicator.conditional_parameterization.free_threshold
     },
     {#8
-      param_index <-"im_tc_ym"
-      calc_sel <- "im_tc"
+      param_index <-"ri_cp_fi"
+      calc_sel <- "ri_cp"
       std_lv <- FALSE
       delta_theta <- "theta"
-      sem.model <- mod.indicator_marker.theta_conditional.ystar_mean_free
+      sem.model <- mod.reference_indicator.conditional_parameterization.free_intercept
     },
     {#9
-      param_index <-"ie_dm_yt"
-      calc_sel <- "ie_dm"
+      param_index <-"ec_mp_ft"
+      calc_sel <- "ec_mp"
       std_lv <- FALSE
       delta_theta <- "delta"
-      sem.model <- mod.indicator_effects.delta_marginal.ystar_thre_free
+      sem.model <- mod.effects_coding.marginal_parameterization.free_threshold
     },
     {#10
-      param_index <-"ie_dm_ym"
-      calc_sel <- "ie_dm"
+      param_index <-"ec_mp_fi"
+      calc_sel <- "ec_mp"
       std_lv <- FALSE
       delta_theta <- "delta"
-      sem.model <- mod.indicator_effects.delta_marginal.ystar_mean_free
+      sem.model <- mod.effects_coding.marginal_parameterization.free_intercept
     },
     {#11
-      param_index <-"ie_tc_yt"
-      calc_sel <- "ie_tc"
+      param_index <-"ec_cp_ft"
+      calc_sel <- "ec_cp"
       std_lv <- FALSE
       delta_theta <- "theta"
-      sem.model <- mod.indicator_effects.theta_conditional.ystar_thre_free
+      sem.model <- mod.effects_coding.conditional_parameterization.free_threshold
     },
     {#12
-      param_index <-"ie_tc_ym"
-      calc_sel <- "ie_tc"
+      param_index <-"ec_cp_fi"
+      calc_sel <- "ec_cp"
       std_lv <- FALSE
       delta_theta <- "theta"
-      sem.model <- mod.indicator_effects.theta_conditional.ystar_mean_free
+      sem.model <- mod.effects_coding.conditional_parameterization.free_intercept
     },
     {#13
-      param_index <-"ff_dm_ym_t0p5"
-      calc_sel <- "ff_dm"
+      param_index <-"fp_mp_fi_t0p5"
+      calc_sel <- "fp_mp"
       std_lv <- TRUE
       delta_theta <- "delta"
-      sem.model <- mod.fixed_factor.delta_marginal.ystar_mean_free.threqu0p5
+      sem.model <- mod.factor_parameterization.marginal_parameterization.free_intercept.threqu0p5
     },
     {#14
-      param_index <-"ff_tc_ym_t0p5"
-      calc_sel <- "ff_tc"
+      param_index <-"fp_cp_fi_t0p5"
+      calc_sel <- "fp_cp"
       std_lv <- TRUE
       delta_theta <- "theta"
-      sem.model <- mod.fixed_factor.theta_conditional.ystar_mean_free.threqu0p5
+      sem.model <- mod.factor_parameterization.conditional_parameterization.free_intercept.threqu0p5
     },
     {#15
-      param_index <-"im_dm_ym_t0p5"
-      calc_sel <- "im_dm"
+      param_index <-"ri_mp_fi_t0p5"
+      calc_sel <- "ri_mp"
       std_lv <- FALSE
       delta_theta <- "delta"
-      sem.model <- mod.indicator_marker.delta_marginal.ystar_mean_free.threqu0p5
+      sem.model <- mod.reference_indicator.marginal_parameterization.free_intercept.threqu0p5
     },
     {#16
-      param_index <-"im_tc_ym_t0p5"
-      calc_sel <- "im_tc"
+      param_index <-"ri_cp_fi_t0p5"
+      calc_sel <- "ri_cp"
       std_lv <- FALSE
       delta_theta <- "theta"
-      sem.model <- mod.indicator_marker.theta_conditional.ystar_mean_free.threqu0p5
+      sem.model <- mod.reference_indicator.conditional_parameterization.free_intercept.threqu0p5
     },
     {#17
-      param_index <-"ie_dm_ym_t0p5"
-      calc_sel <- "ie_dm"
+      param_index <-"ec_mp_fi_t0p5"
+      calc_sel <- "ec_mp"
       std_lv <- FALSE
       delta_theta <- "delta"
-      sem.model <- mod.indicator_effects.delta_marginal.ystar_mean_free.threqu0p5
+      sem.model <- mod.effects_coding.marginal_parameterization.free_intercept.threqu0p5
     },
     {#18
-      param_index <-"ie_tc_ym_t0p5"
-      calc_sel <- "ie_tc"
+      param_index <-"ec_cp_fi_t0p5"
+      calc_sel <- "ec_cp"
       std_lv <- FALSE
       delta_theta <- "theta"
-      sem.model <- mod.indicator_marker.theta_conditional.ystar_mean_free.threqu0p5
+      sem.model <- mod.reference_indicator.conditional_parameterization.free_intercept.threqu0p5
+    },
+    {#19
+      param_index <-"fp_mp_fm"
+      calc_sel <- "fp_mp"
+      std_lv <- TRUE
+      delta_theta <- "delta"
+      sem.model <- mod.factor_parameterization.marginal_parameterization.free_mean
+    },
+    {#20
+      param_index <-"fp_cp_fm"
+      calc_sel <- "fp_cp"
+      std_lv <- TRUE
+      delta_theta <- "theta"
+      sem.model <- mod.factor_parameterization.conditional_parameterization.free_mean
+    },
+    {#21
+      param_index <-"ri_mp_fm"
+      calc_sel <- "ri_mp"
+      std_lv <- FALSE
+      delta_theta <- "delta"
+      sem.model <- mod.reference_indicator.marginal_parameterization.free_mean
+    },
+    {#22
+      param_index <-"ri_cp_fm"
+      calc_sel <- "ri_cp"
+      std_lv <- FALSE
+      delta_theta <- "theta"
+      sem.model <- mod.reference_indicator.conditional_parameterization.free_mean
+    },
+    {#23
+      param_index <-"ec_mp_fm"
+      calc_sel <- "ec_mp"
+      std_lv <- FALSE
+      delta_theta <- "delta"
+      sem.model <- mod.effects_coding.marginal_parameterization.free_mean
+    },
+    {#24
+      param_index <-"ec_cp_fm"
+      calc_sel <- "ec_cp"
+      std_lv <- FALSE
+      delta_theta <- "theta"
+      sem.model <- mod.effects_coding.conditional_parameterization.free_mean
     }
-    
   )
 
   loop_tmp <- loop_tmp.init
@@ -737,6 +801,7 @@ for(sim in 1:18){
     colnames(dat)<- itemnames
     remove_var(mod.fit)
     start_time <- get_time()
+    print(toString(param_index))
     mod.fit <- lavaan(model = sem.model, 
                       data = dat, 
                       std.lv = std_lv,
